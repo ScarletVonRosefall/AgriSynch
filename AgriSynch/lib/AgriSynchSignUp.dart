@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+final storage = FlutterSecureStorage();
 
 class AgriSynchSignUpPage
     extends
@@ -302,27 +305,55 @@ class _SignUpPageState
                         Center(
                           child: ElevatedButton(
                             onPressed: () {
+                              final name = nameController.text.trim();
                               final email = emailController.text.trim();
                               final pass = passController.text;
-                              if (!isValidEmail(
-                                email,
-                              )) {
-                                showError(
-                                  "Please enter a valid email address.",
-                                );
+
+                              if (name.isEmpty) {
+                                showError("Please enter your name.");
                                 return;
                               }
-                              if (!isValidPassword(
-                                pass,
-                              )) {
-                                showError(
-                                  "Password must be at least 6 characters and include a letter and a number.",
-                                );
+                              if (!isValidEmail(email)) {
+                                showError("Please enter a valid email address.");
                                 return;
                               }
-                              Navigator.pushNamed(
-                                context,
-                                '/verify',
+                              if (!isValidPassword(pass)) {
+                                showError("Password must be at least 6 characters and include a letter and a number.");
+                                return;
+                              }
+                                // Show role selection dialog
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text("Which one are you?"),
+                                    content: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        ElevatedButton(
+                                            onPressed: () async {
+                                              await storage.write(key: 'name', value: name.trim());
+                                              await storage.write(key: 'email', value: email.trim());
+                                              await storage.write(key: 'role', value: 'Seller');
+                                              await storage.write(key: 'password', value: pass.trim());
+                                              Navigator.pop(context); // Close dialog
+                                              Navigator.pushReplacementNamed(context, '/login');
+                                            },
+                                            child: const Text("Seller"),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              await storage.write(key: 'name', value: name.trim());
+                                              await storage.write(key: 'email', value: email.trim());
+                                              await storage.write(key: 'role', value: 'Buyer');
+                                              await storage.write(key: 'password', value: pass.trim());
+                                              Navigator.pop(context); // Close dialog
+                                              Navigator.pushReplacementNamed(context, '/login');
+                                            },
+                                            child: const Text("Buyer"),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                               );
                             },
                             style: ElevatedButton.styleFrom(

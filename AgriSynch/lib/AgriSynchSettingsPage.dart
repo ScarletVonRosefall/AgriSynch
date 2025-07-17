@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'AgriSynchHomePage.dart'; // Replace with your actual page files
 import 'AgriSynchOrdersPage.dart';
 import 'AgriSynchSettingsPage.dart'; // This file itself
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+final storage = FlutterSecureStorage();
 
 class AgriSynchSettingsPage
     extends
@@ -18,23 +21,29 @@ class AgriSynchSettingsPage
 }
 
 class _AgriSynchSettingsPageState
-    extends
-        State<
-          AgriSynchSettingsPage
-        > {
+    extends State<AgriSynchSettingsPage> {
   int _currentIndex = 2; // Settings tab
-  List<
-    bool
-  >
-  _expanded = List.generate(
-    6,
-    (
-      _,
-    ) => false,
-  );
+  List<bool> _expanded = List.generate(6, (_) => false);
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
 
+  // User info variables
+  String userName = '';
+  String userEmail = '';
+  String userRole = '';
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserInfo();
+  }
+
+  Future<void> loadUserInfo() async {
+    userName = await storage.read(key: 'name') ?? '';
+    userEmail = await storage.read(key: 'email') ?? '';
+    userRole = await storage.read(key: 'role') ?? '';
+    setState(() {});
+  }
   void _onTabTapped(
     int index,
   ) {
@@ -125,15 +134,15 @@ class _AgriSynchSettingsPageState
                   ),
                   _infoRow(
                     "Name:",
-                    "Ryllie R Sky",
+                    userName,
                   ),
                   _infoRow(
                     "Email:",
-                    "kuunoinori@gmail.com",
+                    userEmail,
                   ),
                   _infoRow(
                     "Role:",
-                    "Seller",
+                    userRole,
                   ),
                   const SizedBox(
                     height: 8,
@@ -142,6 +151,12 @@ class _AgriSynchSettingsPageState
                     children: [
                       _actionButton(
                         "Change Password",
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/recover',
+                          );
+                        },
                       ),
                       const SizedBox(
                         width: 10,
@@ -149,7 +164,7 @@ class _AgriSynchSettingsPageState
                       _actionButton(
                         "Log Out",
                         onTap: () {
-                          // Handle logout logic here
+                           Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                         },
                       ),
                     ],

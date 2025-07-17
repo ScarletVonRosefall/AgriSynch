@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'AgriSynchCalendarPage.dart'; // Make sure this import exists
 
 class AgriSynchHomePage
@@ -20,6 +22,20 @@ class _AgriSynchHomePageState
         State<
           AgriSynchHomePage
         > {
+
+          final storage = FlutterSecureStorage();
+  String userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserName();
+  }
+
+  Future<void> loadUserName() async {
+    userName = await storage.read(key: 'name') ?? '';
+    setState(() {});
+  }
   @override
   Widget build(
     BuildContext context,
@@ -66,11 +82,11 @@ class _AgriSynchHomePageState
                     const SizedBox(
                       width: 10,
                     ),
-                    const Column(
+                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Good Morning!",
+                          "Good Morning${userName.isNotEmpty ? ' $userName' : ''}!",
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.bold,
@@ -79,7 +95,7 @@ class _AgriSynchHomePageState
                           ),
                         ),
                         Text(
-                          "AgriSynch User!",
+                          "Let's Get Tasks Done!",
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             color: Colors.white70,
@@ -101,9 +117,9 @@ class _AgriSynchHomePageState
                 const SizedBox(
                   height: 10,
                 ),
-                const Text(
-                  "Today is May 18, 2025",
-                  style: TextStyle(
+                Text(
+                  "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
+                  style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 14,
                     color: Colors.white70,

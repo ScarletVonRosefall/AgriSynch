@@ -5,6 +5,9 @@ import 'AgriSynchOrdersPage.dart';
 import 'AgriSynchSettingsPage.dart';
 import 'AgriSynchSignUp.dart';
 import 'AgriSynchLogin.dart';
+//import 'AgriSynchRecover.dart';
+import 'AgriSynchRecoverLocal.dart';
+import 'StorageViewer.dart';
 
 void
 main() {
@@ -47,6 +50,14 @@ class AgriSynchApp
             (
               context,
             ) => const AgriSynchHome(),
+        '/storage': 
+            (
+              context
+            ) => const StorageViewerPage(),
+        '/recover': 
+            (
+              context
+            ) => const AgriSynchRecoverLocal(), // Turn this Back To AgriSynchRecoverPage() if you want to use the remote recovery page
       },
       debugShowCheckedModeBanner: false,
     );
