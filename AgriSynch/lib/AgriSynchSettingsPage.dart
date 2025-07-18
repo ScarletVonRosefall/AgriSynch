@@ -149,224 +149,278 @@ class _AgriSynchSettingsPageState
       backgroundColor: const Color(
         0xFFF2FBE0,
       ),
-      appBar: AppBar(
-        backgroundColor: const Color(
-          0xFF00C853,
-        ),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Settings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-              ),
+      body: Column(
+        children: [
+          // --- Top Green Header ---
+          Container(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              40,
+              20,
+              20,
             ),
-            Text(
-              'Manage account & preferences',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color(
+                0xFF00C853,
               ),
-            ),
-          ],
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(
-          16,
-        ),
-        child: ListView(
-          children: [
-            _buildTile(
-              index: 0,
-              title: "Account Settings",
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Profile Information:",
-                  ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  _infoRow(
-                    "Name:",
-                    userName,
-                  ),
-                  _infoRow(
-                    "Email:",
-                    userEmail,
-                  ),
-                  _infoRow(
-                    "Role:",
-                    userRole,
-                  ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  Row(
-                    children: [
-                      _actionButton(
-                        "Change Password",
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/recover',
-                          );
-                        },
-                      ),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      _actionButton(
-                        "Log Out",
-                        onTap: () {
-                          Navigator.of(
-                            context,
-                          ).pushNamedAndRemoveUntil(
-                            '/login',
-                            (
-                              route,
-                            ) => false,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            _buildTile(
-              index: 1,
-              title: "Notifications",
-              child: SwitchListTile(
-                title: const Text(
-                  "Enable Notifications",
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(
+                  28,
                 ),
-                value: _notificationsEnabled,
-                onChanged:
-                    (
-                      value,
-                    ) {
-                      setState(
-                        () {
-                          _notificationsEnabled = value;
-                        },
-                      );
-                      updatePreference(
-                        'notifications',
-                        value,
-                      );
-                    },
-              ),
-            ),
-            _buildTile(
-              index: 2,
-              title: "System Preferences",
-              child: SwitchListTile(
-                title: const Text(
-                  "Dark Mode",
+                bottomRight: Radius.circular(
+                  28,
                 ),
-                value: _darkModeEnabled,
-                onChanged:
-                    (
-                      value,
-                    ) {
-                      setState(
-                        () {
-                          _darkModeEnabled = value;
-                        },
-                      );
-                      updatePreference(
-                        'dark_mode',
-                        value,
-                      );
-                      // Note: Apply dark mode globally if needed
-                    },
               ),
             ),
-            _buildTile(
-              index: 3,
-              title: "Data & Sync",
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 24,
+                  ),
+                ),
+                const SizedBox(
+                  height: 8,
+                ),
+                Text(
+                  'Manage account & preferences',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.white.withOpacity(
+                      0.8,
+                    ),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(
+            height: 16,
+          ),
+
+          // --- Main Content ---
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(
+                16,
+              ),
+              child: ListView(
                 children: [
-                  const Text(
-                    "Manage your local data and cloud sync.",
+                  _buildTile(
+                    index: 0,
+                    title: "Account Settings",
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Profile Information:",
+                        ),
+                        const SizedBox(
+                          height: 8,
+                        ),
+                        _infoRow(
+                          "Name:",
+                          userName,
+                        ),
+                        _infoRow(
+                          "Email:",
+                          userEmail,
+                        ),
+                        _infoRow(
+                          "Role:",
+                          userRole,
+                        ),
+                        const SizedBox(
+                          height: 8,
+                        ),
+                        Row(
+                          children: [
+                            _actionButton(
+                              "Change Password",
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/recover',
+                                );
+                              },
+                            ),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            _actionButton(
+                              "Log Out",
+                              onTap: () {
+                                Navigator.of(
+                                  context,
+                                ).pushNamedAndRemoveUntil(
+                                  '/login',
+                                  (
+                                    route,
+                                  ) => false,
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(
-                    height: 8,
+                  _buildTile(
+                    index: 1,
+                    title: "Notifications",
+                    child: SwitchListTile(
+                      title: const Text(
+                        "Enable Notifications",
+                      ),
+                      value: _notificationsEnabled,
+                      onChanged:
+                          (
+                            value,
+                          ) {
+                            setState(
+                              () {
+                                _notificationsEnabled = value;
+                              },
+                            );
+                            updatePreference(
+                              'notifications',
+                              value,
+                            );
+                          },
+                    ),
                   ),
-                  _actionButton(
-                    "Refresh Data",
-                    onTap: () {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Data refreshed successfully.",
+                  _buildTile(
+                    index: 2,
+                    title: "System Preferences",
+                    child: SwitchListTile(
+                      title: const Text(
+                        "Dark Mode",
+                      ),
+                      value: _darkModeEnabled,
+                      onChanged:
+                          (
+                            value,
+                          ) {
+                            setState(
+                              () {
+                                _darkModeEnabled = value;
+                              },
+                            );
+                            updatePreference(
+                              'dark_mode',
+                              value,
+                            );
+                          },
+                    ),
+                  ),
+                  _buildTile(
+                    index: 3,
+                    title: "Data & Sync",
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Manage your local data and cloud sync.",
+                        ),
+                        const SizedBox(
+                          height: 8,
+                        ),
+                        _actionButton(
+                          "Refresh Data",
+                          onTap: () {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Data refreshed successfully.",
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildTile(
+                    index: 4,
+                    title: "Help & Feedback",
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Need help? Found a bug?",
+                        ),
+                        const SizedBox(
+                          height: 12,
+                        ),
+                        TextFormField(
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: "Describe your issue or feedback...",
+                            fillColor: Colors.white,
+                            filled: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                10,
+                              ),
+                            ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            _buildTile(
-              index: 4,
-              title: "Help & Feedback",
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Need help? Found a bug?",
-                  ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  _actionButton(
-                    "Send Feedback",
-                    onTap: () {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Feedback form not implemented yet.",
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _actionButton(
+                            "Send",
+                            onTap: () {
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Feedback sent. Thank you!",
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                  ),
+                  _buildTile(
+                    index: 5,
+                    title: "About AgriSynch",
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "AgriSynch v1.0.0",
+                        ),
+                        Text(
+                          "Developed by Team AgriSynch",
+                        ),
+                        Text(
+                          "© 2025 All rights reserved.",
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            _buildTile(
-              index: 5,
-              title: "About AgriSynch",
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "AgriSynch v1.0.0",
-                  ),
-                  Text(
-                    "Developed by Team AgriSynch",
-                  ),
-                  Text(
-                    "© 2025 All rights reserved.",
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
