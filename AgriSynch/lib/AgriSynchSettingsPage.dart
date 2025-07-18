@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'AgriSynchHomePage.dart'; // Replace with your actual page files
-import 'AgriSynchOrdersPage.dart';
-import 'AgriSynchSettingsPage.dart'; // This file itself
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'AgriSynchHomePage.dart';
+import 'AgriSynchOrdersPage.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -21,13 +22,23 @@ class AgriSynchSettingsPage
 }
 
 class _AgriSynchSettingsPageState
-    extends State<AgriSynchSettingsPage> {
-  int _currentIndex = 2; // Settings tab
-  List<bool> _expanded = List.generate(6, (_) => false);
+    extends
+        State<
+          AgriSynchSettingsPage
+        > {
+  int _currentIndex = 2;
+  List<
+    bool
+  >
+  _expanded = List.generate(
+    6,
+    (
+      _,
+    ) => false,
+  );
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
 
-  // User info variables
   String userName = '';
   String userEmail = '';
   String userRole = '';
@@ -36,21 +47,74 @@ class _AgriSynchSettingsPageState
   void initState() {
     super.initState();
     loadUserInfo();
+    loadPreferences();
   }
 
-  Future<void> loadUserInfo() async {
-    userName = await storage.read(key: 'name') ?? '';
-    userEmail = await storage.read(key: 'email') ?? '';
-    userRole = await storage.read(key: 'role') ?? '';
-    setState(() {});
+  Future<
+    void
+  >
+  loadUserInfo() async {
+    userName =
+        await storage.read(
+          key: 'name',
+        ) ??
+        '';
+    userEmail =
+        await storage.read(
+          key: 'email',
+        ) ??
+        '';
+    userRole =
+        await storage.read(
+          key: 'role',
+        ) ??
+        '';
+    setState(
+      () {},
+    );
   }
+
+  Future<
+    void
+  >
+  loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(
+      () {
+        _notificationsEnabled =
+            prefs.getBool(
+              'notifications',
+            ) ??
+            true;
+        _darkModeEnabled =
+            prefs.getBool(
+              'dark_mode',
+            ) ??
+            false;
+      },
+    );
+  }
+
+  Future<
+    void
+  >
+  updatePreference(
+    String key,
+    bool value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(
+      key,
+      value,
+    );
+  }
+
   void _onTabTapped(
     int index,
   ) {
     if (index ==
         _currentIndex)
       return;
-
     switch (index) {
       case 0:
         Navigator.pushReplacement(
@@ -73,9 +137,6 @@ class _AgriSynchSettingsPageState
                 ) => const AgriSynchOrdersPage(),
           ),
         );
-        break;
-      case 2:
-        // Already on settings
         break;
     }
   }
@@ -164,7 +225,14 @@ class _AgriSynchSettingsPageState
                       _actionButton(
                         "Log Out",
                         onTap: () {
-                           Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil(
+                            '/login',
+                            (
+                              route,
+                            ) => false,
+                          );
                         },
                       ),
                     ],
@@ -189,6 +257,10 @@ class _AgriSynchSettingsPageState
                           _notificationsEnabled = value;
                         },
                       );
+                      updatePreference(
+                        'notifications',
+                        value,
+                      );
                     },
               ),
             ),
@@ -209,20 +281,89 @@ class _AgriSynchSettingsPageState
                           _darkModeEnabled = value;
                         },
                       );
+                      updatePreference(
+                        'dark_mode',
+                        value,
+                      );
+                      // Note: Apply dark mode globally if needed
                     },
               ),
             ),
             _buildTile(
               index: 3,
               title: "Data & Sync",
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Manage your local data and cloud sync.",
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  _actionButton(
+                    "Refresh Data",
+                    onTap: () {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Data refreshed successfully.",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
             _buildTile(
               index: 4,
               title: "Help & Feedback",
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Need help? Found a bug?",
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  _actionButton(
+                    "Send Feedback",
+                    onTap: () {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Feedback form not implemented yet.",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
             _buildTile(
               index: 5,
               title: "About AgriSynch",
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "AgriSynch v1.0.0",
+                  ),
+                  Text(
+                    "Developed by Team AgriSynch",
+                  ),
+                  Text(
+                    "© 2025 All rights reserved.",
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -303,8 +444,10 @@ class _AgriSynchSettingsPageState
           const SizedBox(
             width: 8,
           ),
-          Text(
-            value,
+          Expanded(
+            child: Text(
+              value,
+            ),
           ),
         ],
       ),
