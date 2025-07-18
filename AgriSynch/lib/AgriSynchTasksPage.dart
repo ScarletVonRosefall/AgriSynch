@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'theme_helper.dart';
 
 class AgriSynchTasksPage
     extends
@@ -36,6 +37,7 @@ class _AgriSynchTasksPageState
   Timer? alarmTimer;
 
   bool isAlarmShowing = false;
+  bool isDarkMode = false;
   
   String searchQuery = '';
   String selectedCategory = 'All';
@@ -48,6 +50,7 @@ class _AgriSynchTasksPageState
   void initState() {
     super.initState();
     loadTasks();
+    _loadTheme();
     alarmTimer = Timer.periodic(const Duration(seconds: 10), (_) => checkAlarms());
   }
 
@@ -96,6 +99,11 @@ class _AgriSynchTasksPageState
         tasks,
       ),
     );
+  }
+
+  _loadTheme() async {
+    isDarkMode = await ThemeHelper.isDarkModeEnabled();
+    setState(() {});
   }
 
   void addTask() async {
@@ -706,46 +714,31 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
     BuildContext context,
   ) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2FBE0),
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
           // --- Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF00C853),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Task Management',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 24,
-                            ),
+                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             "Let's Get Tasks Done!",
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
+                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                           ),
                         ],
                       ),
@@ -778,14 +771,11 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                 // Search Section
                 Container(
                   height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, color: Colors.grey),
+                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
@@ -794,10 +784,12 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                               searchQuery = value;
                             });
                           },
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'Search tasks...',
                             border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
                           ),
+                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                         ),
                       ),
                     ],

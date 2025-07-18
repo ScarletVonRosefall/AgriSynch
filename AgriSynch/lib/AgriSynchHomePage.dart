@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'AgriSynchCalendarPage.dart'; // Make sure this import exists
+import 'package:shared_preferences/shared_preferences.dart';
+import 'AgriSynchCalendarPage.dart';
+import 'theme_helper.dart';
 
 class AgriSynchHomePage
     extends
@@ -17,90 +19,58 @@ class AgriSynchHomePage
   createState() => _AgriSynchHomePageState();
 }
 
-class _AgriSynchHomePageState
-    extends
-        State<
-          AgriSynchHomePage
-        > {
-
-          final storage = FlutterSecureStorage();
+class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
+  final storage = FlutterSecureStorage();
   String userName = '';
+  bool isDarkMode = false;
 
   @override
   void initState() {
     super.initState();
     loadUserName();
+    loadTheme();
   }
 
   Future<void> loadUserName() async {
     userName = await storage.read(key: 'name') ?? '';
     setState(() {});
   }
+
+  Future<void> loadTheme() async {
+    isDarkMode = await ThemeHelper.isDarkModeEnabled();
+    setState(() {});
+  }
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF2FDE0,
-      ),
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
           // --- Top Green Header ---
           Container(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              40,
-              20,
-              20,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(
-                0xFF00C853,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(
-                  28,
-                ),
-                bottomRight: Radius.circular(
-                  28,
-                ),
-              ),
-            ),
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     const CircleAvatar(
-                      backgroundImage: AssetImage(
-                        'assets/user_avatar.png',
-                      ),
+                      backgroundImage: AssetImage('assets/user_avatar.png'),
                       radius: 20,
                     ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                     Column(
+                    const SizedBox(width: 10),
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           "Good Morning${userName.isNotEmpty ? ' $userName' : ''}!",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
+                          style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
                         ),
                         Text(
                           "Let's Get Tasks Done!",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
+                          style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                         ),
                       ],
                     ),
@@ -129,40 +99,23 @@ class _AgriSynchHomePageState
                     ),
                   ],
                 ),
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
                 Text(
                   "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
+                  style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                 ),
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
                 Container(
                   height: 42,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(
-                      12,
-                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: const Row(
                     children: [
-                      Icon(
-                        Icons.search,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(
-                        width: 8,
-                      ),
+                      Icon(Icons.search, color: Colors.grey),
+                      SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
@@ -178,35 +131,25 @@ class _AgriSynchHomePageState
             ),
           ),
 
-          const SizedBox(
-            height: 14,
-          ),
+          const SizedBox(height: 14),
 
           // --- Summary Card ---
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(
-                16,
-              ),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(
-                  0xFF00E676,
-                ),
-                borderRadius: BorderRadius.circular(
-                  18,
-                ),
+                color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676),
+                borderRadius: BorderRadius.circular(18),
               ),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           "Today's Summary",
                           style: TextStyle(
                             fontFamily: 'Poppins',
@@ -215,24 +158,25 @@ class _AgriSynchHomePageState
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(
-                          height: 6,
-                        ),
-                        Text(
+                        const SizedBox(height: 6),
+                        const Text(
                           "• 2 Tasks Today",
                           style: TextStyle(
+                            fontFamily: 'Poppins',
                             color: Colors.white,
                           ),
                         ),
-                        Text(
+                        const Text(
                           "• Eggs Collected: 950",
                           style: TextStyle(
+                            fontFamily: 'Poppins',
                             color: Colors.white,
                           ),
                         ),
-                        Text(
+                        const Text(
                           "• 1 Pending Order",
                           style: TextStyle(
+                            fontFamily: 'Poppins',
                             color: Colors.white,
                           ),
                         ),
@@ -259,33 +203,26 @@ class _AgriSynchHomePageState
             ),
           ),
 
-          const SizedBox(
-            height: 20,
-          ),
+          const SizedBox(height: 20),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 24,
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               "Jump Into Our Work!",
-              style: TextStyle(
-                fontFamily: 'Poppins',
+              style: ThemeHelper.getTextStyle(
+                isDark: isDarkMode,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
 
-          const SizedBox(
-            height: 12,
-          ),
+          const SizedBox(height: 12),
 
           // --- Tile List ---
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               children: [
                 _homeTile(
                   icon: Icons.calendar_month,
@@ -294,10 +231,7 @@ class _AgriSynchHomePageState
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (
-                              _,
-                            ) => const AgriSynchCalendarPage(),
+                        builder: (_) => const AgriSynchCalendarPage(),
                       ),
                     );
                   },
@@ -328,18 +262,12 @@ class _AgriSynchHomePageState
     VoidCallback? onTap,
   }) {
     return Card(
-      margin: const EdgeInsets.symmetric(
-        vertical: 8,
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          16,
-        ),
+        borderRadius: BorderRadius.circular(16),
       ),
       elevation: 2,
-      color: const Color(
-        0xFF4CAF50,
-      ),
+      color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
       child: ListTile(
         leading: Icon(
           icon,

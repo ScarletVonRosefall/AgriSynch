@@ -7,6 +7,64 @@ import 'AgriSynchOrdersPage.dart';
 
 final storage = FlutterSecureStorage();
 
+class ThemeProvider extends ChangeNotifier {
+  bool _isDarkMode = false;
+  
+  bool get isDarkMode => _isDarkMode;
+  
+  void toggleTheme() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+    _saveThemePreference();
+  }
+  
+  void setTheme(bool isDark) {
+    _isDarkMode = isDark;
+    notifyListeners();
+  }
+  
+  Future<void> _saveThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', _isDarkMode);
+  }
+  
+  Future<void> loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isDarkMode = prefs.getBool('dark_mode') ?? false;
+    notifyListeners();
+  }
+  
+  ThemeData get lightTheme => ThemeData(
+    primarySwatch: Colors.green,
+    scaffoldBackgroundColor: const Color(0xFFF2FBE0),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF00C853),
+      foregroundColor: Colors.white,
+    ),
+    cardColor: Colors.white,
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Colors.black87, fontFamily: 'Poppins'),
+      bodyMedium: TextStyle(color: Colors.black87, fontFamily: 'Poppins'),
+      titleLarge: TextStyle(color: Colors.black87, fontFamily: 'Poppins'),
+    ),
+  );
+  
+  ThemeData get darkTheme => ThemeData(
+    primarySwatch: Colors.green,
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF2E7D32),
+      foregroundColor: Colors.white,
+    ),
+    cardColor: const Color(0xFF1E1E1E),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+      bodyMedium: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+      titleLarge: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+    ),
+  );
+}
+
 class AgriSynchSettingsPage
     extends
         StatefulWidget {
@@ -142,35 +200,26 @@ class _AgriSynchSettingsPageState
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
+    final isDarkMode = _darkModeEnabled;
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF2FBE0);
+    final headerColor = isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853);
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFC5E1A5);
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF2FBE0,
-      ),
+      backgroundColor: backgroundColor,
       body: Column(
         children: [
           // --- Top Green Header ---
           Container(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              40,
-              20,
-              20,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(
-                0xFF00C853,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(
-                  28,
-                ),
-                bottomRight: Radius.circular(
-                  28,
-                ),
+            decoration: BoxDecoration(
+              color: headerColor,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
               ),
             ),
             child: Column(
@@ -185,16 +234,12 @@ class _AgriSynchSettingsPageState
                     fontSize: 24,
                   ),
                 ),
-                const SizedBox(
-                  height: 8,
-                ),
+                const SizedBox(height: 8),
                 Text(
                   'Manage account & preferences',
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    color: Colors.white.withOpacity(
-                      0.8,
-                    ),
+                    color: Colors.white.withOpacity(0.8),
                     fontSize: 14,
                   ),
                 ),
@@ -202,69 +247,48 @@ class _AgriSynchSettingsPageState
             ),
           ),
 
-          const SizedBox(
-            height: 16,
-          ),
+          const SizedBox(height: 16),
 
           // --- Main Content ---
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(
-                16,
-              ),
+              padding: const EdgeInsets.all(16),
               child: ListView(
                 children: [
                   _buildTile(
                     index: 0,
                     title: "Account Settings",
+                    cardColor: cardColor,
+                    textColor: textColor,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Profile Information:",
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                         ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        _infoRow(
-                          "Name:",
-                          userName,
-                        ),
-                        _infoRow(
-                          "Email:",
-                          userEmail,
-                        ),
-                        _infoRow(
-                          "Role:",
-                          userRole,
-                        ),
-                        const SizedBox(
-                          height: 8,
-                        ),
+                        const SizedBox(height: 8),
+                        _infoRow("Name:", userName, textColor),
+                        _infoRow("Email:", userEmail, textColor),
+                        _infoRow("Role:", userRole, textColor),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             _actionButton(
                               "Change Password",
+                              isDarkMode: isDarkMode,
                               onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/recover',
-                                );
+                                Navigator.pushNamed(context, '/recover');
                               },
                             ),
-                            const SizedBox(
-                              width: 10,
-                            ),
+                            const SizedBox(width: 10),
                             _actionButton(
                               "Log Out",
+                              isDarkMode: isDarkMode,
                               onTap: () {
-                                Navigator.of(
-                                  context,
-                                ).pushNamedAndRemoveUntil(
+                                Navigator.of(context).pushNamedAndRemoveUntil(
                                   '/login',
-                                  (
-                                    route,
-                                  ) => false,
+                                  (route) => false,
                                 );
                               },
                             ),
@@ -276,73 +300,75 @@ class _AgriSynchSettingsPageState
                   _buildTile(
                     index: 1,
                     title: "Notifications",
+                    cardColor: cardColor,
+                    textColor: textColor,
                     child: SwitchListTile(
-                      title: const Text(
+                      title: Text(
                         "Enable Notifications",
+                        style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                       ),
                       value: _notificationsEnabled,
-                      onChanged:
-                          (
-                            value,
-                          ) {
-                            setState(
-                              () {
-                                _notificationsEnabled = value;
-                              },
-                            );
-                            updatePreference(
-                              'notifications',
-                              value,
-                            );
-                          },
+                      activeColor: const Color(0xFF00C853),
+                      onChanged: (value) {
+                        setState(() {
+                          _notificationsEnabled = value;
+                        });
+                        updatePreference('notifications', value);
+                      },
                     ),
                   ),
                   _buildTile(
                     index: 2,
                     title: "System Preferences",
+                    cardColor: cardColor,
+                    textColor: textColor,
                     child: SwitchListTile(
-                      title: const Text(
+                      title: Text(
                         "Dark Mode",
+                        style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                       ),
                       value: _darkModeEnabled,
-                      onChanged:
-                          (
-                            value,
-                          ) {
-                            setState(
-                              () {
-                                _darkModeEnabled = value;
-                              },
-                            );
-                            updatePreference(
-                              'dark_mode',
-                              value,
-                            );
-                          },
+                      activeColor: const Color(0xFF00C853),
+                      onChanged: (value) {
+                        setState(() {
+                          _darkModeEnabled = value;
+                        });
+                        updatePreference('dark_mode', value);
+                        
+                        // Show restart message
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Theme changed! Restart the app to see full effect.',
+                              style: TextStyle(fontFamily: 'Poppins'),
+                            ),
+                            backgroundColor: const Color(0xFF00C853),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   _buildTile(
                     index: 3,
                     title: "Data & Sync",
+                    cardColor: cardColor,
+                    textColor: textColor,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Manage your local data and cloud sync.",
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                         ),
-                        const SizedBox(
-                          height: 8,
-                        ),
+                        const SizedBox(height: 8),
                         _actionButton(
                           "Refresh Data",
+                          isDarkMode: isDarkMode,
                           onTap: () {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(
+                            ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                  "Data refreshed successfully.",
-                                ),
+                                content: Text("Data refreshed successfully."),
+                                backgroundColor: Color(0xFF00C853),
                               ),
                             );
                           },
@@ -353,43 +379,52 @@ class _AgriSynchSettingsPageState
                   _buildTile(
                     index: 4,
                     title: "Help & Feedback",
+                    cardColor: cardColor,
+                    textColor: textColor,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Need help? Found a bug?",
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                         ),
-                        const SizedBox(
-                          height: 12,
-                        ),
+                        const SizedBox(height: 12),
                         TextFormField(
                           maxLines: 3,
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                           decoration: InputDecoration(
                             hintText: "Describe your issue or feedback...",
-                            fillColor: Colors.white,
+                            hintStyle: TextStyle(
+                              color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                              fontFamily: 'Poppins',
+                            ),
+                            fillColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
                             filled: true,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                10,
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(
-                          height: 10,
-                        ),
+                        const SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerRight,
                           child: _actionButton(
                             "Send",
+                            isDarkMode: isDarkMode,
                             onTap: () {
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text(
-                                    "Feedback sent. Thank you!",
-                                  ),
+                                  content: Text("Feedback sent. Thank you!"),
+                                  backgroundColor: Color(0xFF00C853),
                                 ),
                               );
                             },
@@ -401,17 +436,22 @@ class _AgriSynchSettingsPageState
                   _buildTile(
                     index: 5,
                     title: "About AgriSynch",
+                    cardColor: cardColor,
+                    textColor: textColor,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           "AgriSynch v1.0.0",
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                         ),
                         Text(
                           "Developed by Team AgriSynch",
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                         ),
                         Text(
                           "© 2025 All rights reserved.",
+                          style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                         ),
                       ],
                     ),
@@ -428,49 +468,38 @@ class _AgriSynchSettingsPageState
   Widget _buildTile({
     required int index,
     required String title,
+    required Color cardColor,
+    required Color textColor,
     Widget? child,
   }) {
     return Card(
-      color: const Color(
-        0xFFC5E1A5,
-      ),
+      color: cardColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          12,
-        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: ExpansionTile(
-        backgroundColor: const Color(
-          0xFFC5E1A5,
-        ),
-        collapsedBackgroundColor: const Color(
-          0xFFC5E1A5,
-        ),
+        backgroundColor: cardColor,
+        collapsedBackgroundColor: cardColor,
+        iconColor: textColor,
+        collapsedIconColor: textColor,
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
+            color: textColor,
+            fontFamily: 'Poppins',
           ),
         ),
         initiallyExpanded: _expanded[index],
-        onExpansionChanged:
-            (
-              val,
-            ) {
-              setState(
-                () {
-                  _expanded[index] = val;
-                },
-              );
-            },
-        children:
-            child !=
-                null
+        onExpansionChanged: (val) {
+          setState(() {
+            _expanded[index] = val;
+          });
+        },
+        children: child != null
             ? [
                 Padding(
-                  padding: const EdgeInsets.all(
-                    12,
-                  ),
+                  padding: const EdgeInsets.all(12),
                   child: child,
                 ),
               ]
@@ -479,28 +508,27 @@ class _AgriSynchSettingsPageState
     );
   }
 
-  Widget _infoRow(
-    String label,
-    String value,
-  ) {
+  Widget _infoRow(String label, String value, Color textColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 2,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
+              color: textColor,
+              fontFamily: 'Poppins',
             ),
           ),
-          const SizedBox(
-            width: 8,
-          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
+              style: TextStyle(
+                color: textColor,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
         ],
@@ -508,27 +536,19 @@ class _AgriSynchSettingsPageState
     );
   }
 
-  Widget _actionButton(
-    String label, {
-    VoidCallback? onTap,
-  }) {
+  Widget _actionButton(String label, {VoidCallback? onTap, required bool isDarkMode}) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(
-          0xFFDCE775,
-        ),
-        foregroundColor: Colors.black,
+        backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFFDCE775),
+        foregroundColor: isDarkMode ? Colors.white : Colors.black,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            8,
-          ),
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
-      onPressed:
-          onTap ??
-          () {},
+      onPressed: onTap ?? () {},
       child: Text(
         label,
+        style: const TextStyle(fontFamily: 'Poppins'),
       ),
     );
   }

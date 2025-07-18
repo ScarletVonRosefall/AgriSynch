@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'theme_helper.dart';
 
 class AgriSynchOrdersPage extends StatefulWidget {
   const AgriSynchOrdersPage({super.key});
@@ -14,6 +15,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   List<Map<String, dynamic>> _orders = [];
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  bool isDarkMode = false;
 
   final List<String> _products = ['Quail Eggs', 'Chicken Egg', 'Pigs'];
   String? _selectedProduct;
@@ -25,6 +27,12 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   void initState() {
     super.initState();
     _loadOrders();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    isDarkMode = await ThemeHelper.isDarkModeEnabled();
+    setState(() {});
   }
 
   Future<void> _loadOrders() async {
@@ -222,20 +230,14 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2FBE0),
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
           // --- Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF00C853),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -246,23 +248,14 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Orders Management',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 24,
-                            ),
+                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Manage your agricultural orders',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 14,
-                            ),
+                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                           ),
                         ],
                       ),
@@ -324,27 +317,17 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   Widget _buildInputSection() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Add New Order",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              color: Color(0xFF00C853),
+              color: ThemeHelper.getHeaderColor(isDarkMode),
             ),
           ),
           const SizedBox(height: 16),
@@ -353,18 +336,19 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonFormField<String>(
                     value: _selectedProduct,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Product',
-                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      labelStyle: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    style: const TextStyle(fontFamily: 'Poppins', color: Colors.black87),
+                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                    dropdownColor: ThemeHelper.getCardColor(isDarkMode),
                     items: _products
                         .map((product) => DropdownMenuItem(
                               value: product,
@@ -383,19 +367,19 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextFormField(
                     controller: _quantityController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: const TextStyle(fontFamily: 'Poppins'),
-                    decoration: const InputDecoration(
+                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                    decoration: InputDecoration(
                       labelText: 'Quantity',
-                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      labelStyle: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
@@ -403,7 +387,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               const SizedBox(width: 12),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00C853),
+                  color: ThemeHelper.getHeaderColor(isDarkMode),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -425,14 +409,11 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   Widget _buildSearchSection() {
     return Container(
       height: 42,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          const Icon(Icons.search, color: Colors.grey),
+          Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -442,17 +423,17 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   _searchTerm = value;
                 });
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Search orders...',
                 border: InputBorder.none,
-                hintStyle: TextStyle(fontFamily: 'Poppins'),
+                hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
               ),
-              style: const TextStyle(fontFamily: 'Poppins'),
+              style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
             ),
           ),
           if (_searchTerm.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.clear, color: Colors.grey),
+              icon: Icon(Icons.clear, color: ThemeHelper.getIconColor(isDarkMode)),
               onPressed: () {
                 setState(() {
                   _searchController.clear();
@@ -523,30 +504,18 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
       child: Column(
         children: [
           // Filter Row
           Row(
             children: [
-              const Icon(Icons.filter_list, color: Color(0xFF00C853), size: 20),
+              Icon(Icons.filter_list, color: ThemeHelper.getHeaderColor(isDarkMode), size: 20),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Filter:',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
                 ),
               ),
               const SizedBox(width: 12),
@@ -554,14 +523,15 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButton<String>(
                     value: _selectedCategory,
                     isExpanded: true,
                     underline: const SizedBox(),
-                    style: const TextStyle(fontFamily: 'Poppins', color: Colors.black87),
+                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                    dropdownColor: ThemeHelper.getCardColor(isDarkMode),
                     items: ['All', ..._products]
                         .map((cat) => DropdownMenuItem(
                               value: cat,
@@ -603,14 +573,12 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           // Sort Row
           Row(
             children: [
-              const Icon(Icons.sort, color: Color(0xFF00C853), size: 20),
+              Icon(Icons.sort, color: ThemeHelper.getHeaderColor(isDarkMode), size: 20),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Sort:',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
                 ),
               ),
               const SizedBox(width: 12),
@@ -618,14 +586,15 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButton<String>(
                     value: _sortOption,
                     isExpanded: true,
                     underline: const SizedBox(),
-                    style: const TextStyle(fontFamily: 'Poppins', color: Colors.black87),
+                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                    dropdownColor: ThemeHelper.getCardColor(isDarkMode),
                     items: sortOptions.map((option) => DropdownMenuItem(
                       value: option,
                       child: Text(option, style: const TextStyle(fontSize: 13)),
@@ -649,7 +618,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF00E676),
+        color: ThemeHelper.getHeaderColor(isDarkMode),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -681,6 +650,126 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildOrderList() {
+    if (_filteredOrders.isEmpty) {
+      return Center(
+        child: Text(
+          "No orders yet.",
+          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _filteredOrders.length,
+      padding: const EdgeInsets.only(bottom: 20),
+      itemBuilder: (context, index) {
+        final order = _filteredOrders[index];
+        final date = DateTime.parse(order['date']);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            onLongPress: () => _editOrder(_orders.indexOf(order)),
+            leading: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: order['delivered']
+                    ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
+                    : (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676)).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                order['delivered'] ? Icons.check_circle : Icons.pending,
+                color: order['delivered'] 
+                    ? ThemeHelper.getHeaderColor(isDarkMode)
+                    : (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676)),
+                size: 24,
+              ),
+            ),
+            title: Text(
+              "${order['product']} - Qty: ${order['quantity']}",
+              style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  "Ordered on ${date.day}/${date.month}/${date.year}",
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: order['delivered']
+                        ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    order['delivered'] ? 'Delivered' : 'Pending',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: order['delivered'] 
+                          ? ThemeHelper.getHeaderColor(isDarkMode)
+                          : Colors.orange[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: order['delivered']
+                        ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
+                        : (isDarkMode ? Colors.white24 : Colors.grey.withOpacity(0.1)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      order['delivered'] ? Icons.check_box : Icons.check_box_outline_blank,
+                      color: order['delivered'] 
+                          ? ThemeHelper.getHeaderColor(isDarkMode)
+                          : (isDarkMode ? Colors.white60 : Colors.grey[600]),
+                      size: 20,
+                    ),
+                    onPressed: () => _toggleDelivery(_orders.indexOf(order)),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    onPressed: () => _deleteOrder(_orders.indexOf(order)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   void _editOrder(int index) async {
     final order = _orders[index];
@@ -744,135 +833,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               child: const Text('Save'),
             ),
           ],
-        );
-      },
-    );
-  }
-    if (_filteredOrders.isEmpty) {
-      return const Center(
-        child: Text("No orders yet."),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: _filteredOrders.length,
-      padding: const EdgeInsets.only(bottom: 20),
-      itemBuilder: (context, index) {
-        final order = _filteredOrders[index];
-        final date = DateTime.parse(order['date']);
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            onLongPress: () => _editOrder(_orders.indexOf(order)),
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: order['delivered']
-                    ? const Color(0xFF00C853).withOpacity(0.1)
-                    : const Color(0xFF00E676).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                order['delivered'] ? Icons.check_circle : Icons.pending,
-                color: order['delivered'] 
-                    ? const Color(0xFF00C853) 
-                    : const Color(0xFF00E676),
-                size: 24,
-              ),
-            ),
-            title: Text(
-              "${order['product']} - Qty: ${order['quantity']}",
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: Colors.black87,
-              ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  "Ordered on ${date.day}/${date.month}/${date.year}",
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: order['delivered']
-                        ? const Color(0xFF00C853).withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    order['delivered'] ? 'Delivered' : 'Pending',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: order['delivered'] 
-                          ? const Color(0xFF00C853) 
-                          : Colors.orange[700],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: order['delivered']
-                        ? const Color(0xFF00C853).withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      order['delivered'] ? Icons.check_box : Icons.check_box_outline_blank,
-                      color: order['delivered'] 
-                          ? const Color(0xFF00C853) 
-                          : Colors.grey[600],
-                      size: 20,
-                    ),
-                    onPressed: () => _toggleDelivery(_orders.indexOf(order)),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                    onPressed: () => _deleteOrder(_orders.indexOf(order)),
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );

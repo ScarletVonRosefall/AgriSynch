@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'theme_helper.dart';
 
 class AgriSynchCalendarPage extends StatefulWidget {
   const AgriSynchCalendarPage({super.key});
@@ -15,12 +16,14 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
   DateTime? _selectedDay;
   Map<String, List<Map<String, dynamic>>> _events = {};
   List<Map<String, dynamic>> _tasks = [];
+  bool isDarkMode = false;
 
   @override
   void initState() {
     super.initState();
     _loadEvents();
     _loadTasks();
+    _loadTheme();
   }
 
   Future<void> _loadEvents() async {
@@ -84,6 +87,11 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
   Future<void> _saveEvents() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('calendar_events', json.encode(_events));
+  }
+
+  _loadTheme() async {
+    isDarkMode = await ThemeHelper.isDarkModeEnabled();
+    setState(() {});
   }
 
   void _addEvent(String title, String category, String description) {
@@ -242,20 +250,14 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
     final selectedEvents = _events[selectedDateKey] ?? [];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2FBE0),
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
           // --- Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF00C853),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -276,27 +278,18 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Agricultural Calendar',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 24,
-                            ),
+                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'Plan your farm activities',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
+                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                           ),
                         ],
                       ),
