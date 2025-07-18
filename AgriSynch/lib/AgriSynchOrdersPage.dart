@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_helper.dart';
+import 'notification_helper.dart';
+import 'notifications_page.dart';
 
 class AgriSynchOrdersPage extends StatefulWidget {
   const AgriSynchOrdersPage({super.key});
@@ -16,6 +18,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   bool isDarkMode = false;
+  int unreadNotifications = 0;
 
   final List<String> _products = ['Quail Eggs', 'Chicken Egg', 'Pigs'];
   String? _selectedProduct;
@@ -28,6 +31,12 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     super.initState();
     _loadOrders();
     _loadTheme();
+    _loadUnreadNotifications();
+  }
+
+  Future<void> _loadUnreadNotifications() async {
+    unreadNotifications = await NotificationHelper.getUnreadCount();
+    setState(() {});
   }
 
   Future<void> _loadTheme() async {
@@ -98,6 +107,13 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       _orders.add(newOrder);
     });
 
+    // Create order notification
+    NotificationHelper.addOrderNotification(
+      title: 'New Order Added',
+      message: 'Order for $_selectedProduct (Qty: $quantity) has been created',
+      orderId: newOrder.toString(),
+    );
+
     setState(() {
       _selectedProduct = null;
     });
@@ -116,10 +132,21 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
   void _toggleDelivery(int index) {
     final wasDelivered = _orders[index]['delivered'];
+    final order = _orders[index];
+    
     setState(() {
       _orders[index]['delivered'] = !_orders[index]['delivered'];
     });
     _saveOrders();
+    
+    // Create delivery notification
+    if (!wasDelivered) {
+      NotificationHelper.addOrderNotification(
+        title: 'Order Delivered! 📦',
+        message: '${order['product']} (Qty: ${order['quantity']}) has been marked as delivered',
+        orderId: order.toString(),
+      );
+    }
     
     // Show delivery toggle snackbar
     ScaffoldMessenger.of(context).showSnackBar(
@@ -260,27 +287,57 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                         ],
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('No new notifications'),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF00C853),
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsPage(),
+                                ),
+                              );
+                              // Reload notification count when returning
+                              _loadUnreadNotifications();
+                            },
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 24,
+                          ),
                         ),
-                      ),
+                        if (unreadNotifications > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -334,6 +391,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           Row(
             children: [
               Expanded(
+                flex: 2,
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
@@ -349,10 +407,14 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     ),
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     dropdownColor: ThemeHelper.getCardColor(isDarkMode),
+                    isExpanded: true,
                     items: _products
                         .map((product) => DropdownMenuItem(
                               value: product,
-                              child: Text(product),
+                              child: Text(
+                                product,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ))
                         .toList(),
                     onChanged: (value) {
@@ -365,6 +427,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               ),
               const SizedBox(width: 12),
               Expanded(
+                flex: 1,
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
@@ -376,7 +439,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     decoration: InputDecoration(
-                      labelText: 'Quantity',
+                      labelText: 'Qty',
                       labelStyle: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -386,6 +449,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               ),
               const SizedBox(width: 12),
               Container(
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: ThemeHelper.getHeaderColor(isDarkMode),
                   borderRadius: BorderRadius.circular(12),
@@ -443,50 +508,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFilterSection() {
-    final deliveredCount = _orders.where((order) => order['delivered'] == true).length;
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButton<String>(
-                value: _selectedCategory,
-                items: ['All', ..._products]
-                    .map((cat) => DropdownMenuItem(
-                          value: cat,
-                          child: Text("Category: $cat"),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
-              ),
-            ),
-            if (deliveredCount > 0) ...[
-              const SizedBox(width: 10),
-              ElevatedButton.icon(
-                onPressed: _deleteAllDelivered,
-                icon: const Icon(Icons.delete_sweep, color: Colors.white, size: 16),
-                label: Text('Clear ($deliveredCount)', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: const Size(0, 32),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
     );
   }
 
@@ -779,7 +800,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     await showDialog(
       context: context,
       builder: (context) {
-        TextEditingController productController = TextEditingController(text: editedProduct);
         TextEditingController quantityController = TextEditingController(text: editedQuantity);
 
         return AlertDialog(

@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'theme_helper.dart';
+import 'notification_helper.dart';
+import 'notifications_page.dart';
 
 class AgriSynchTasksPage
     extends
@@ -38,6 +40,7 @@ class _AgriSynchTasksPageState
 
   bool isAlarmShowing = false;
   bool isDarkMode = false;
+  int unreadNotifications = 0;
   
   String searchQuery = '';
   String selectedCategory = 'All';
@@ -51,6 +54,7 @@ class _AgriSynchTasksPageState
     super.initState();
     loadTasks();
     _loadTheme();
+    _loadUnreadNotifications();
     alarmTimer = Timer.periodic(const Duration(seconds: 10), (_) => checkAlarms());
   }
 
@@ -106,6 +110,13 @@ class _AgriSynchTasksPageState
     setState(() {});
   }
 
+  void _loadUnreadNotifications() async {
+    final count = await NotificationHelper.getUnreadCount();
+    setState(() {
+      unreadNotifications = count;
+    });
+  }
+
   void addTask() async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -129,6 +140,14 @@ class _AgriSynchTasksPageState
         tasks.add(newTask);
       });
       await saveTasks();
+      
+      // Create notification for new task
+      NotificationHelper.addNotification(
+        title: 'New Task Created',
+        message: 'Task "${newTask['title']}" has been added to your schedule.',
+        type: 'task_reminder',
+      );
+      _loadUnreadNotifications(); // Refresh notification count
     }
   }
 
@@ -160,11 +179,18 @@ class _AgriSynchTasksPageState
       tasks[index]['done'] = value;
       if (value) {
         tasks[index]['completedAt'] = DateTime.now().toIso8601String();
+        // Create notification for task completion
+        NotificationHelper.addNotification(
+          title: 'Task Completed',
+          message: 'Task "${tasks[index]['title']}" has been completed successfully!',
+          type: 'task_reminder',
+        );
       } else {
         tasks[index]['completedAt'] = null;
       }
     });
     await saveTasks();
+    _loadUnreadNotifications(); // Refresh notification count
   }
 
   List<Map<String, dynamic>> getFilteredTasks() {
@@ -180,7 +206,7 @@ class _AgriSynchTasksPageState
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF00E676),
+        color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -743,27 +769,57 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                         ],
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('No new notifications'),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF00C853),
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsPage(),
+                                ),
+                              );
+                              // Reload notification count when returning
+                              _loadUnreadNotifications();
+                            },
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 24,
+                          ),
                         ),
-                      ),
+                        if (unreadNotifications > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),

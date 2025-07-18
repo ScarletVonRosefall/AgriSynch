@@ -4,6 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AgriSynchCalendarPage.dart';
 import 'theme_helper.dart';
+import 'notification_helper.dart';
+import 'notifications_page.dart';
+import 'dart:convert';
 
 class AgriSynchHomePage
     extends
@@ -23,12 +26,20 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   final storage = FlutterSecureStorage();
   String userName = '';
   bool isDarkMode = false;
+  
+  // Data for summary
+  List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> orders = [];
+  int unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     loadUserName();
     loadTheme();
+    loadTasksAndOrders();
+    loadUnreadNotifications();
+    checkAndCreateSampleNotifications();
   }
 
   Future<void> loadUserName() async {
@@ -39,6 +50,57 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   Future<void> loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(() {});
+  }
+
+  Future<void> loadTasksAndOrders() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Load tasks
+    final savedTasks = prefs.getString('tasks');
+    if (savedTasks != null) {
+      tasks = List<Map<String, dynamic>>.from(json.decode(savedTasks));
+    }
+    
+    // Load orders
+    final savedOrders = prefs.getString('orders');
+    if (savedOrders != null) {
+      orders = List<Map<String, dynamic>>.from(json.decode(savedOrders));
+    }
+    
+    setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload data when returning to this page
+    loadTasksAndOrders();
+    loadUnreadNotifications();
+  }
+
+  Future<void> loadUnreadNotifications() async {
+    unreadNotifications = await NotificationHelper.getUnreadCount();
+    setState(() {});
+  }
+
+  Future<void> checkAndCreateSampleNotifications() async {
+    // Check for task deadlines
+    await NotificationHelper.checkTaskDeadlines();
+    
+    // Create a welcome notification if it's the first time
+    final prefs = await SharedPreferences.getInstance();
+    final hasWelcomeNotification = prefs.getBool('welcome_notification_sent') ?? false;
+    
+    if (!hasWelcomeNotification) {
+      await NotificationHelper.addNotification(
+        title: 'Welcome to AgriSynch! 🌱',
+        message: 'Start managing your agricultural tasks and orders efficiently.',
+        type: NotificationHelper.systemNotification,
+      );
+      await prefs.setBool('welcome_notification_sent', true);
+    }
+    
+    loadUnreadNotifications();
   }
   @override
   Widget build(BuildContext context) {
@@ -75,27 +137,57 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       ],
                     ),
                     const Spacer(),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('No new notifications'),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF00C853),
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsPage(),
+                                ),
+                              );
+                              // Reload notification count when returning
+                              loadUnreadNotifications();
+                            },
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 24,
+                          ),
                         ),
-                      ),
+                        if (unreadNotifications > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -159,25 +251,28 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          "• 2 Tasks Today",
-                          style: TextStyle(
+                        Text(
+                          "• ${tasks.length} Total Tasks",
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             color: Colors.white,
+                            fontSize: 13,
                           ),
                         ),
-                        const Text(
-                          "• Eggs Collected: 950",
-                          style: TextStyle(
+                        Text(
+                          "• ${tasks.where((t) => t['done'] == true).length} Completed",
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             color: Colors.white,
+                            fontSize: 13,
                           ),
                         ),
-                        const Text(
-                          "• 1 Pending Order",
-                          style: TextStyle(
+                        Text(
+                          "• ${tasks.where((t) => t['done'] != true).length} Pending",
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             color: Colors.white,
+                            fontSize: 13,
                           ),
                         ),
                       ],

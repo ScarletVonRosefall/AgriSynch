@@ -3,6 +3,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'theme_helper.dart';
+import 'notification_helper.dart';
+import 'notifications_page.dart';
 
 class AgriSynchCalendarPage extends StatefulWidget {
   const AgriSynchCalendarPage({super.key});
@@ -17,6 +19,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
   Map<String, List<Map<String, dynamic>>> _events = {};
   List<Map<String, dynamic>> _tasks = [];
   bool isDarkMode = false;
+  int unreadNotifications = 0;
 
   @override
   void initState() {
@@ -24,6 +27,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
     _loadEvents();
     _loadTasks();
     _loadTheme();
+    _loadUnreadNotifications();
   }
 
   Future<void> _loadEvents() async {
@@ -94,6 +98,13 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
     setState(() {});
   }
 
+  void _loadUnreadNotifications() async {
+    final count = await NotificationHelper.getUnreadCount();
+    setState(() {
+      unreadNotifications = count;
+    });
+  }
+
   void _addEvent(String title, String category, String description) {
     final key = _selectedDay!.toIso8601String().split('T')[0];
     if (_events[key] == null) {
@@ -107,6 +118,14 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
     });
     _saveEvents();
     setState(() {});
+    
+    // Create notification for new event
+    NotificationHelper.addNotification(
+      title: 'Calendar Event Added',
+      message: 'Event "$title" has been scheduled successfully!',
+      type: 'system',
+    );
+    _loadUnreadNotifications();
   }
 
   List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
@@ -294,27 +313,57 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
                         ],
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('No new notifications'),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF00C853),
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsPage(),
+                                ),
+                              );
+                              // Reload notification count when returning
+                              _loadUnreadNotifications();
+                            },
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 24,
+                          ),
                         ),
-                      ),
+                        if (unreadNotifications > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
