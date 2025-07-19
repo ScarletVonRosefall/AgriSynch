@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AgriSynchCalendarPage.dart';
+import 'AgriSynchProductionLogPage.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
 import 'notifications_page.dart';
@@ -22,14 +23,30 @@ class AgriSynchHomePage
   createState() => _AgriSynchHomePageState();
 }
 
-class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
+class _AgriSynchHomePageState
+    extends
+        State<
+          AgriSynchHomePage
+        > {
   final storage = FlutterSecureStorage();
   String userName = '';
   bool isDarkMode = false;
-  
+
   // Data for summary
-  List<Map<String, dynamic>> tasks = [];
-  List<Map<String, dynamic>> orders = [];
+  List<
+    Map<
+      String,
+      dynamic
+    >
+  >
+  tasks = [];
+  List<
+    Map<
+      String,
+      dynamic
+    >
+  >
+  orders = [];
   int unreadNotifications = 0;
 
   @override
@@ -42,32 +59,77 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     checkAndCreateSampleNotifications();
   }
 
-  Future<void> loadUserName() async {
-    userName = await storage.read(key: 'name') ?? '';
-    setState(() {});
+  Future<
+    void
+  >
+  loadUserName() async {
+    userName =
+        await storage.read(
+          key: 'name',
+        ) ??
+        '';
+    setState(
+      () {},
+    );
   }
 
-  Future<void> loadTheme() async {
+  Future<
+    void
+  >
+  loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
+    setState(
+      () {},
+    );
   }
 
-  Future<void> loadTasksAndOrders() async {
+  Future<
+    void
+  >
+  loadTasksAndOrders() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Load tasks
-    final savedTasks = prefs.getString('tasks');
-    if (savedTasks != null) {
-      tasks = List<Map<String, dynamic>>.from(json.decode(savedTasks));
+    final savedTasks = prefs.getString(
+      'tasks',
+    );
+    if (savedTasks !=
+        null) {
+      tasks =
+          List<
+            Map<
+              String,
+              dynamic
+            >
+          >.from(
+            json.decode(
+              savedTasks,
+            ),
+          );
     }
-    
+
     // Load orders
-    final savedOrders = prefs.getString('orders');
-    if (savedOrders != null) {
-      orders = List<Map<String, dynamic>>.from(json.decode(savedOrders));
+    final savedOrders = prefs.getString(
+      'orders',
+    );
+    if (savedOrders !=
+        null) {
+      orders =
+          List<
+            Map<
+              String,
+              dynamic
+            >
+          >.from(
+            json.decode(
+              savedOrders,
+            ),
+          );
     }
-    
-    setState(() {});
+
+    setState(
+      () {},
+    );
   }
 
   @override
@@ -78,61 +140,96 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     loadUnreadNotifications();
   }
 
-  Future<void> loadUnreadNotifications() async {
+  Future<
+    void
+  >
+  loadUnreadNotifications() async {
     unreadNotifications = await NotificationHelper.getUnreadCount();
-    setState(() {});
+    setState(
+      () {},
+    );
   }
 
-  Future<void> checkAndCreateSampleNotifications() async {
+  Future<
+    void
+  >
+  checkAndCreateSampleNotifications() async {
     // Check for task deadlines
     await NotificationHelper.checkTaskDeadlines();
-    
+
     // Create a welcome notification if it's the first time
     final prefs = await SharedPreferences.getInstance();
-    final hasWelcomeNotification = prefs.getBool('welcome_notification_sent') ?? false;
-    
+    final hasWelcomeNotification =
+        prefs.getBool(
+          'welcome_notification_sent',
+        ) ??
+        false;
+
     if (!hasWelcomeNotification) {
       await NotificationHelper.addNotification(
         title: 'Welcome to AgriSynch! 🌱',
         message: 'Start managing your agricultural tasks and orders efficiently.',
         type: NotificationHelper.systemNotification,
       );
-      await prefs.setBool('welcome_notification_sent', true);
+      await prefs.setBool(
+        'welcome_notification_sent',
+        true,
+      );
     }
-    
+
     loadUnreadNotifications();
   }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      backgroundColor: ThemeHelper.getBackgroundColor(
+        isDarkMode,
+      ),
       body: Column(
         children: [
           // --- Top Green Header ---
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              40,
+              20,
+              20,
+            ),
             width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+            decoration: ThemeHelper.getHeaderDecoration(
+              isDark: isDarkMode,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     const CircleAvatar(
-                      backgroundImage: AssetImage('assets/user_avatar.png'),
+                      backgroundImage: AssetImage(
+                        'assets/user_avatar.png',
+                      ),
                       radius: 20,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(
+                      width: 10,
+                    ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           "Good Morning${userName.isNotEmpty ? ' $userName' : ''}!",
-                          style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                          style: ThemeHelper.getHeaderTextStyle(
+                            isDark: isDarkMode,
+                          ),
                         ),
                         Text(
                           "Let's Get Tasks Done!",
-                          style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                          style: ThemeHelper.getSubHeaderTextStyle(
+                            isDark: isDarkMode,
+                          ),
                         ),
                       ],
                     ),
@@ -141,15 +238,22 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(
+                              0.2,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              12,
+                            ),
                           ),
                           child: IconButton(
                             onPressed: () async {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const NotificationsPage(),
+                                  builder:
+                                      (
+                                        _,
+                                      ) => const NotificationsPage(),
                                 ),
                               );
                               // Reload notification count when returning
@@ -162,22 +266,30 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                             ),
                           ),
                         ),
-                        if (unreadNotifications > 0)
+                        if (unreadNotifications >
+                            0)
                           Positioned(
                             right: 8,
                             top: 8,
                             child: Container(
-                              padding: const EdgeInsets.all(2),
+                              padding: const EdgeInsets.all(
+                                2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(
+                                  10,
+                                ),
                               ),
                               constraints: const BoxConstraints(
                                 minWidth: 16,
                                 minHeight: 16,
                               ),
                               child: Text(
-                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                unreadNotifications >
+                                        9
+                                    ? '9+'
+                                    : unreadNotifications.toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -191,23 +303,38 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(
+                  height: 10,
+                ),
                 Text(
                   "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
-                  style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                  style: ThemeHelper.getSubHeaderTextStyle(
+                    isDark: isDarkMode,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(
+                  height: 12,
+                ),
                 Container(
                   height: 42,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      12,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                  ),
                   child: const Row(
                     children: [
-                      Icon(Icons.search, color: Colors.grey),
-                      SizedBox(width: 8),
+                      Icon(
+                        Icons.search,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(
+                        width: 8,
+                      ),
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
@@ -223,17 +350,31 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(
+            height: 14,
+          ),
 
           // --- Summary Card ---
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+            ),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(
+                16,
+              ),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676),
-                borderRadius: BorderRadius.circular(18),
+                color: isDarkMode
+                    ? const Color(
+                        0xFF4CAF50,
+                      )
+                    : const Color(
+                        0xFF00E676,
+                      ),
+                borderRadius: BorderRadius.circular(
+                  18,
+                ),
               ),
               child: Row(
                 children: [
@@ -250,7 +391,9 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(
+                          height: 6,
+                        ),
                         Text(
                           "• ${tasks.length} Total Tasks",
                           style: const TextStyle(
@@ -298,10 +441,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(
+            height: 20,
+          ),
 
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+            ),
             child: Text(
               "Jump Into Our Work!",
               style: ThemeHelper.getTextStyle(
@@ -312,12 +459,16 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 12,
+          ),
 
           // --- Tile List ---
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+              ),
               children: [
                 _homeTile(
                   icon: Icons.calendar_month,
@@ -326,7 +477,10 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const AgriSynchCalendarPage(),
+                        builder:
+                            (
+                              _,
+                            ) => const AgriSynchCalendarPage(),
                       ),
                     );
                   },
@@ -338,7 +492,19 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 _homeTile(
                   icon: Icons.engineering,
                   title: "Production Log",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (
+                              _,
+                            ) => const AgriSynchProductionLog(),
+                      ),
+                    );
+                  },
                 ),
+
                 _homeTile(
                   icon: Icons.people_alt,
                   title: "Customers",
@@ -357,12 +523,22 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     VoidCallback? onTap,
   }) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        vertical: 8,
+      ),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          16,
+        ),
       ),
       elevation: 2,
-      color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
+      color: isDarkMode
+          ? const Color(
+              0xFF2E7D32,
+            )
+          : const Color(
+              0xFF4CAF50,
+            ),
       child: ListTile(
         leading: Icon(
           icon,
