@@ -9,6 +9,7 @@
       "dependencies": [
         "cupertino_icons",
         "device_info_plus",
+        "fl_chart",
         "flutter",
         "flutter_secure_storage",
         "intl",
@@ -53,6 +54,14 @@
         "test_api",
         "vector_math",
         "vm_service"
+      ]
+    },
+    {
+      "name": "fl_chart",
+      "version": "0.68.0",
+      "dependencies": [
+        "equatable",
+        "flutter"
       ]
     },
     {
@@ -292,6 +301,14 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "equatable",
+      "version": "2.0.7",
+      "dependencies": [
+        "collection",
+        "meta"
       ]
     },
     {

@@ -3,10 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AgriSynchCalendarPage.dart';
-import 'AgriSynchProductionLogPage.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 import 'dart:convert';
 
 class AgriSynchHomePage
@@ -135,7 +134,8 @@ class _AgriSynchHomePageState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload data when returning to this page
+    // Reload data and theme when returning to this page
+    loadTheme();
     loadTasksAndOrders();
     loadUnreadNotifications();
   }
@@ -253,7 +253,7 @@ class _AgriSynchHomePageState
                                   builder:
                                       (
                                         _,
-                                      ) => const NotificationsPage(),
+                                      ) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning
@@ -488,6 +488,17 @@ class _AgriSynchHomePageState
                 _homeTile(
                   icon: Icons.attach_money,
                   title: "Finances",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (
+                              _,
+                            ) => const AgriFinances(),
+                      ),
+                    );
+                  },
                 ),
                 _homeTile(
                   icon: Icons.engineering,
@@ -508,6 +519,17 @@ class _AgriSynchHomePageState
                 _homeTile(
                   icon: Icons.people_alt,
                   title: "Customers",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (
+                              _,
+                            ) => const AgriCustomersPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

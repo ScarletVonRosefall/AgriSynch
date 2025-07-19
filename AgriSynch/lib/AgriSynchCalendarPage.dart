@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 
 class AgriSynchCalendarPage
     extends

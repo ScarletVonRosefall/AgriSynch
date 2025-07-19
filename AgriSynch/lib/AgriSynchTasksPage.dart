@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 
 class AgriSynchTasksPage
     extends
@@ -781,7 +781,7 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const NotificationsPage(),
+                                  builder: (_) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning
