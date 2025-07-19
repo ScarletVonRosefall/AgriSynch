@@ -257,27 +257,35 @@ class _SignUpPageState
             opacity: _fadeAnimation,
             child: SlideTransition(
               position: _slideAnimation,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                ),
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(
-                        height: 16,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      const SizedBox(
-                        height: 16,
-                      ),
-                      Center(
-                        child: Column(
-                          children: [
-                            const Text(
-                              "Welcome to",
-                              style: TextStyle(
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                          ),
+                          child: Form(
+                            key: formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  height: 16,
+                                ),
+                                const SizedBox(
+                                  height: 16,
+                                ),
+                                Center(
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        "Welcome to",
+                                        style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -319,27 +327,26 @@ class _SignUpPageState
                   const SizedBox(
                     height: 16,
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(
-                        0xFF00A862,
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00A862),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(
-                        24,
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(
-                      24,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Sign Up",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 24,
-                            color: Colors.white,
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Sign Up",
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 24,
+                              color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -469,13 +476,16 @@ class _SignUpPageState
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 24,
-                  ),
-                ],
+                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ),
-            ),
             ),
           ),
         ),

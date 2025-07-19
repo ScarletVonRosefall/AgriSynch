@@ -72,79 +72,92 @@ class _AgriSynchRecoverLocalState extends State<AgriSynchRecoverLocal> with Tick
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      size: 24,
-                      color: Colors.black,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Column(
-                      children: [
-                        const Text(
-                          "Forgot Your Password?",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                          ),
-                        ),
-                        const Text(
-                          "AgriSynch",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 28,
-                            color: Color(0xFF1DBF73),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 1200),
-                          tween: Tween<double>(begin: 0.0, end: 1.0),
-                          builder: (context, value, child) {
-                            return Transform.scale(
-                              scale: value,
-                              child: Opacity(
-                                opacity: value,
-                                child: Image.asset(
-                                  'assets/AgriSynchLogoNB2.png',
-                                  height: 100,
-                                ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 16),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                size: 24,
+                                color: Colors.black,
                               ),
-                            );
-                          },
-                        ),
-                      ],
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    "Forgot Your Password?",
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const Text(
+                                    "AgriSynch",
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 28,
+                                      color: Color(0xFF1DBF73),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TweenAnimationBuilder<double>(
+                                    duration: const Duration(milliseconds: 1200),
+                                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                                    builder: (context, value, child) {
+                                      return Transform.scale(
+                                        scale: value,
+                                        child: Opacity(
+                                          opacity: value,
+                                          child: Image.asset(
+                                            'assets/AgriSynchLogoNB2.png',
+                                            height: 100,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                 ),
               ),
               const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00A862),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Account Recovery",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 24,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00A862),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Account Recovery",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     const Text(
                       "Enter your registered email and a new password to reset your account.",
@@ -206,10 +219,15 @@ class _AgriSynchRecoverLocalState extends State<AgriSynchRecoverLocal> with Tick
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
-          ),
+            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
