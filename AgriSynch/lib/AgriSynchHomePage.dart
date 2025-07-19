@@ -7,6 +7,8 @@ import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
 import 'AgriWeatherPage.dart';
 import 'AgriSynchProductionLogPage.dart';
+import 'AgriSynchTasksPage.dart';
+import 'AgriSynchOrdersPage.dart';
 import 'weather_helper.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
@@ -33,6 +35,7 @@ class _AgriSynchHomePageState
           AgriSynchHomePage
         > {
   final storage = FlutterSecureStorage();
+  final TextEditingController _searchController = TextEditingController();
   String userName = '';
   bool isDarkMode = false;
 
@@ -305,6 +308,79 @@ class _AgriSynchHomePageState
     loadUnreadNotifications();
   }
 
+  void _performSearch(String query) {
+    if (query.trim().isEmpty) return;
+    
+    List<Map<String, dynamic>> results = [];
+    
+    // Search through tasks
+    for (var task in tasks) {
+      if (task['title']?.toLowerCase().contains(query.toLowerCase()) == true ||
+          task['description']?.toLowerCase().contains(query.toLowerCase()) == true ||
+          task['name']?.toLowerCase().contains(query.toLowerCase()) == true) {
+        results.add({
+          'type': 'Task',
+          'title': task['title'] ?? task['name'] ?? 'Untitled Task',
+          'subtitle': task['description'] ?? task['details'] ?? '',
+          'data': task,
+          'icon': Icons.task_alt,
+        });
+      }
+    }
+    
+    // Search through orders (checking multiple possible field names)
+    for (var order in orders) {
+      final orderTitle = order['title'] ?? order['name'] ?? order['productName'] ?? order['product'] ?? order['item'] ?? '';
+      final orderDesc = order['description'] ?? order['details'] ?? order['notes'] ?? order['customerName'] ?? order['customer'] ?? '';
+      
+      if (orderTitle.toLowerCase().contains(query.toLowerCase()) ||
+          orderDesc.toLowerCase().contains(query.toLowerCase())) {
+        results.add({
+          'type': 'Order',
+          'title': orderTitle.isNotEmpty ? orderTitle : 'Untitled Order',
+          'subtitle': orderDesc.isNotEmpty ? orderDesc : 'No description',
+          'data': order,
+          'icon': Icons.shopping_cart,
+        });
+      }
+    }
+    
+    // Search through page names
+    final pages = [
+      {'name': 'Calendar', 'icon': Icons.calendar_month, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchCalendarPage()))},
+      {'name': 'Tasks', 'icon': Icons.task_alt, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchTasksPage()))},
+      {'name': 'Orders', 'icon': Icons.shopping_cart, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchOrdersPage()))},
+      {'name': 'Finances', 'icon': Icons.attach_money, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriFinances()))},
+      {'name': 'Production Log', 'icon': Icons.engineering, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchProductionLog()))},
+      {'name': 'Customers', 'icon': Icons.people_alt, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriCustomersPage()))},
+      {'name': 'Weather', 'icon': Icons.wb_sunny, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriWeatherPage()))},
+    ];
+    
+    for (var page in pages) {
+      if (page['name'].toString().toLowerCase().contains(query.toLowerCase())) {
+        results.add({
+          'type': 'Page',
+          'title': page['name'],
+          'subtitle': 'Navigate to ${page['name']}',
+          'data': page,
+          'icon': page['icon'],
+        });
+      }
+    }
+    
+    // Navigate to search results
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchResultsPage(
+          query: query,
+          results: results,
+          isDarkMode: isDarkMode,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(
     BuildContext context,
@@ -451,21 +527,25 @@ class _AgriSynchHomePageState
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.search,
                         color: Colors.grey,
                       ),
-                      SizedBox(
+                      const SizedBox(
                         width: 8,
                       ),
                       Expanded(
                         child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search',
+                          controller: _searchController,
+                          decoration: const InputDecoration(
+                            hintText: 'Search tasks, orders, pages...',
                             border: InputBorder.none,
                           ),
+                          onSubmitted: (value) {
+                            _performSearch(value);
+                          },
                         ),
                       ),
                     ],
@@ -726,5 +806,117 @@ class _AgriSynchHomePageState
     } else {
       return Icons.wb_sunny;
     }
+  }
+}
+
+class SearchResultsPage extends StatelessWidget {
+  final String query;
+  final List<Map<String, dynamic>> results;
+  final bool isDarkMode;
+
+  const SearchResultsPage({
+    Key? key,
+    required this.query,
+    required this.results,
+    required this.isDarkMode,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      appBar: AppBar(
+        title: Text('Search Results for "$query"'),
+        backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: results.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.search_off,
+                    size: 64,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No results found for "$query"',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Try searching for tasks, orders, or page names',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: results.length,
+              itemBuilder: (context, index) {
+                final result = results[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+                  child: ListTile(
+                    leading: Icon(
+                      result['icon'],
+                      color: isDarkMode ? Colors.white : const Color(0xFF4CAF50),
+                    ),
+                    title: Text(
+                      result['title'],
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${result['type']} • ${result['subtitle']}',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                    onTap: () {
+                      if (result['type'] == 'Page') {
+                        // Execute the route function for pages
+                        result['data']['route']();
+                      } else if (result['type'] == 'Task') {
+                        // Navigate to Tasks page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AgriSynchTasksPage(),
+                          ),
+                        );
+                      } else if (result['type'] == 'Order') {
+                        // Navigate to Orders page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AgriSynchOrdersPage(),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+    );
   }
 }
