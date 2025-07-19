@@ -6,7 +6,7 @@ import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 import 'dart:convert';
 
 class AgriSynchHomePage
@@ -150,7 +150,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const NotificationsPage(),
+                                  builder: (_) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 
 class AgriSynchOrdersPage extends StatefulWidget {
   const AgriSynchOrdersPage({super.key});
@@ -299,7 +299,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const NotificationsPage(),
+                                  builder: (_) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning

@@ -6,7 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 import 'currency_helper.dart';
 
 class AgriFinances extends StatefulWidget {
@@ -319,98 +319,99 @@ class _AgriFinancesState extends State<AgriFinances> {
     
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-            width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Finances',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 24,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+              width: double.infinity,
+              decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
                       ),
-                    ),
-                    const Spacer(),
-                    Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const NotificationsPage(),
-                                ),
-                              );
-                              _loadUnreadNotifications();
-                            },
-                            icon: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Finances',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 24,
                         ),
-                        if (unreadNotifications > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
+                      ),
+                      const Spacer(),
+                      Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AgriNotificationPage(),
+                                  ),
+                                );
+                                _loadUnreadNotifications();
+                              },
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                                size: 24,
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Track your farm income and expenses',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
+                          if (unreadNotifications > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Track your farm income and expenses',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
           const SizedBox(height: 16),
 
@@ -768,83 +769,88 @@ class _AgriFinancesState extends State<AgriFinances> {
           const SizedBox(height: 16),
 
           // Transactions List
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Recent Transactions',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Recent Transactions',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: isDarkMode ? Colors.white : Colors.black,
                       ),
-                      Text(
-                        '${_getFilteredTransactions().length} items',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          color: isDarkMode ? Colors.white70 : Colors.black54,
-                        ),
+                    ),
+                    Text(
+                      '${_getFilteredTransactions().length} items',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: _getFilteredTransactions().isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.account_balance_wallet_outlined,
-                                  size: 64,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _getFilteredTransactions().isEmpty
+                    ? Container(
+                        height: 200,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_outlined,
+                                size: 64,
+                                color: isDarkMode ? Colors.white54 : Colors.grey,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No transactions yet',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 16,
                                   color: isDarkMode ? Colors.white54 : Colors.grey,
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No transactions yet',
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 16,
-                                    color: isDarkMode ? Colors.white54 : Colors.grey,
-                                  ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Use the "Add Transaction" button above to get started',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 14,
+                                  color: isDarkMode ? Colors.white38 : Colors.grey[600],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Use the "Add Transaction" button above to get started',
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 14,
-                                    color: isDarkMode ? Colors.white38 : Colors.grey[600],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _getFilteredTransactions().length,
-                            itemBuilder: (context, index) {
-                              final transaction = _getFilteredTransactions()[index];
-                              return _buildTransactionCard(transaction);
-                            },
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                  ),
-                ],
-              ),
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _getFilteredTransactions().length,
+                        itemBuilder: (context, index) {
+                          final transaction = _getFilteredTransactions()[index];
+                          return _buildTransactionCard(transaction);
+                        },
+                      ),
+              ],
             ),
           ),
+          
+          // Add some bottom padding
+          const SizedBox(height: 20),
         ],
-      ),
-    );
+      ), // Close Column
+    ), // Close SingleChildScrollView
+  ); // Close Scaffold
   }
 
   Widget _buildSummaryCard(String title, double amount, IconData icon, Color color) {

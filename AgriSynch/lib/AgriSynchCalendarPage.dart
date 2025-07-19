@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
-import 'notifications_page.dart';
+import 'AgriNotificationPage.dart';
 
 class AgriSynchCalendarPage extends StatefulWidget {
   const AgriSynchCalendarPage({super.key});
@@ -325,7 +325,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const NotificationsPage(),
+                                  builder: (_) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning

@@ -3,14 +3,14 @@ import 'package:intl/intl.dart';
 import 'notification_helper.dart';
 import 'theme_helper.dart';
 
-class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key});
+class AgriNotificationPage extends StatefulWidget {
+  const AgriNotificationPage({super.key});
 
   @override
-  State<NotificationsPage> createState() => _NotificationsPageState();
+  State<AgriNotificationPage> createState() => _AgriNotificationPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> {
+class _AgriNotificationPageState extends State<AgriNotificationPage> {
   List<Map<String, dynamic>> notifications = [];
   bool isDarkMode = false;
   bool isLoading = true;
