@@ -276,9 +276,10 @@ class _AgriSynchSettingsPageState
                         _infoRow("Email:", userEmail, textColor),
                         _infoRow("Role:", userRole, textColor),
                         const SizedBox(height: 16),
-                        Row(
+                        Column(
                           children: [
-                            Expanded(
+                            SizedBox(
+                              width: double.infinity,
                               child: _actionButton(
                                 "Change Password",
                                 icon: Icons.lock_outline,
@@ -288,8 +289,9 @@ class _AgriSynchSettingsPageState
                                 },
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
                               child: _actionButton(
                                 "Log Out",
                                 icon: Icons.logout,

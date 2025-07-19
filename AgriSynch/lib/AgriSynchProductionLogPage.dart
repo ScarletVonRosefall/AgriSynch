@@ -163,6 +163,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
                 TextField(
                   controller: _productController,
                   keyboardType: TextInputType.text,
+                  style: ThemeHelper.getTextStyle(isDark: _isDark),
                   decoration: ThemeHelper.getInputDecoration(
                     hintText: 'Product Name',
                     prefixIcon: Icons.agriculture,
@@ -175,6 +176,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
                 TextField(
                   controller: _kgController,
                   keyboardType: TextInputType.number,
+                  style: ThemeHelper.getTextStyle(isDark: _isDark),
                   decoration: ThemeHelper.getInputDecoration(
                     hintText: 'Kilograms',
                     prefixIcon: Icons.scale,
@@ -188,6 +190,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
                   controller: _dateController,
                   readOnly: true,
                   onTap: _pickDate,
+                  style: ThemeHelper.getTextStyle(isDark: _isDark),
                   decoration: ThemeHelper.getInputDecoration(
                     hintText: 'Select Date',
                     prefixIcon: Icons.calendar_month,
@@ -342,6 +345,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
           const SizedBox(height: 20),
           TextField(
             controller: _productController,
+            style: ThemeHelper.getTextStyle(isDark: _isDark),
             decoration: ThemeHelper.getInputDecoration(
               hintText: 'Product Name',
               prefixIcon: Icons.agriculture,
@@ -352,6 +356,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
           TextField(
             controller: _kgController,
             keyboardType: TextInputType.number,
+            style: ThemeHelper.getTextStyle(isDark: _isDark),
             decoration: ThemeHelper.getInputDecoration(
               hintText: 'Kilograms',
               prefixIcon: Icons.scale,
@@ -363,6 +368,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
             controller: _dateController,
             readOnly: true,
             onTap: _pickDate,
+            style: ThemeHelper.getTextStyle(isDark: _isDark),
             decoration: ThemeHelper.getInputDecoration(
               hintText: 'Select Date',
               prefixIcon: Icons.calendar_month,
@@ -498,6 +504,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) => _applyFilters(),
+                style: ThemeHelper.getTextStyle(isDark: _isDark),
                 decoration: ThemeHelper.getInputDecoration(
                   hintText: 'Search products...',
                   prefixIcon: Icons.search,
