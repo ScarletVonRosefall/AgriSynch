@@ -260,7 +260,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
-          // --- Top Green Header ---
+          // --- Fixed Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
@@ -347,22 +347,27 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             ),
           ),
           
-          const SizedBox(height: 16),
-          
-          // --- Content Area ---
+          // --- Scrollable Content ---
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  _buildInputSection(),
-                  const SizedBox(height: 16),
-                  _buildFilterAndSortSection(),
-                  const SizedBox(height: 12),
-                  _buildOrdersHeader(),
-                  const SizedBox(height: 8),
-                  Expanded(child: _buildOrderList()),
-                ],
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildInputSection(),
+                    const SizedBox(height: 16),
+                    _buildFilterAndSortSection(),
+                    const SizedBox(height: 12),
+                    _buildOrdersHeader(),
+                    const SizedBox(height: 8),
+                    // Orders List - Using a constrained height container instead of Expanded
+                    SizedBox(
+                      height: 400, // Fixed height for orders list
+                      child: _buildOrderList(),
+                    ),
+                    const SizedBox(height: 20), // Bottom padding
+                  ],
+                ),
               ),
             ),
           ),

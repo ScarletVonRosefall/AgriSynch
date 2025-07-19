@@ -498,7 +498,7 @@ class _CalendarPageState
       ),
       body: Column(
         children: [
-          // --- Top Green Header ---
+          // --- Fixed Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(
               20,
@@ -633,26 +633,21 @@ class _CalendarPageState
             ),
           ),
 
-          const SizedBox(
-            height: 16,
-          ),
-
-          // --- Calendar Section ---
+          // --- Scrollable Calendar Section ---
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-              ),
-              child: Column(
-                children: [
-                  // Calendar Widget
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(
-                        16,
-                      ),
-                      boxShadow: [
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    // Calendar Widget
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(
+                          16,
+                        ),
+                        boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(
                             0.05,
@@ -730,15 +725,15 @@ class _CalendarPageState
                                 );
                               },
                         ),
-                  ),
+                    ), // Close Container
 
-                  const SizedBox(
-                    height: 16,
-                  ),
+                    const SizedBox(
+                      height: 16,
+                    ),
 
-                  // Selected Date Info and Add Button
-                  if (_selectedDay !=
-                      null) ...[
+                    // Selected Date Info and Add Button
+                    if (_selectedDay !=
+                        null) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(
@@ -819,11 +814,12 @@ class _CalendarPageState
                     const SizedBox(
                       height: 16,
                     ),
-                  ],
-
-                  // Events List
-                  Expanded(
-                    child: selectedEvents.isEmpty
+                  ], // Close the conditional array for if (_selectedDay != null)
+                    
+                    // Events List - Using a constrained height container instead of Expanded
+                    SizedBox(
+                      height: 300, // Fixed height for events list
+                      child: selectedEvents.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1123,8 +1119,10 @@ class _CalendarPageState
                                   );
                                 },
                           ),
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 20), // Bottom padding
+                  ], // Close children array
+                ),
               ),
             ),
           ),

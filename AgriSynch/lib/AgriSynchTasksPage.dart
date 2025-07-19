@@ -743,7 +743,7 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
-          // --- Top Green Header ---
+          // --- Fixed Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
@@ -855,68 +855,72 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
             ),
           ),
           
-          const SizedBox(height: 16),
-          
-          // --- Content Area ---
+          // --- Scrollable Content ---
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Summary Card
-                  _buildSummaryCard(),
-                  const SizedBox(height: 16),
-                  // Filter Section
-                  _buildFilterSection(),
-                  const SizedBox(height: 16),
-                  // Tasks Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Today's Tasks",
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Color(0xFF00C853),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: addTask,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00C853),
-                            borderRadius: BorderRadius.circular(20),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Summary Card
+                    _buildSummaryCard(),
+                    const SizedBox(height: 16),
+                    // Filter Section
+                    _buildFilterSection(),
+                    const SizedBox(height: 16),
+                    // Tasks Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Today's Tasks",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Color(0xFF00C853),
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, color: Colors.white, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                'Add Task',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                        ),
+                        GestureDetector(
+                          onTap: addTask,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00C853),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: Colors.white, size: 16),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Add Task',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Tasks List
-                  Expanded(child: _buildTasksList()),
-                  const SizedBox(height: 16),
-                  // Action Buttons
-                  _buildActionButtons(),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Tasks List - Using a constrained height container instead of Expanded
+                    SizedBox(
+                      height: 400, // Fixed height for tasks list
+                      child: _buildTasksList(),
+                    ),
+                    const SizedBox(height: 16),
+                    // Action Buttons
+                    _buildActionButtons(),
+                    const SizedBox(height: 20), // Bottom padding
+                  ],
+                ),
               ),
             ),
           ),

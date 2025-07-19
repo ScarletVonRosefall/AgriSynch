@@ -7,8 +7,6 @@ import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
 import 'AgriWeatherPage.dart';
 import 'AgriSynchProductionLogPage.dart';
-import 'AgriSynchTasksPage.dart';
-import 'AgriSynchOrdersPage.dart';
 import 'weather_helper.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
@@ -35,7 +33,6 @@ class _AgriSynchHomePageState
           AgriSynchHomePage
         > {
   final storage = FlutterSecureStorage();
-  final TextEditingController _searchController = TextEditingController();
   String userName = '';
   bool isDarkMode = false;
 
@@ -186,7 +183,6 @@ class _AgriSynchHomePageState
       },
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.all(8.0),
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: isDarkMode ? Colors.grey[850] : Colors.blue[50],
@@ -308,74 +304,58 @@ class _AgriSynchHomePageState
     loadUnreadNotifications();
   }
 
-  void _performSearch(String query) {
-    if (query.trim().isEmpty) return;
-    
-    List<Map<String, dynamic>> results = [];
-    
-    // Search through tasks
-    for (var task in tasks) {
-      if (task['title']?.toLowerCase().contains(query.toLowerCase()) == true ||
-          task['description']?.toLowerCase().contains(query.toLowerCase()) == true ||
-          task['name']?.toLowerCase().contains(query.toLowerCase()) == true) {
-        results.add({
-          'type': 'Task',
-          'title': task['title'] ?? task['name'] ?? 'Untitled Task',
-          'subtitle': task['description'] ?? task['details'] ?? '',
-          'data': task,
-          'icon': Icons.task_alt,
-        });
-      }
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return "Good Morning";
+    } else if (hour < 17) {
+      return "Good Afternoon";  
+    } else {
+      return "Good Evening";
     }
-    
-    // Search through orders (checking multiple possible field names)
-    for (var order in orders) {
-      final orderTitle = order['title'] ?? order['name'] ?? order['productName'] ?? order['product'] ?? order['item'] ?? '';
-      final orderDesc = order['description'] ?? order['details'] ?? order['notes'] ?? order['customerName'] ?? order['customer'] ?? '';
-      
-      if (orderTitle.toLowerCase().contains(query.toLowerCase()) ||
-          orderDesc.toLowerCase().contains(query.toLowerCase())) {
-        results.add({
-          'type': 'Order',
-          'title': orderTitle.isNotEmpty ? orderTitle : 'Untitled Order',
-          'subtitle': orderDesc.isNotEmpty ? orderDesc : 'No description',
-          'data': order,
-          'icon': Icons.shopping_cart,
-        });
-      }
-    }
-    
-    // Search through page names
-    final pages = [
-      {'name': 'Calendar', 'icon': Icons.calendar_month, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchCalendarPage()))},
-      {'name': 'Tasks', 'icon': Icons.task_alt, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchTasksPage()))},
-      {'name': 'Orders', 'icon': Icons.shopping_cart, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchOrdersPage()))},
-      {'name': 'Finances', 'icon': Icons.attach_money, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriFinances()))},
-      {'name': 'Production Log', 'icon': Icons.engineering, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriSynchProductionLog()))},
-      {'name': 'Customers', 'icon': Icons.people_alt, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriCustomersPage()))},
-      {'name': 'Weather', 'icon': Icons.wb_sunny, 'route': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgriWeatherPage()))},
-    ];
-    
-    for (var page in pages) {
-      if (page['name'].toString().toLowerCase().contains(query.toLowerCase())) {
-        results.add({
-          'type': 'Page',
-          'title': page['name'],
-          'subtitle': 'Navigate to ${page['name']}',
-          'data': page,
-          'icon': page['icon'],
-        });
-      }
-    }
-    
-    // Navigate to search results
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SearchResultsPage(
-          query: query,
-          results: results,
-          isDarkMode: isDarkMode,
+  }
+
+  Widget _buildQuickStat(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -391,7 +371,7 @@ class _AgriSynchHomePageState
       ),
       body: Column(
         children: [
-          // --- Top Green Header ---
+          // --- Fixed Top Green Header ---
           Container(
             padding: const EdgeInsets.fromLTRB(
               20,
@@ -421,7 +401,7 @@ class _AgriSynchHomePageState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Good Morning${userName.isNotEmpty ? ' $userName' : ''}!",
+                          "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
                           style: ThemeHelper.getHeaderTextStyle(
                             isDark: isDarkMode,
                           ),
@@ -513,230 +493,252 @@ class _AgriSynchHomePageState
                     isDark: isDarkMode,
                   ),
                 ),
-                const SizedBox(
-                  height: 12,
-                ),
-                Container(
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(
-                      12,
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.search,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(
-                        width: 8,
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: const InputDecoration(
-                            hintText: 'Search tasks, orders, pages...',
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (value) {
-                            _performSearch(value);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
 
-          const SizedBox(
-            height: 14,
-          ),
-
-          // --- Summary Card ---
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-            ),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(
-                16,
-              ),
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? const Color(
-                        0xFF4CAF50,
-                      )
-                    : const Color(
-                        0xFF00E676,
-                      ),
-                borderRadius: BorderRadius.circular(
-                  18,
-                ),
-              ),
-              child: Row(
+          // --- Scrollable Content ---
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  // --- Quick Stats Row ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
                       children: [
-                        const Text(
-                          "Today's Summary",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
+                        _buildQuickStat(
+                          "Total Tasks", 
+                          "${tasks.length}", 
+                          Icons.assignment, 
+                          Colors.blue
                         ),
-                        const SizedBox(
-                          height: 6,
+                        const SizedBox(width: 12),
+                        _buildQuickStat(
+                          "Completed", 
+                          "${tasks.where((t) => t['done'] == true).length}", 
+                          Icons.check_circle, 
+                          Colors.green
                         ),
-                        Text(
-                          "• ${tasks.length} Total Tasks",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          "• ${tasks.where((t) => t['done'] == true).length} Completed",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          "• ${tasks.where((t) => t['done'] != true).length} Pending",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
+                        const SizedBox(width: 12),
+                        _buildQuickStat(
+                          "Orders", 
+                          "${orders.length}", 
+                          Icons.shopping_cart, 
+                          Colors.orange
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
+
+                  const SizedBox(
+                    height: 16,
+                  ),
+
+                  // --- Summary Card ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.eco,
-                        color: Colors.orange,
-                        size: 30,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(
+                        16,
                       ),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color(
+                                0xFF4CAF50,
+                              )
+                            : const Color(
+                                0xFF00E676,
+                              ),
+                        borderRadius: BorderRadius.circular(
+                          18,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Today's Summary",
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 6,
+                                ),
+                                Text(
+                                  "• ${tasks.length} Total Tasks",
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  "• ${tasks.where((t) => t['done'] == true).length} Completed",
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  "• ${tasks.where((t) => t['done'] != true).length} Pending",
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  "• ${orders.length} Active Orders",
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.eco,
+                                color: Colors.orange,
+                                size: 30,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  // --- Weather Card ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                    ),
+                    child: _buildWeatherCard(),
+                  ),
+
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                    ),
+                    child: Text(
+                      "Jump Into Our Work!",
+                      style: ThemeHelper.getTextStyle(
+                        isDark: isDarkMode,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 12,
+                  ),
+
+                  // --- Tile List ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                    ),
+                    child: Column(
+                      children: [
+                        _homeTile(
+                          icon: Icons.calendar_month,
+                          title: "Calendar",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (
+                                      _,
+                                    ) => const AgriSynchCalendarPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _homeTile(
+                          icon: Icons.attach_money,
+                          title: "Finances",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (
+                                      _,
+                                    ) => const AgriFinances(),
+                              ),
+                            );
+                          },
+                        ),
+                        _homeTile(
+                          icon: Icons.engineering,
+                          title: "Production Log",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AgriSynchProductionLog(),
+                              ),
+                            );
+                          },
+                        ),
+                        _homeTile(
+                          icon: Icons.people_alt,
+                          title: "Customers",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (
+                                      _,
+                                    ) => const AgriCustomersPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        // Add some bottom padding
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
-
-          const SizedBox(
-            height: 20,
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-            ),
-            child: Text(
-              "Jump Into Our Work!",
-              style: ThemeHelper.getTextStyle(
-                isDark: isDarkMode,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          const SizedBox(
-            height: 12,
-          ),
-
-          // --- Tile List ---
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-              ),
-              children: [
-                _homeTile(
-                  icon: Icons.calendar_month,
-                  title: "Calendar",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (
-                              _,
-                            ) => const AgriSynchCalendarPage(),
-                      ),
-                    );
-                  },
-                ),
-                _homeTile(
-                  icon: Icons.attach_money,
-                  title: "Finances",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (
-                              _,
-                            ) => const AgriFinances(),
-                      ),
-                    );
-                  },
-                ),
-                _homeTile(
-                  icon: Icons.engineering,
-                  title: "Production Log",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AgriSynchProductionLog(),
-                      ),
-                    );
-                  },
-                ),
-
-                _homeTile(
-                  icon: Icons.people_alt,
-                  title: "Customers",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (
-                              _,
-                            ) => const AgriCustomersPage(),
-                      ),
-                    );
-                  },
-                ),
-                
-                // Special Weather Card
-                _buildWeatherCard(),
-              ],
             ),
           ),
         ],
@@ -809,114 +811,4 @@ class _AgriSynchHomePageState
   }
 }
 
-class SearchResultsPage extends StatelessWidget {
-  final String query;
-  final List<Map<String, dynamic>> results;
-  final bool isDarkMode;
 
-  const SearchResultsPage({
-    Key? key,
-    required this.query,
-    required this.results,
-    required this.isDarkMode,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      appBar: AppBar(
-        title: Text('Search Results for "$query"'),
-        backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: results.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.search_off,
-                    size: 64,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No results found for "$query"',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Try searching for tasks, orders, or page names',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: results.length,
-              itemBuilder: (context, index) {
-                final result = results[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
-                  child: ListTile(
-                    leading: Icon(
-                      result['icon'],
-                      color: isDarkMode ? Colors.white : const Color(0xFF4CAF50),
-                    ),
-                    title: Text(
-                      result['title'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${result['type']} • ${result['subtitle']}',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                    onTap: () {
-                      if (result['type'] == 'Page') {
-                        // Execute the route function for pages
-                        result['data']['route']();
-                      } else if (result['type'] == 'Task') {
-                        // Navigate to Tasks page
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AgriSynchTasksPage(),
-                          ),
-                        );
-                      } else if (result['type'] == 'Order') {
-                        // Navigate to Orders page
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AgriSynchOrdersPage(),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                );
-              },
-            ),
-    );
-  }
-}
