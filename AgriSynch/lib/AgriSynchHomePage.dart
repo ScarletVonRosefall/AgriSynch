@@ -6,7 +6,7 @@ import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
 import 'AgriWeatherPage.dart';
-import 'AgriSynchProductionLog.dart';
+import 'AgriSynchProductionLogPage.dart';
 import 'weather_helper.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
