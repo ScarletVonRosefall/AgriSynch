@@ -60,6 +60,7 @@ flutter:
     - assets/logo.png
     - assets/AgriSynchLogo-min.png
     - assets/AgriSynchLogoNB-min.png
+    - assets/AgriSynchLogoNB2.png
 
     # For details regarding adding assets from package dependencies, see
     # https://flutter.dev/to/asset-from-package

@@ -21,8 +21,12 @@ class _SignUpPageState
     extends
         State<
           AgriSynchSignUpPage
-        > {
+        > with TickerProviderStateMixin {
   bool _isDarkMode = false;
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -31,6 +35,52 @@ class _SignUpPageState
       GlobalKey<
         FormState
       >();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize animation controllers
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Initialize animations
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Start animations
+    _fadeController.forward();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _slideController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
 
   bool isValidEmail(
     String email,
@@ -203,51 +253,67 @@ class _SignUpPageState
           ],
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-            ),
-            child: Form(
-              key: formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  Center(
-                    child: Column(
-                      children: [
-                        const Text(
-                          "Welcome to",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Text(
-                          "AgriSynch",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 28,
-                            color: Color(
-                              0xFF1DBF73,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                ),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      Center(
+                        child: Column(
+                          children: [
+                            const Text(
+                              "Welcome to",
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        Image.asset(
-                          'assets/AgriSynchLogoNB-min.png',
-                          height: 100,
-                        ),
-                      ],
+                            const Text(
+                              "AgriSynch",
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 28,
+                                color: Color(
+                                  0xFF1DBF73,
+                                ),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 8,
+                            ),
+                            TweenAnimationBuilder<double>(
+                              duration: const Duration(milliseconds: 1200),
+                              tween: Tween<double>(begin: 0.0, end: 1.0),
+                              builder: (context, value, child) {
+                                return Transform.scale(
+                                  scale: value,
+                                  child: Opacity(
+                                    opacity: value,
+                                    child: Image.asset(
+                                      'assets/AgriSynchLogoNB2.png',
+                                      height: 100,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                     ),
                   ),
                   const SizedBox(
@@ -408,6 +474,8 @@ class _SignUpPageState
                   ),
                 ],
               ),
+            ),
+            ),
             ),
           ),
         ),
