@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
+import 'AgriCustomersPage.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
 import 'AgriNotificationPage.dart';
@@ -351,6 +352,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 _homeTile(
                   icon: Icons.people_alt,
                   title: "Customers",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AgriCustomersPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

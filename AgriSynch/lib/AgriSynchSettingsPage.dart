@@ -95,7 +95,7 @@ class _AgriSynchSettingsPageState
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
   int unreadNotifications = 0;
-  String _selectedCurrency = 'USD';
+  String _selectedCurrency = 'PHP';
 
   String userName = '';
   String userEmail = '';

@@ -19,7 +19,7 @@ class AgriFinances extends StatefulWidget {
 class _AgriFinancesState extends State<AgriFinances> {
   bool isDarkMode = false;
   int unreadNotifications = 0;
-  String currencySymbol = '\$';
+  String currencySymbol = '₱';
   
   List<Map<String, dynamic>> transactions = [];
   double totalIncome = 0.0;
@@ -1170,7 +1170,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                       ],
                       decoration: InputDecoration(
-                        labelText: 'Amount (\$)',
+                        labelText: 'Amount (₱)',
                         prefixIcon: Icon(
                           Icons.attach_money,
                           color: isDarkMode ? Colors.white70 : Colors.black54,

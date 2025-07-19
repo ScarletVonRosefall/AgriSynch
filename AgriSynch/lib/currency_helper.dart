@@ -26,7 +26,7 @@ class CurrencyHelper {
   ];
 
   // Default currency
-  static const String defaultCurrency = 'USD';
+  static const String defaultCurrency = 'PHP';
 
   /// Get the currently selected currency code
   static Future<String> getCurrentCurrency() async {
