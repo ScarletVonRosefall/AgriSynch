@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
+import 'AgriWeatherPage.dart';
+import 'AgriSynchProductionLog.dart';
+import 'weather_helper.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
 import 'AgriNotificationPage.dart';
@@ -33,6 +36,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   List<Map<String, dynamic>> tasks = [];
   List<Map<String, dynamic>> orders = [];
   int unreadNotifications = 0;
+  WeatherData? currentWeather;
 
   @override
   void initState() {
@@ -41,6 +45,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     loadTheme();
     loadTasksAndOrders();
     loadUnreadNotifications();
+    loadWeather();
     checkAndCreateSampleNotifications();
   }
 
@@ -84,6 +89,127 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   Future<void> loadUnreadNotifications() async {
     unreadNotifications = await NotificationHelper.getUnreadCount();
     setState(() {});
+  }
+
+  Future<void> loadWeather() async {
+    try {
+      final weather = await WeatherHelper.getCurrentWeather();
+      setState(() {
+        currentWeather = weather;
+      });
+    } catch (e) {
+      // Silently fail - weather is optional
+      setState(() {
+        currentWeather = null;
+      });
+    }
+  }
+
+  Widget _buildWeatherCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AgriWeatherPage(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: isDarkMode ? Colors.grey[850] : Colors.blue[50],
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode
+                ? [Colors.grey[850]!, Colors.grey[800]!]
+                : [Colors.blue[100]!, Colors.blue[50]!],
+          ),
+        ),
+        child: Row(
+          children: [
+            // Weather Icon
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.blue[700] : Colors.blue[600],
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(
+                currentWeather != null 
+                    ? _getWeatherIconData(currentWeather!.description)
+                    : Icons.wb_sunny,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+            
+            // Weather Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Weather',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (currentWeather != null) ...[
+                    Text(
+                      '${currentWeather!.temperature}°C',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.blue[300] : Colors.blue[700],
+                      ),
+                    ),
+                    Text(
+                      currentWeather!.description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      'Loading...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            
+            // Arrow Icon
+            Icon(
+              Icons.arrow_forward_ios,
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> checkAndCreateSampleNotifications() async {
@@ -349,6 +475,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 _homeTile(
                   icon: Icons.engineering,
                   title: "Production Log",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AgriSynchProductionLog(),
+                      ),
+                    );
+                  },
                 ),
                 _homeTile(
                   icon: Icons.people_alt,
@@ -362,6 +496,9 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                     );
                   },
                 ),
+                
+                // Special Weather Card
+                _buildWeatherCard(),
               ],
             ),
           ),
@@ -403,5 +540,24 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         onTap: onTap,
       ),
     );
+  }
+
+  IconData _getWeatherIconData(String description) {
+    final desc = description.toLowerCase();
+    if (desc.contains('sunny') || desc.contains('clear')) {
+      return Icons.wb_sunny;
+    } else if (desc.contains('cloud')) {
+      return Icons.cloud;
+    } else if (desc.contains('rain')) {
+      return Icons.grain;
+    } else if (desc.contains('storm')) {
+      return Icons.flash_on;
+    } else if (desc.contains('snow')) {
+      return Icons.ac_unit;
+    } else if (desc.contains('wind')) {
+      return Icons.air;
+    } else {
+      return Icons.wb_sunny;
+    }
   }
 }
