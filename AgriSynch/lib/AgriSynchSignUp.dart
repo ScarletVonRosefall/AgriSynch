@@ -244,7 +244,7 @@ class _SignUpPageState
                           height: 8,
                         ),
                         Image.asset(
-                          'assets/logo.png',
+                          'assets/AgriSynchLogoNB-min.png',
                           height: 100,
                         ),
                       ],

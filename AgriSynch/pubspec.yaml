@@ -57,13 +57,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/profile.png
-    - assets/profile2.png
-    - assets/project1.png
-    - assets/project2.png
-    - assets/project3.png
-    - assets/project4.png
     - assets/logo.png
+    - assets/AgriSynchLogo-min.png
+    - assets/AgriSynchLogoNB-min.png
 
     # For details regarding adding assets from package dependencies, see
     # https://flutter.dev/to/asset-from-package
