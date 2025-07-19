@@ -579,7 +579,7 @@ class _CalendarPageState
                                   builder:
                                       (
                                         _,
-                                      ) => const NotificationsPage(),
+                                      ) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning
