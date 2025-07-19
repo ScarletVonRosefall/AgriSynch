@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_helper.dart';
 import 'notifications_page.dart';
+import 'currency_helper.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -95,6 +96,7 @@ class _AgriSynchSettingsPageState
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
   int unreadNotifications = 0;
+  String _selectedCurrency = 'USD';
 
   String userName = '';
   String userEmail = '';
@@ -137,6 +139,7 @@ class _AgriSynchSettingsPageState
   >
   loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+    final currentCurrency = await CurrencyHelper.getCurrentCurrency();
     setState(
       () {
         _notificationsEnabled =
@@ -149,6 +152,7 @@ class _AgriSynchSettingsPageState
               'dark_mode',
             ) ??
             false;
+        _selectedCurrency = currentCurrency;
       },
     );
   }
@@ -340,6 +344,33 @@ class _AgriSynchSettingsPageState
                             });
                             updatePreference('dark_mode', value);
                           },
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildTile(
+                    index: 3,
+                    title: "Currency",
+                    icon: Icons.monetization_on_outlined,
+                    cardColor: cardColor,
+                    textColor: textColor,
+                    child: Column(
+                      children: [
+                        ListTile(
+                          title: Text(
+                            "Selected Currency",
+                            style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+                          ),
+                          subtitle: Text(
+                            "${CurrencyHelper.getCurrencyName(_selectedCurrency)} (${CurrencyHelper.getCurrencySymbol(_selectedCurrency)})",
+                            style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 12),
+                          ),
+                          trailing: Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                            color: textColor.withOpacity(0.7),
+                          ),
+                          onTap: () => _showCurrencySelectionDialog(context, isDarkMode),
                         ),
                       ],
                     ),
@@ -697,6 +728,92 @@ class _AgriSynchSettingsPageState
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showCurrencySelectionDialog(BuildContext context, bool isDarkMode) async {
+    final currencies = CurrencyHelper.getAllCurrencies();
+    
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          title: Text(
+            'Select Currency',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 400,
+            child: ListView.builder(
+              itemCount: currencies.length,
+              itemBuilder: (context, index) {
+                final currency = currencies[index];
+                final isSelected = currency['code'] == _selectedCurrency;
+                
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00C853),
+                    child: Text(
+                      currency['symbol']!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    currency['name']!,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontFamily: 'Poppins',
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${currency['code']} (${currency['symbol']})',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? Icon(
+                          Icons.check_circle,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00C853),
+                        )
+                      : null,
+                  onTap: () async {
+                    await CurrencyHelper.setCurrency(currency['code']!);
+                    setState(() {
+                      _selectedCurrency = currency['code']!;
+                    });
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00C853),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
