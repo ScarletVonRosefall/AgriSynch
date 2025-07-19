@@ -109,6 +109,25 @@ class _AgriSynchSettingsPageState
     _loadUnreadNotifications();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload preferences when returning to this page
+    _reloadThemeState();
+  }
+
+  void _reloadThemeState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentDarkMode = prefs.getBool('dark_mode') ?? false;
+    if (mounted && currentDarkMode != _darkModeEnabled) {
+      setState(() {
+        _darkModeEnabled = currentDarkMode;
+      });
+    }
+    await loadPreferences();
+    _loadUnreadNotifications();
+  }
+
   Future<
     void
   >

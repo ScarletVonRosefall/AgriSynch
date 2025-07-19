@@ -22,6 +22,13 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     loadTheme();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload theme when returning to this page
+    loadTheme();
+  }
+
   Future<void> loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(() {});

@@ -75,7 +75,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload data when returning to this page
+    // Reload data and theme when returning to this page
+    loadTheme();
     loadTasksAndOrders();
     loadUnreadNotifications();
   }

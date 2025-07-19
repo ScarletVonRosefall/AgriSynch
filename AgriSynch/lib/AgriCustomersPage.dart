@@ -31,6 +31,14 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     // Removed _createSampleCustomers() - start with empty list
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload theme and data when returning to this page
+    _loadTheme();
+    _loadUnreadNotifications();
+  }
+
   void _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(() {});
