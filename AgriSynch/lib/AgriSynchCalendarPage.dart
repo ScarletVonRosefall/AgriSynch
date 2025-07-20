@@ -47,6 +47,7 @@ class _CalendarPageState
   bool isDarkMode = false;
   int unreadNotifications = 0;
 
+  // Initialize the calendar page when widget is first created
   @override
   void initState() {
     super.initState();

@@ -39,6 +39,7 @@ class _AgriCustomersPageState
 
   final TextEditingController _searchController = TextEditingController();
 
+  // Initialize the customers page when widget is first created
   @override
   void initState() {
     super.initState();
@@ -48,6 +49,7 @@ class _AgriCustomersPageState
     // Removed _createSampleCustomers() - start with empty list
   }
 
+  // Update data when user returns to customers page
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -56,6 +58,7 @@ class _AgriCustomersPageState
     _loadUnreadNotifications();
   }
 
+  // Load the current theme setting
   void _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(
@@ -63,6 +66,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Load count of unread notifications
   void _loadUnreadNotifications() async {
     final count = await NotificationHelper.getUnreadCount();
     setState(
@@ -72,6 +76,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Load saved customers from device storage
   void _loadCustomers() async {
     final prefs = await SharedPreferences.getInstance();
     final savedCustomers = prefs.getString(
@@ -96,6 +101,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Save customers to device storage
   void _saveCustomers() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
@@ -106,6 +112,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Filter and sort customers based on search criteria
   List<
     Map<
       String,
@@ -165,6 +172,7 @@ class _AgriCustomersPageState
     return filtered;
   }
 
+  // Show dialog to add a new customer
   void _addCustomer() async {
     final result =
         await showDialog<
@@ -221,6 +229,7 @@ class _AgriCustomersPageState
     }
   }
 
+  // Show customer details in a popup dialog
   void _viewCustomerDetails(
     Map<
       String,
@@ -239,6 +248,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Remove a customer from the list
   void _deleteCustomer(
     String customerId,
   ) async {
@@ -273,6 +283,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Remove all customers with confirmation
   void _clearAllCustomers() async {
     final confirmed =
         await showDialog<
@@ -359,6 +370,7 @@ class _AgriCustomersPageState
     }
   }
 
+  // Build the customers page UI with header and scrollable content
   @override
   Widget build(
     BuildContext context,
@@ -715,6 +727,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Build individual customer card widget
   Widget _buildCustomerCard(
     Map<
       String,
@@ -944,6 +957,7 @@ class _AgriCustomersPageState
     );
   }
 
+  // Build info item widgets for customer stats
   Widget _buildInfoItem(
     String label,
     String value,
@@ -1020,12 +1034,14 @@ class _AddCustomerDialogState
 
   bool isDarkMode = false;
 
+  // Initialize the add customer dialog
   @override
   void initState() {
     super.initState();
     _loadTheme();
   }
 
+  // Load theme setting for dialog appearance
   void _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(
@@ -1033,6 +1049,7 @@ class _AddCustomerDialogState
     );
   }
 
+  // Build the add customer dialog UI
   @override
   Widget build(
     BuildContext context,
@@ -1321,6 +1338,7 @@ class _AddCustomerDialogState
     );
   }
 
+  // Get input field decoration with theme colors
   InputDecoration _getInputDecoration(
     String label,
     IconData icon,
@@ -1369,6 +1387,7 @@ class _AddCustomerDialogState
     );
   }
 
+  // Get text style with theme colors
   TextStyle _getTextStyle() {
     return TextStyle(
       color: isDarkMode
@@ -1403,6 +1422,7 @@ class CustomerDetailsDialog
     required this.customer,
   });
 
+  // Build the customer details dialog UI
   @override
   Widget build(
     BuildContext context,
@@ -1602,6 +1622,7 @@ class CustomerDetailsDialog
     );
   }
 
+  // Build detail row widget for customer information
   Widget _buildDetailRow(
     String label,
     String value,
