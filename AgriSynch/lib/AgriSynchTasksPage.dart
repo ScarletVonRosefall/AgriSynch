@@ -49,6 +49,7 @@ class _AgriSynchTasksPageState
     'All', 'Feeding', 'Cleaning', 'Harvesting', 'Maintenance', 'Health Check', 'Other'
   ];
 
+  // Initialize the tasks page when widget is first created
   @override
   void initState() {
     super.initState();
@@ -58,12 +59,14 @@ class _AgriSynchTasksPageState
     alarmTimer = Timer.periodic(const Duration(seconds: 10), (_) => checkAlarms());
   }
 
+  // Clean up timers when page is closed
   @override
   void dispose() {
     alarmTimer?.cancel();
     super.dispose();
   }
 
+  // Load saved tasks from device storage
   Future<
     void
   >
@@ -92,6 +95,7 @@ class _AgriSynchTasksPageState
     }
   }
 
+  // Save tasks to device storage
   Future<
     void
   >
@@ -110,6 +114,7 @@ class _AgriSynchTasksPageState
     setState(() {});
   }
 
+  // Load count of unread notifications
   void _loadUnreadNotifications() async {
     final count = await NotificationHelper.getUnreadCount();
     setState(() {
@@ -117,6 +122,7 @@ class _AgriSynchTasksPageState
     });
   }
 
+  // Show dialog to add a new task
   void addTask() async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -688,6 +694,8 @@ void editTask(int index) {
     ),
   );
 }
+
+// Check if any tasks need alarm notifications
 void checkAlarms() {
   final now = TimeOfDay.now();
   for (var task in tasks) {

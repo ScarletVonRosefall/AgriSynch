@@ -50,12 +50,14 @@ class _CalendarPageState
   @override
   void initState() {
     super.initState();
+    // Load all data when page first opens
     _loadEvents();
     _loadTasks();
     _loadTheme();
     _loadUnreadNotifications();
   }
 
+  // Load saved calendar events from phone storage
   Future<
     void
   >
@@ -110,6 +112,7 @@ class _CalendarPageState
     }
   }
 
+  // Load tasks from TasksPage and add them to calendar
   Future<
     void
   >
@@ -139,6 +142,7 @@ class _CalendarPageState
     }
   }
 
+  // Copy tasks from TasksPage to show on calendar
   void _syncTasksToCalendar() {
     // Clear existing task entries from calendar
     _events.forEach(
@@ -193,6 +197,7 @@ class _CalendarPageState
     _saveEvents();
   }
 
+  // Save calendar events to phone storage
   Future<
     void
   >
@@ -206,6 +211,7 @@ class _CalendarPageState
     );
   }
 
+  // Load dark/light theme setting
   _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(
@@ -213,6 +219,7 @@ class _CalendarPageState
     );
   }
 
+  // Count unread notifications for header badge
   void _loadUnreadNotifications() async {
     final count = await NotificationHelper.getUnreadCount();
     setState(
@@ -222,6 +229,7 @@ class _CalendarPageState
     );
   }
 
+  // Create a new calendar event on selected date
   void _addEvent(
     String title,
     String category,
@@ -256,6 +264,7 @@ class _CalendarPageState
     _loadUnreadNotifications();
   }
 
+  // Get all events for a specific day (used by calendar widget)
   List<
     Map<
       String,
@@ -272,6 +281,7 @@ class _CalendarPageState
         [];
   }
 
+  // Return appropriate color for each task category
   Color _getCategoryColor(
     String category,
   ) {
@@ -292,6 +302,7 @@ class _CalendarPageState
     }
   }
 
+  // Return appropriate icon for each task category
   IconData _getCategoryIcon(
     String category,
   ) {
@@ -311,6 +322,7 @@ class _CalendarPageState
     }
   }
 
+  // Show dialog for adding new calendar events  
   void _showAddDialog() {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -481,6 +493,7 @@ class _CalendarPageState
     );
   }
 
+  // Build the calendar page UI with fixed header and scrollable content
   @override
   Widget build(
     BuildContext context,

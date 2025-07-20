@@ -26,6 +26,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   String _searchTerm = '';
   String _sortOption = 'Date (Newest First)';
 
+  // Initialize the orders page when widget is first created
   @override
   void initState() {
     super.initState();
@@ -34,16 +35,19 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     _loadUnreadNotifications();
   }
 
+  // Load count of unread notifications
   Future<void> _loadUnreadNotifications() async {
     unreadNotifications = await NotificationHelper.getUnreadCount();
     setState(() {});
   }
 
+  // Load the current theme setting
   Future<void> _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(() {});
   }
 
+  // Load saved orders from device storage
   Future<void> _loadOrders() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('orders');
@@ -54,11 +58,13 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     }
   }
 
+  // Save orders to device storage
   Future<void> _saveOrders() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('orders', json.encode(_orders));
   }
 
+  // Add a new order with validation
   void _addOrder() {
     final quantity = _quantityController.text.trim();
     
@@ -254,6 +260,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     return filtered;
   }
 
+  // Build the orders page UI with fixed header and scrollable content
   @override
   Widget build(BuildContext context) {
     return Scaffold(

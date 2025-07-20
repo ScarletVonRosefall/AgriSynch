@@ -54,6 +54,7 @@ class _AgriSynchHomePageState
   int unreadNotifications = 0;
   WeatherData? currentWeather;
 
+  // Initialize the homepage when widget is first created
   @override
   void initState() {
     super.initState();
@@ -65,6 +66,7 @@ class _AgriSynchHomePageState
     checkAndCreateSampleNotifications();
   }
 
+  // Load user's name from secure storage
   Future<
     void
   >
@@ -79,6 +81,7 @@ class _AgriSynchHomePageState
     );
   }
 
+  // Load the current theme setting (dark/light mode)
   Future<
     void
   >
@@ -89,6 +92,7 @@ class _AgriSynchHomePageState
     );
   }
 
+  // Load tasks and orders data for dashboard statistics
   Future<
     void
   >
@@ -138,6 +142,7 @@ class _AgriSynchHomePageState
     );
   }
 
+  // Update data when user returns to homepage
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -147,6 +152,7 @@ class _AgriSynchHomePageState
     loadUnreadNotifications();
   }
 
+  // Load count of unread notifications
   Future<
     void
   >
@@ -157,6 +163,7 @@ class _AgriSynchHomePageState
     );
   }
 
+  // Fetch current weather data for the dashboard
   Future<void> loadWeather() async {
     try {
       final weather = await WeatherHelper.getCurrentWeather();
@@ -171,6 +178,7 @@ class _AgriSynchHomePageState
     }
   }
 
+  // Build the weather card widget for homepage
   Widget _buildWeatherCard() {
     return GestureDetector(
       onTap: () {
@@ -277,6 +285,7 @@ class _AgriSynchHomePageState
     );
   }
 
+  // Check task deadlines and create welcome notifications
   Future<void> checkAndCreateSampleNotifications() async {
     // Check for task deadlines
     await NotificationHelper.checkTaskDeadlines();
@@ -304,6 +313,7 @@ class _AgriSynchHomePageState
     loadUnreadNotifications();
   }
 
+  // Get time-appropriate greeting message
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
@@ -315,6 +325,7 @@ class _AgriSynchHomePageState
     }
   }
 
+  // Build quick stat cards for dashboard
   Widget _buildQuickStat(String title, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
@@ -361,6 +372,7 @@ class _AgriSynchHomePageState
     );
   }
 
+  // Build the homepage UI with fixed header and scrollable content
   @override
   Widget build(
     BuildContext context,
