@@ -1,17 +1,24 @@
-2025/07/19-13:25:32.739 18c0 Reusing MANIFEST C:\Users\mcpep\AppData\Local\Temp\flutter_tools.81a3cd8f\flutter_tools_chrome_device.6590a95a\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
-2025/07/19-13:25:32.760 18c0 Recovering log #26
-2025/07/19-13:25:32.761 18c0 Reusing old log C:\Users\mcpep\AppData\Local\Temp\flutter_tools.81a3cd8f\flutter_tools_chrome_device.6590a95a\Default\EdgeCoupons/coupons_data.db/000026.log 
-2025/07/19-13:25:32.766 18c0 Delete type=0 #4
-2025/07/19-13:25:32.766 18c0 Delete type=0 #7
-2025/07/19-13:25:32.767 18c0 Delete type=2 #8
-2025/07/19-13:25:32.767 18c0 Delete type=0 #10
-2025/07/19-13:25:32.767 18c0 Delete type=2 #11
-2025/07/19-13:25:32.767 18c0 Delete type=0 #13
-2025/07/19-13:25:32.769 18c0 Delete type=2 #14
-2025/07/19-13:25:32.771 18c0 Delete type=0 #16
-2025/07/19-13:25:32.772 18c0 Delete type=2 #17
-2025/07/19-13:25:32.772 18c0 Delete type=0 #19
-2025/07/19-13:25:32.773 18c0 Delete type=0 #23
-2025/07/19-13:25:45.002 3edc Level-0 table #30: started
-2025/07/19-13:25:45.006 3edc Level-0 table #30: 672080 bytes OK
-2025/07/19-13:25:45.009 3edc Delete type=0 #26
+2025/07/20-11:40:13.436 3eac Reusing MANIFEST C:\Users\mcpep\AppData\Local\Temp\flutter_tools.c1ecb1c3\flutter_tools_chrome_device.a4e5850d\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2025/07/20-11:40:13.439 3eac Recovering log #36
+2025/07/20-11:40:13.440 3eac Reusing old log C:\Users\mcpep\AppData\Local\Temp\flutter_tools.c1ecb1c3\flutter_tools_chrome_device.a4e5850d\Default\EdgeCoupons/coupons_data.db/000036.log 
+2025/07/20-11:40:13.442 3eac Delete type=0 #4
+2025/07/20-11:40:13.442 3eac Delete type=0 #7
+2025/07/20-11:40:13.443 3eac Delete type=2 #8
+2025/07/20-11:40:13.444 3eac Delete type=0 #10
+2025/07/20-11:40:13.445 3eac Delete type=2 #11
+2025/07/20-11:40:13.445 3eac Delete type=0 #13
+2025/07/20-11:40:13.446 3eac Delete type=2 #14
+2025/07/20-11:40:13.447 3eac Delete type=0 #16
+2025/07/20-11:40:13.466 3eac Delete type=2 #17
+2025/07/20-11:40:13.466 3eac Delete type=0 #19
+2025/07/20-11:40:13.467 3eac Delete type=2 #21
+2025/07/20-11:40:13.490 3eac Delete type=0 #23
+2025/07/20-11:40:13.506 3eac Delete type=2 #24
+2025/07/20-11:40:13.507 3eac Delete type=0 #26
+2025/07/20-11:40:13.527 3eac Delete type=2 #27
+2025/07/20-11:40:13.528 3eac Delete type=0 #29
+2025/07/20-11:40:13.529 3eac Delete type=2 #30
+2025/07/20-11:40:13.530 3eac Delete type=0 #32
+2025/07/20-11:49:15.000 4130 Level-0 table #40: started
+2025/07/20-11:49:15.005 4130 Level-0 table #40: 672080 bytes OK
+2025/07/20-11:49:15.006 4130 Delete type=0 #36

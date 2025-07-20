@@ -50,14 +50,14 @@ class AgriSynchApp
             (
               context,
             ) => const AgriSynchHome(),
-        '/storage': 
+        '/storage':
             (
-              context
+              context,
             ) => const StorageViewerPage(),
-        '/recover': 
+        '/recover':
             (
-              context
-            ) => const AgriSynchRecoverLocal(), // Turn this Back To AgriSynchRecoverPage() if you want to use the remote recovery page
+              context,
+            ) => const AgriSynchRecoverLocal(),
       },
       debugShowCheckedModeBanner: false,
     );
