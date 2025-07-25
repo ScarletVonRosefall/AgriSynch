@@ -35,6 +35,9 @@ class _SignUpPageState
       GlobalKey<
         FormState
       >();
+  
+  String _selectedAccountType = 'Farmer'; // Default to Farmer
+  bool _isPasswordVisible = false; // Track password visibility
 
   @override
   void initState() {
@@ -367,17 +370,82 @@ class _SignUpPageState
                         const SizedBox(
                           height: 12,
                         ),
-                        _inputField(
-                          "Password",
-                          passController,
-                          obscure: true,
+                        _passwordField(),
+                        const SizedBox(
+                          height: 16,
+                        ),
+                        const Text(
+                          "Which type of account?",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 12,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedAccountType,
+                              isExpanded: true,
+                              dropdownColor: const Color(0xFF00A862),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Poppins',
+                                fontSize: 16,
+                              ),
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'Farmer',
+                                  child: Text(
+                                    'Farmer',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Buyer',
+                                  child: Text(
+                                    'Buyer',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedAccountType = value!;
+                                });
+                              },
+                            ),
+                          ),
                         ),
                         const SizedBox(
                           height: 24,
                         ),
                         Center(
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               final name = nameController.text.trim();
                               final email = emailController.text.trim();
                               final pass = passController.text;
@@ -394,40 +462,15 @@ class _SignUpPageState
                                 showError("Password must be at least 6 characters and include a letter and a number.");
                                 return;
                               }
-                                // Show role selection dialog
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text("Which one are you?"),
-                                    content: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        ElevatedButton(
-                                            onPressed: () async {
-                                              await storage.write(key: 'name', value: name.trim());
-                                              await storage.write(key: 'email', value: email.trim());
-                                              await storage.write(key: 'role', value: 'Seller');
-                                              await storage.write(key: 'password', value: pass.trim());
-                                              Navigator.pop(context); // Close dialog
-                                              Navigator.pushReplacementNamed(context, '/login');
-                                            },
-                                            child: const Text("Seller"),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () async {
-                                              await storage.write(key: 'name', value: name.trim());
-                                              await storage.write(key: 'email', value: email.trim());
-                                              await storage.write(key: 'role', value: 'Buyer');
-                                              await storage.write(key: 'password', value: pass.trim());
-                                              Navigator.pop(context); // Close dialog
-                                              Navigator.pushReplacementNamed(context, '/login');
-                                            },
-                                            child: const Text("Buyer"),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                              );
+
+                              // Save user data with selected account type
+                              await storage.write(key: 'name', value: name.trim());
+                              await storage.write(key: 'user_email', value: email.trim());
+                              await storage.write(key: 'account_type', value: _selectedAccountType);
+                              await storage.write(key: 'user_password', value: pass.trim());
+                              
+                              // Navigate to login page
+                              Navigator.pushReplacementNamed(context, '/login');
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(
@@ -488,6 +531,53 @@ class _SignUpPageState
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _passwordField() {
+    return TextField(
+      controller: passController,
+      obscureText: !_isPasswordVisible,
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+      ),
+      decoration: InputDecoration(
+        hintText: "Password",
+        filled: true,
+        fillColor: Theme.of(
+          context,
+        ).inputDecorationTheme.fillColor,
+        hintStyle:
+            Theme.of(
+              context,
+            ).inputDecorationTheme.hintStyle ??
+            const TextStyle(
+              fontFamily: 'Poppins',
+            ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            20,
+          ),
+          borderSide: BorderSide.none,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible
+                ? Icons.visibility
+                : Icons.visibility_off,
+            color: Colors.grey,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
         ),
       ),
     );

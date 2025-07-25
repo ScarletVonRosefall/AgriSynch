@@ -1,4 +1,7 @@
-import 'dart:math';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'api_config.dart';
 
 class WeatherHelper {
   static Future<WeatherData?> getCurrentWeather({
@@ -6,35 +9,105 @@ class WeatherHelper {
     double? lon,
     String? cityName,
   }) async {
-    // For development, return randomized mock data
-    await Future.delayed(const Duration(milliseconds: 500)); // Simulate API delay
-    return _getRandomWeatherData();
+    try {
+      // Check if API key is configured
+      if (ApiConfig.openWeatherApiKey == 'YOUR_API_KEY_HERE') {
+        throw Exception('Please set up your OpenWeatherMap API key:\n\n1. Go to: https://openweathermap.org/api\n2. Sign up for free\n3. Get your API key\n4. Update lib/api_config.dart\n5. Restart the app');
+      }
+      
+      // If no coordinates provided, get current location
+      if (lat == null || lon == null) {
+        if (cityName == null) {
+          final position = await _getCurrentPosition();
+          if (position != null) {
+            lat = position.latitude;
+            lon = position.longitude;
+          } else {
+            // Fallback to Manila, Philippines for testing if location fails
+            print('Location services failed, using Manila as test location');
+            lat = 14.5995;
+            lon = 120.9842;
+          }
+        }
+      }
+      
+      // Build API URL
+      String url;
+      if (cityName != null) {
+        url = '${ApiConfig.openWeatherBaseUrl}?q=$cityName&appid=${ApiConfig.openWeatherApiKey}&units=metric';
+      } else {
+        url = '${ApiConfig.openWeatherBaseUrl}?lat=$lat&lon=$lon&appid=${ApiConfig.openWeatherApiKey}&units=metric';
+      }
+      
+      print('Using API key: ${ApiConfig.openWeatherApiKey}');
+      print('Making weather API request to: $url');
+      
+      // Make API request
+      final response = await http.get(Uri.parse(url)).timeout(
+        const Duration(seconds: 10),
+      );
+      
+      print('Weather API response status: ${response.statusCode}');
+      print('Weather API response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Weather data received: ${data['name']}, ${data['main']['temp']}°C');
+        return WeatherData.fromJson(data);
+      } else if (response.statusCode == 401) {
+        // API key issues
+        final errorData = json.decode(response.body);
+        if (errorData['message'].toString().toLowerCase().contains('invalid')) {
+          throw Exception('API Key Error: Your API key "${ApiConfig.openWeatherApiKey}" is invalid. Please check it at https://openweathermap.org/api');
+        } else {
+          throw Exception('API Key Error: ${errorData['message']}. Your API key might not be activated yet (can take up to 2 hours).');
+        }
+      } else if (response.statusCode == 404) {
+        throw Exception('Location not found. Please check the city name or enable location services.');
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception('Weather API error (${response.statusCode}): ${errorData['message'] ?? response.body}');
+      }
+    } catch (e) {
+      print('Weather API Exception: $e');
+      rethrow; // Re-throw the exception instead of returning mock data
+    }
   }
   
-  // Mock weather data that changes slightly each time
-  static WeatherData _getRandomWeatherData() {
-    final random = Random();
-    final baseTemp = 26 + random.nextDouble() * 8; // 26-34°C range
-    final weatherTypes = [
-      {'desc': 'Sunny', 'icon': '01d'},
-      {'desc': 'Partly Cloudy', 'icon': '02d'},
-      {'desc': 'Cloudy', 'icon': '03d'},
-      {'desc': 'Light Rain', 'icon': '09d'},
-      {'desc': 'Clear Sky', 'icon': '01d'},
-    ];
-    
-    final weather = weatherTypes[random.nextInt(weatherTypes.length)];
-    
-    return WeatherData(
-      temperature: double.parse(baseTemp.toStringAsFixed(1)),
-      description: weather['desc']!,
-      humidity: 65 + random.nextInt(25), // 65-90%
-      windSpeed: 5 + random.nextDouble() * 15, // 5-20 km/h
-      location: 'Manila, PH',
-      icon: weather['icon']!,
-      feelsLike: baseTemp + random.nextDouble() * 3,
-    );
+  static Future<Position?> _getCurrentPosition() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('Location services are disabled.');
+        return null;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('Location permissions are denied');
+          return null;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        print('Location permissions are permanently denied');
+        return null;
+      }
+
+      // Get current position
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      print('Error getting location: $e');
+      return null;
+    }
   }
+  
   
   static String getWeatherIcon(String iconCode) {
     // Map OpenWeatherMap icon codes to appropriate icons
@@ -105,11 +178,11 @@ class WeatherData {
   factory WeatherData.fromJson(Map<String, dynamic> json) {
     return WeatherData(
       temperature: (json['main']['temp'] as num).toDouble(),
-      description: json['weather'][0]['description'],
-      humidity: json['main']['humidity'],
-      windSpeed: (json['wind']['speed'] as num).toDouble(),
+      description: json['weather'][0]['description'] as String,
+      humidity: json['main']['humidity'] as int,
+      windSpeed: (json['wind']['speed'] as num).toDouble() * 3.6, // Convert m/s to km/h
       location: '${json['name']}, ${json['sys']['country']}',
-      icon: json['weather'][0]['icon'],
+      icon: json['weather'][0]['icon'] as String,
       feelsLike: (json['main']['feels_like'] as num).toDouble(),
     );
   }

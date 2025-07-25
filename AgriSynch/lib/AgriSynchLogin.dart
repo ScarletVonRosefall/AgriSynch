@@ -223,11 +223,18 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                                     await Future.delayed(const Duration(seconds: 1));
                                                     isLoading.value = false;
 
-                                                    final storedEmail = (await storage.read(key: 'email'))?.trim();
-                                                    final storedPassword = (await storage.read(key: 'password'))?.trim();
+                                                    final storedEmail = (await storage.read(key: 'user_email'))?.trim();
+                                                    final storedPassword = (await storage.read(key: 'user_password'))?.trim();
+                                                    final accountType = (await storage.read(key: 'account_type'))?.trim();
 
                                                     if (email == storedEmail && pass == storedPassword) {
-                                                      Navigator.pushReplacementNamed(context, '/home');
+                                                      // Check account type and route accordingly
+                                                      if (accountType == 'Buyer') {
+                                                        Navigator.pushReplacementNamed(context, '/buyer-home');
+                                                      } else {
+                                                        // For Farmer and Seller, use the normal home page
+                                                        Navigator.pushReplacementNamed(context, '/home');
+                                                      }
                                                     } else {
                                                       ScaffoldMessenger.of(context).showSnackBar(
                                                         const SnackBar(

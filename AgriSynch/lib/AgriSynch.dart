@@ -8,6 +8,7 @@ import 'AgriSynchLogin.dart';
 //import 'AgriSynchRecover.dart';
 import 'AgriSynchRecoverLocal.dart';
 import 'StorageViewer.dart';
+import 'AgriSynchBuyerHomePage.dart';
 
 void
 main() {
@@ -50,6 +51,10 @@ class AgriSynchApp
             (
               context,
             ) => const AgriSynchHome(),
+        '/buyer-home':
+            (
+              context,
+            ) => const AgriSynchBuyerHomePage(),
         '/storage':
             (
               context,
