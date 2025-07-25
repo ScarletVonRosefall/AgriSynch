@@ -1,27 +1,27 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'AgriSynch.dart'; // Import for bottom navigation
-import 'AgriSynchSignUp.dart';
-import 'AgriSynchLogin.dart';
-import 'AgriSynchRecoverLocal.dart';
-import 'AgriSynchBuyerPage.dart'; // Import the new Buyer Page
-import 'StorageViewer.dart'; // Import StorageViewer
-import 'AgriCustomersPage.dart';
-import 'AgriFinances.dart';
-import 'AgriNotificationPage.dart';
-import 'AgriSynchCalendarPage.dart';
-import 'AgriSynchOrdersPage.dart';
-import 'AgriSynchProductionLogPage.dart';
-import 'AgriSynchRecover.dart';
-import 'AgriSynchSettingsPage.dart';
-import 'AgriSynchTasksPage.dart';
-import 'AgriSynchVerify.dart';
-import 'AgriWeatherPage.dart';
-import 'BrowseProductsPage.dart';
-import 'change_password_page.dart';
-import 'HelpFeedbackPage.dart';
-import 'MyOrdersPage.dart';
-import 'profile_page.dart';
+import 'auth/AgriSynchSignUp.dart';
+import 'auth/AgriSynchLogin.dart';
+import 'auth/AgriSynchRecoverLocal.dart';
+import 'buyer/AgriSynchBuyerHomePage.dart'; // Import the Buyer Page
+import 'shared/StorageViewer.dart'; // Import StorageViewer
+import 'farmer/AgriCustomersPage.dart';
+import 'farmer/AgriFinances.dart';
+import 'shared/AgriNotificationPage.dart';
+import 'farmer/AgriSynchCalendarPage.dart';
+import 'farmer/AgriSynchOrdersPage.dart';
+import 'farmer/AgriSynchProductionLogPage.dart';
+import 'auth/AgriSynchRecover.dart';
+import 'farmer/AgriSynchSettingsPage.dart';
+import 'farmer/AgriSynchTasksPage.dart';
+import 'auth/AgriSynchVerify.dart';
+import 'shared/AgriWeatherPage.dart';
+import 'buyer/BrowseProductsPage.dart';
+import 'shared/change_password_page.dart';
+import 'shared/HelpFeedbackPage.dart';
+import 'buyer/MyOrdersPage.dart';
+import 'shared/profile_page.dart';
 
 // ... other imports ...
 
@@ -69,7 +69,7 @@ class AgriSynchApp
         '/buyer':
             (
               context,
-            ) => const AgriSynchBuyerPage(), // Ensure this route is defined
+            ) => const AgriSynchBuyerHomePage(), // Ensure this route is defined
         '/recoverLocal':
             (
               context,

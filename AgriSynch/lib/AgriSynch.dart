@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'AgriSynchHomePage.dart';
-import 'AgriSynchTasksPage.dart';
-import 'AgriSynchOrdersPage.dart';
-import 'AgriSynchSettingsPage.dart';
-import 'AgriSynchSignUp.dart';
-import 'AgriSynchLogin.dart';
-//import 'AgriSynchRecover.dart';
-import 'AgriSynchRecoverLocal.dart';
-import 'StorageViewer.dart';
-import 'AgriSynchBuyerHomePage.dart';
+import 'farmer/AgriSynchHomePage.dart';
+import 'farmer/AgriSynchTasksPage.dart';
+import 'farmer/AgriSynchOrdersPage.dart';
+import 'farmer/AgriSynchSettingsPage.dart';
+import 'auth/AgriSynchSignUp.dart';
+import 'auth/AgriSynchLogin.dart';
+//import 'auth/AgriSynchRecover.dart';
+import 'auth/AgriSynchRecoverLocal.dart';
+import 'shared/StorageViewer.dart';
+import 'buyer/AgriSynchBuyerHomePage.dart';
 
 void
 main() {
