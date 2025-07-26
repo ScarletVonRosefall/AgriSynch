@@ -713,7 +713,7 @@ class _AgriSynchBuyerSettingsPageState
                         ),
                         _infoRow(
                           "Copyright:",
-                          "© 2025 All rights reserved",
+                          "©2025 All rights reserved",
                           textColor,
                         ),
                         const SizedBox(
