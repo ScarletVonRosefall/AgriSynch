@@ -104,7 +104,8 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     });
     await prefs.setString('favorite_products', json.encode(favoriteProducts));
     
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           favoriteProducts.contains(productId) 
@@ -115,6 +116,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         duration: const Duration(seconds: 1),
       ),
     );
+    }
   }
 
   Future<void> addToCart(Map<String, dynamic> product) async {
@@ -139,13 +141,15 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     
     await prefs.setString('buyer_cart', json.encode(cart));
     
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Added to cart!'),
         backgroundColor: Color(0xFF4CAF50),
         duration: Duration(seconds: 1),
       ),
     );
+    }
   }
 
   List<Map<String, dynamic>> getFilteredProducts() {

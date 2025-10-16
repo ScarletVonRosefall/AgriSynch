@@ -185,11 +185,8 @@ class _SignUpPageState
               secondary: Color(
                 0xFFB2FF59,
               ),
-              background: Color(
-                0xFF232D23,
-              ),
               surface: Color(
-                0xFF2E473B,
+                0xFF232D23,
               ),
               onPrimary: Colors.white,
               onSecondary: Color(
@@ -389,10 +386,10 @@ class _SignUpPageState
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -470,7 +467,9 @@ class _SignUpPageState
                               await storage.write(key: 'user_password', value: pass.trim());
                               
                               // Navigate to login page
-                              Navigator.pushReplacementNamed(context, '/login');
+                              if (mounted) {
+                                Navigator.pushReplacementNamed(context, '/login');
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(

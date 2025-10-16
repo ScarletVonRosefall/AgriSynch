@@ -1,5 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'AgriSynch.dart'; // Import for bottom navigation
 import 'auth/AgriSynchSignUp.dart';
 import 'auth/AgriSynchLogin.dart';
@@ -22,11 +24,15 @@ import 'shared/change_password_page.dart';
 import 'shared/HelpFeedbackPage.dart';
 import 'buyer/MyOrdersPage.dart';
 import 'shared/profile_page.dart';
+import 'auth/auth_wrapper.dart';
 
 // ... other imports ...
 
-void
-main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     const AgriSynchApp(),
   );
@@ -57,7 +63,7 @@ class AgriSynchApp
         '/':
             (
               context,
-            ) => const AgriSynchSignUpPage(),
+            ) => const AuthWrapper(),
         '/login':
             (
               context,

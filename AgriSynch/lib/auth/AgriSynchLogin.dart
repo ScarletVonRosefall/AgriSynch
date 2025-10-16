@@ -227,20 +227,22 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                                     final storedPassword = (await storage.read(key: 'user_password'))?.trim();
                                                     final accountType = (await storage.read(key: 'account_type'))?.trim();
 
-                                                    if (email == storedEmail && pass == storedPassword) {
-                                                      // Check account type and route accordingly
-                                                      if (accountType == 'Buyer') {
-                                                        Navigator.pushReplacementNamed(context, '/buyer-home');
+                                                    if (mounted) {
+                                                      if (email == storedEmail && pass == storedPassword) {
+                                                        // Check account type and route accordingly
+                                                        if (accountType == 'Buyer') {
+                                                          Navigator.pushReplacementNamed(context, '/buyer-home');
+                                                        } else {
+                                                          // For Farmer and Seller, use the normal home page
+                                                          Navigator.pushReplacementNamed(context, '/home');
+                                                        }
                                                       } else {
-                                                        // For Farmer and Seller, use the normal home page
-                                                        Navigator.pushReplacementNamed(context, '/home');
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text("Invalid email or password."),
+                                                          ),
+                                                        );
                                                       }
-                                                    } else {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text("Invalid email or password."),
-                                                        ),
-                                                      );
                                                     }
                                                   },
                                             style: ElevatedButton.styleFrom(

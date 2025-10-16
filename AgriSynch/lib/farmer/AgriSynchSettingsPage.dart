@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
+import '../shared/user_profile_widget.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -446,6 +447,63 @@ class _AgriSynchSettingsPageState
               ),
               child: ListView(
                 children: [
+                  // User Profile Section
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: headerColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person,
+                              color: headerColor,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'My Profile',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: headerColor,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: headerColor,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/profile');
+                              },
+                              tooltip: 'Edit Profile',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        UserProfileWidget(
+                          showEmail: true,
+                          showLocation: true,
+                          imageSize: 60,
+                          showEditButton: false,
+                        ),
+                      ],
+                    ),
+                  ),
+
                   // Quick Actions Section
                   _buildQuickActions(
                     isDarkMode: isDarkMode,
@@ -567,7 +625,7 @@ class _AgriSynchSettingsPageState
                             ),
                           ),
                           value: _notificationsEnabled,
-                          activeColor: const Color(
+                          activeThumbColor: const Color(
                             0xFF00C853,
                           ),
                           onChanged:
@@ -614,7 +672,7 @@ class _AgriSynchSettingsPageState
                             ),
                           ),
                           value: _darkModeEnabled,
-                          activeColor: const Color(
+                          activeThumbColor: const Color(
                             0xFF00C853,
                           ),
                           onChanged:

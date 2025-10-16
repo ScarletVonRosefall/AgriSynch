@@ -126,8 +126,8 @@ class ThemeHelper {
     return TextStyle(
       fontFamily: 'Poppins',
       fontSize: 14,
-      color: Colors.white.withOpacity(
-        0.8,
+      color: Colors.white.withValues(
+        alpha: 0.8,
       ),
     );
   }
@@ -148,8 +148,8 @@ class ThemeHelper {
       boxShadow: withShadow
           ? [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                  isDark
+                color: Colors.black.withValues(
+                  alpha: isDark
                       ? 0.3
                       : 0.05,
                 ),

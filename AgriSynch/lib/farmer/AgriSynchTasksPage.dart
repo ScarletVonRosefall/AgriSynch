@@ -456,7 +456,7 @@ class _AgriSynchTasksPageState
                     Switch(
                       value: task['done'] ?? false,
                       onChanged: (val) => toggleDone(originalIndex, val),
-                      activeColor: const Color(0xFF00C853),
+                      activeThumbColor: const Color(0xFF00C853),
                     ),
                   ],
                 ),

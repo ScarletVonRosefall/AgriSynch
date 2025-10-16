@@ -180,24 +180,30 @@ class _AgriSynchRecoverLocalState extends State<AgriSynchRecoverLocal> with Tick
                           final storedEmail = (await storage.read(key: 'email'))?.trim();
 
                           if (enteredEmail.isEmpty || newPass.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Please fill in all fields.")),
-                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Please fill in all fields.")),
+                              );
+                            }
                             return;
                           }
 
                           if (enteredEmail != storedEmail) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Email not found.")),
-                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Email not found.")),
+                              );
+                            }
                             return;
                           }
 
                           await storage.write(key: 'password', value: newPass);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Password reset successful!")),
-                          );
-                          Navigator.pushReplacementNamed(context, '/login');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Password reset successful!")),
+                            );
+                            Navigator.pushReplacementNamed(context, '/login');
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1B4D3E),
