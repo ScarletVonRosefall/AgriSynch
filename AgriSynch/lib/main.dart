@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'AgriSynch.dart'; // Import for bottom navigation
-import 'auth/AgriSynchSignUp.dart';
 import 'auth/AgriSynchLogin.dart';
 import 'auth/AgriSynchRecoverLocal.dart';
 import 'buyer/AgriSynchBuyerHomePage.dart'; // Import the Buyer Page

@@ -10,10 +10,8 @@ class AgriSynchTasksPage
     extends
         StatefulWidget {
   const AgriSynchTasksPage({
-    Key? key,
-  }) : super(
-         key: key,
-       );
+    super.key,
+  });
        
 
   @override
@@ -109,7 +107,7 @@ class _AgriSynchTasksPageState
     );
   }
 
-  _loadTheme() async {
+  Future<void> _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(() {});
   }
@@ -642,7 +640,7 @@ class _AgriSynchTasksPageState
               
               ...categoryStats.entries.map((entry) => 
                 _buildStatRow(entry.key, entry.value.toString(), getCategoryIcon(entry.key))
-              ).toList(),
+              ),
               
               if (completedTasks > 0) ...[
                 const SizedBox(height: 16),
@@ -941,7 +939,7 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
 
 // Task Creation Dialog
 class TaskCreationDialog extends StatefulWidget {
-  const TaskCreationDialog({Key? key}) : super(key: key);
+  const TaskCreationDialog({super.key});
 
   @override
   State<TaskCreationDialog> createState() => _TaskCreationDialogState();
@@ -1009,7 +1007,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               decoration: const InputDecoration(
                 labelText: "Category",
                 border: OutlineInputBorder(),
@@ -1060,10 +1058,10 @@ class TaskEditDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave;
 
   const TaskEditDialog({
-    Key? key,
+    super.key,
     required this.task,
     required this.onSave,
-  }) : super(key: key);
+  });
 
   @override
   State<TaskEditDialog> createState() => _TaskEditDialogState();
@@ -1136,7 +1134,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               decoration: const InputDecoration(
                 labelText: "Category",
                 border: OutlineInputBorder(),

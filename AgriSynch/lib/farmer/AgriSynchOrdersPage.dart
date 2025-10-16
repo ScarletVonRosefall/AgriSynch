@@ -410,7 +410,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: _selectedProduct,
+                    initialValue: _selectedProduct,
                     decoration: InputDecoration(
                       labelText: 'Product',
                       labelStyle: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
@@ -820,7 +820,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: editedProduct,
+                initialValue: editedProduct,
                 items: _products.map((product) => DropdownMenuItem(
                       value: product,
                       child: Text(product),

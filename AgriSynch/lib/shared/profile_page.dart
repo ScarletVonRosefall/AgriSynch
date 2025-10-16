@@ -8,8 +8,8 @@ import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();

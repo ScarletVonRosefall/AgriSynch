@@ -213,7 +213,7 @@ class _CalendarPageState
   }
 
   // Load dark/light theme setting
-  _loadTheme() async {
+  Future<void> _loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
     setState(
       () {},
@@ -379,7 +379,7 @@ class _CalendarPageState
                         DropdownButtonFormField<
                           String
                         >(
-                          value: selectedCategory,
+                          initialValue: selectedCategory,
                           decoration: const InputDecoration(
                             labelText: 'Category',
                             labelStyle: TextStyle(

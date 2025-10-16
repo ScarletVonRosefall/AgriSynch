@@ -494,10 +494,7 @@ class _AgriFinancesState
     int colorIndex = 0;
 
     // Add income sections
-    incomeByCategory.entries.forEach(
-      (
-        entry,
-      ) {
+    for (var entry in incomeByCategory.entries) {
         sections.add(
           PieChartSectionData(
             color: _getPieColor(
@@ -513,14 +510,10 @@ class _AgriFinancesState
             ),
           ),
         );
-      },
-    );
+      }
 
     // Add expense sections
-    expenseByCategory.entries.forEach(
-      (
-        entry,
-      ) {
+    for (var entry in expenseByCategory.entries) {
         sections.add(
           PieChartSectionData(
             color: _getPieColor(
@@ -536,8 +529,7 @@ class _AgriFinancesState
             ),
           ),
         );
-      },
-    );
+      }
 
     return sections;
   }
@@ -1237,7 +1229,7 @@ class _AgriFinancesState
                         DropdownButtonFormField<
                           String
                         >(
-                          value: selectedFilter,
+                          initialValue: selectedFilter,
                           decoration: InputDecoration(
                             labelText: 'Category',
                             border: OutlineInputBorder(
@@ -1295,7 +1287,7 @@ class _AgriFinancesState
                         DropdownButtonFormField<
                           String
                         >(
-                          value: selectedTimeRange,
+                          initialValue: selectedTimeRange,
                           decoration: InputDecoration(
                             labelText: 'Time Range',
                             border: OutlineInputBorder(
@@ -1391,7 +1383,7 @@ class _AgriFinancesState
                     height: 12,
                   ),
                   _getFilteredTransactions().isEmpty
-                      ? Container(
+                      ? SizedBox(
                           height: 200,
                           child: Center(
                             child: Column(
@@ -1851,7 +1843,7 @@ class _AddTransactionDialogState
                     DropdownButtonFormField<
                       String
                     >(
-                      value: selectedType,
+                      initialValue: selectedType,
                       decoration: InputDecoration(
                         labelText: 'Type',
                         labelStyle: TextStyle(
@@ -1931,7 +1923,7 @@ class _AddTransactionDialogState
                     DropdownButtonFormField<
                       String
                     >(
-                      value: selectedCategory,
+                      initialValue: selectedCategory,
                       decoration: InputDecoration(
                         labelText: 'Category',
                         labelStyle: TextStyle(

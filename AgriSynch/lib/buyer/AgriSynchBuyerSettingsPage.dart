@@ -27,7 +27,7 @@ class _AgriSynchBuyerSettingsPageState
         State<
           AgriSynchBuyerSettingsPage
         > {
-  List<
+  final List<
     bool
   >
   _expanded = List.generate(
@@ -40,7 +40,7 @@ class _AgriSynchBuyerSettingsPageState
   bool _darkModeEnabled = false;
   int unreadNotifications = 0;
   String _selectedCurrency = 'PHP';
-  int _selectedIndex = 1; // Settings is selected
+  final int _selectedIndex = 1; // Settings is selected
 
   String userName = '';
   String userEmail = '';
@@ -545,7 +545,7 @@ class _AgriSynchBuyerSettingsPageState
                             ),
                           ),
                           value: _notificationsEnabled,
-                          activeColor: const Color(
+                          activeThumbColor: const Color(
                             0xFF00C853,
                           ),
                           onChanged:
@@ -592,7 +592,7 @@ class _AgriSynchBuyerSettingsPageState
                             ),
                           ),
                           value: _darkModeEnabled,
-                          activeColor: const Color(
+                          activeThumbColor: const Color(
                             0xFF00C853,
                           ),
                           onChanged:

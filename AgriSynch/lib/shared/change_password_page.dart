@@ -4,10 +4,8 @@ class ChangePasswordPage
     extends
         StatefulWidget {
   const ChangePasswordPage({
-    Key? key,
-  }) : super(
-         key: key,
-       );
+    super.key,
+  });
 
   @override
   State<

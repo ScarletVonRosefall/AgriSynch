@@ -25,7 +25,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final storage = FlutterSecureStorage();
   String userName = '';
   bool isDarkMode = false;
-  int _selectedIndex = 0;
+  final int _selectedIndex = 0;
 
   // Data for buyer dashboard
   List<Map<String, dynamic>> orders = [];

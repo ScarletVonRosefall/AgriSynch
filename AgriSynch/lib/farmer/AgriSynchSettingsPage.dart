@@ -129,7 +129,7 @@ class _AgriSynchSettingsPageState
         State<
           AgriSynchSettingsPage
         > {
-  List<
+  final List<
     bool
   >
   _expanded = List.generate(
