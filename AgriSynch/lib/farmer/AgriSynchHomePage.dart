@@ -13,44 +13,21 @@ import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import 'dart:convert';
 
-class AgriSynchHomePage
-    extends
-        StatefulWidget {
-  const AgriSynchHomePage({
-    super.key,
-  });
+class AgriSynchHomePage extends StatefulWidget {
+  const AgriSynchHomePage({super.key});
 
   @override
-  State<
-    AgriSynchHomePage
-  >
-  createState() => _AgriSynchHomePageState();
+  State<AgriSynchHomePage> createState() => _AgriSynchHomePageState();
 }
 
-class _AgriSynchHomePageState
-    extends
-        State<
-          AgriSynchHomePage
-        > {
+class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   final storage = FlutterSecureStorage();
   String userName = '';
   bool isDarkMode = false;
 
   // Data for summary
-  List<
-    Map<
-      String,
-      dynamic
-    >
-  >
-  tasks = [];
-  List<
-    Map<
-      String,
-      dynamic
-    >
-  >
-  orders = [];
+  List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> orders = [];
   int unreadNotifications = 0;
   WeatherData? currentWeather;
 
@@ -67,79 +44,34 @@ class _AgriSynchHomePageState
   }
 
   // Load user's name from secure storage
-  Future<
-    void
-  >
-  loadUserName() async {
-    userName =
-        await storage.read(
-          key: 'name',
-        ) ??
-        '';
-    setState(
-      () {},
-    );
+  Future<void> loadUserName() async {
+    userName = await storage.read(key: 'name') ?? '';
+    setState(() {});
   }
 
   // Load the current theme setting (dark/light mode)
-  Future<
-    void
-  >
-  loadTheme() async {
+  Future<void> loadTheme() async {
     isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(
-      () {},
-    );
+    setState(() {});
   }
 
   // Load tasks and orders data for dashboard statistics
-  Future<
-    void
-  >
-  loadTasksAndOrders() async {
+  Future<void> loadTasksAndOrders() async {
     final prefs = await SharedPreferences.getInstance();
 
     // Load tasks
-    final savedTasks = prefs.getString(
-      'tasks',
-    );
-    if (savedTasks !=
-        null) {
-      tasks =
-          List<
-            Map<
-              String,
-              dynamic
-            >
-          >.from(
-            json.decode(
-              savedTasks,
-            ),
-          );
+    final savedTasks = prefs.getString('tasks');
+    if (savedTasks != null) {
+      tasks = List<Map<String, dynamic>>.from(json.decode(savedTasks));
     }
 
     // Load orders
-    final savedOrders = prefs.getString(
-      'orders',
-    );
-    if (savedOrders !=
-        null) {
-      orders =
-          List<
-            Map<
-              String,
-              dynamic
-            >
-          >.from(
-            json.decode(
-              savedOrders,
-            ),
-          );
+    final savedOrders = prefs.getString('orders');
+    if (savedOrders != null) {
+      orders = List<Map<String, dynamic>>.from(json.decode(savedOrders));
     }
 
-    setState(
-      () {},
-    );
+    setState(() {});
   }
 
   // Update data when user returns to homepage
@@ -153,14 +85,9 @@ class _AgriSynchHomePageState
   }
 
   // Load count of unread notifications
-  Future<
-    void
-  >
-  loadUnreadNotifications() async {
+  Future<void> loadUnreadNotifications() async {
     unreadNotifications = await NotificationHelper.getUnreadCount();
-    setState(
-      () {},
-    );
+    setState(() {});
   }
 
   // Fetch current weather data for the dashboard
@@ -184,9 +111,7 @@ class _AgriSynchHomePageState
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const AgriWeatherPage(),
-          ),
+          MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
         );
       },
       child: Container(
@@ -221,7 +146,7 @@ class _AgriSynchHomePageState
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
-                currentWeather != null 
+                currentWeather != null
                     ? _getWeatherIconData(currentWeather!.description)
                     : Icons.wb_sunny,
                 color: Colors.white,
@@ -229,7 +154,7 @@ class _AgriSynchHomePageState
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Weather Info
             Expanded(
               child: Column(
@@ -272,7 +197,7 @@ class _AgriSynchHomePageState
                 ],
               ),
             ),
-            
+
             // Arrow Icon
             Icon(
               Icons.arrow_forward_ios,
@@ -293,21 +218,16 @@ class _AgriSynchHomePageState
     // Create a welcome notification if it's the first time
     final prefs = await SharedPreferences.getInstance();
     final hasWelcomeNotification =
-        prefs.getBool(
-          'welcome_notification_sent',
-        ) ??
-        false;
+        prefs.getBool('welcome_notification_sent') ?? false;
 
     if (!hasWelcomeNotification) {
       await NotificationHelper.addNotification(
         title: 'Welcome to AgriSynch! 🌱',
-        message: 'Start managing your agricultural tasks and orders efficiently.',
+        message:
+            'Start managing your agricultural tasks and orders efficiently.',
         type: NotificationHelper.systemNotification,
       );
-      await prefs.setBool(
-        'welcome_notification_sent',
-        true,
-      );
+      await prefs.setBool('welcome_notification_sent', true);
     }
 
     loadUnreadNotifications();
@@ -319,14 +239,19 @@ class _AgriSynchHomePageState
     if (hour < 12) {
       return "Good Morning";
     } else if (hour < 17) {
-      return "Good Afternoon";  
+      return "Good Afternoon";
     } else {
       return "Good Evening";
     }
   }
 
   // Build quick stat cards for dashboard
-  Widget _buildQuickStat(String title, String value, IconData icon, Color color) {
+  Widget _buildQuickStat(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -344,11 +269,7 @@ class _AgriSynchHomePageState
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
+            Icon(icon, color: color, size: 24),
             const SizedBox(height: 4),
             Text(
               value,
@@ -374,41 +295,26 @@ class _AgriSynchHomePageState
 
   // Build the homepage UI with fixed header and scrollable content
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(
-        isDarkMode,
-      ),
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
         children: [
           // --- Fixed Top Green Header ---
           Container(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              40,
-              20,
-              20,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(
-              isDark: isDarkMode,
-            ),
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     const CircleAvatar(
-                      backgroundImage: AssetImage(
-                        'assets/user_avatar.png',
-                      ),
+                      backgroundImage: AssetImage('assets/user_avatar.png'),
                       radius: 20,
                     ),
-                    const SizedBox(
-                      width: 10,
-                    ),
+                    const SizedBox(width: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -431,22 +337,15 @@ class _AgriSynchHomePageState
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(
-                              0.2,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              12,
-                            ),
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
                             onPressed: () async {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (
-                                        _,
-                                      ) => const AgriNotificationPage(),
+                                  builder: (_) => const AgriNotificationPage(),
                                 ),
                               );
                               // Reload notification count when returning
@@ -459,28 +358,22 @@ class _AgriSynchHomePageState
                             ),
                           ),
                         ),
-                        if (unreadNotifications >
-                            0)
+                        if (unreadNotifications > 0)
                           Positioned(
                             right: 8,
                             top: 8,
                             child: Container(
-                              padding: const EdgeInsets.all(
-                                2,
-                              ),
+                              padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
                                 color: Colors.red,
-                                borderRadius: BorderRadius.circular(
-                                  10,
-                                ),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               constraints: const BoxConstraints(
                                 minWidth: 16,
                                 minHeight: 16,
                               ),
                               child: Text(
-                                unreadNotifications >
-                                        9
+                                unreadNotifications > 9
                                     ? '9+'
                                     : unreadNotifications.toString(),
                                 style: const TextStyle(
@@ -496,14 +389,10 @@ class _AgriSynchHomePageState
                     ),
                   ],
                 ),
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
                 Text(
                   "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
-                  style: ThemeHelper.getSubHeaderTextStyle(
-                    isDark: isDarkMode,
-                  ),
+                  style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                 ),
               ],
             ),
@@ -514,9 +403,7 @@ class _AgriSynchHomePageState
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
 
                   // --- Quick Stats Row ---
                   Padding(
@@ -524,54 +411,42 @@ class _AgriSynchHomePageState
                     child: Row(
                       children: [
                         _buildQuickStat(
-                          "Total Tasks", 
-                          "${tasks.length}", 
-                          Icons.assignment, 
-                          Colors.blue
+                          "Total Tasks",
+                          "${tasks.length}",
+                          Icons.assignment,
+                          Colors.blue,
                         ),
                         const SizedBox(width: 12),
                         _buildQuickStat(
-                          "Completed", 
-                          "${tasks.where((t) => t['done'] == true).length}", 
-                          Icons.check_circle, 
-                          Colors.green
+                          "Completed",
+                          "${tasks.where((t) => t['done'] == true).length}",
+                          Icons.check_circle,
+                          Colors.green,
                         ),
                         const SizedBox(width: 12),
                         _buildQuickStat(
-                          "Orders", 
-                          "${orders.length}", 
-                          Icons.shopping_cart, 
-                          Colors.orange
+                          "Orders",
+                          "${orders.length}",
+                          Icons.shopping_cart,
+                          Colors.orange,
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
 
                   // --- Summary Card ---
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(
-                        16,
-                      ),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isDarkMode
-                            ? const Color(
-                                0xFF4CAF50,
-                              )
-                            : const Color(
-                                0xFF00E676,
-                              ),
-                        borderRadius: BorderRadius.circular(
-                          18,
-                        ),
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFF00E676),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                       child: Row(
                         children: [
@@ -588,9 +463,7 @@ class _AgriSynchHomePageState
                                     color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(
-                                  height: 6,
-                                ),
+                                const SizedBox(height: 6),
                                 Text(
                                   "• ${tasks.length} Total Tasks",
                                   style: const TextStyle(
@@ -646,26 +519,18 @@ class _AgriSynchHomePageState
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
 
                   // --- Weather Card ---
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: _buildWeatherCard(),
                   ),
 
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
                       "Jump Into Our Work!",
                       style: ThemeHelper.getTextStyle(
@@ -676,15 +541,11 @@ class _AgriSynchHomePageState
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 12,
-                  ),
+                  const SizedBox(height: 12),
 
                   // --- Tile List ---
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       children: [
                         _homeTile(
@@ -694,10 +555,7 @@ class _AgriSynchHomePageState
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (
-                                      _,
-                                    ) => const AgriSynchCalendarPage(),
+                                builder: (_) => const AgriSynchCalendarPage(),
                               ),
                             );
                           },
@@ -709,10 +567,7 @@ class _AgriSynchHomePageState
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (
-                                      _,
-                                    ) => const AgriFinances(),
+                                builder: (_) => const AgriFinances(),
                               ),
                             );
                           },
@@ -736,10 +591,7 @@ class _AgriSynchHomePageState
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (
-                                      _,
-                                    ) => const AgriCustomersPage(),
+                                builder: (_) => const AgriCustomersPage(),
                               ),
                             );
                           },
@@ -764,27 +616,12 @@ class _AgriSynchHomePageState
     VoidCallback? onTap,
   }) {
     return Card(
-      margin: const EdgeInsets.symmetric(
-        vertical: 8,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          16,
-        ),
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
-      color: isDarkMode
-          ? const Color(
-              0xFF2E7D32,
-            )
-          : const Color(
-              0xFF4CAF50,
-            ),
+      color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: Colors.white,
-        ),
+        leading: Icon(icon, color: Colors.white),
         title: Text(
           title,
           style: const TextStyle(
@@ -822,5 +659,3 @@ class _AgriSynchHomePageState
     }
   }
 }
-
-

@@ -14,8 +14,15 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   bool isDarkMode = false;
   List<Map<String, dynamic>> orders = [];
   String selectedFilter = 'All';
-  
-  final List<String> orderFilters = ['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+
+  final List<String> orderFilters = [
+    'All',
+    'Pending',
+    'Processing',
+    'Shipped',
+    'Delivered',
+    'Cancelled',
+  ];
 
   @override
   void initState() {
@@ -38,7 +45,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
       setState(() {
         orders = List<Map<String, dynamic>>.from(json.decode(ordersString));
         // Sort by date (newest first)
-        orders.sort((a, b) => DateTime.parse(b['orderDate']).compareTo(DateTime.parse(a['orderDate'])));
+        orders.sort(
+          (a, b) => DateTime.parse(
+            b['orderDate'],
+          ).compareTo(DateTime.parse(a['orderDate'])),
+        );
       });
     }
   }
@@ -49,10 +60,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
       setState(() {
         orders[orderIndex]['status'] = 'cancelled';
       });
-      
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('buyer_orders', json.encode(orders));
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Order cancelled successfully'),
@@ -64,9 +75,12 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   List<Map<String, dynamic>> getFilteredOrders() {
     if (selectedFilter == 'All') return orders;
-    return orders.where((order) => 
-      order['status'].toLowerCase() == selectedFilter.toLowerCase()
-    ).toList();
+    return orders
+        .where(
+          (order) =>
+              order['status'].toLowerCase() == selectedFilter.toLowerCase(),
+        )
+        .toList();
   }
 
   Color getStatusColor(String status) {
@@ -111,7 +125,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   void showOrderDetails(Map<String, dynamic> order) {
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: backgroundColor,
@@ -137,7 +151,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: getStatusColor(order['status']),
                     borderRadius: BorderRadius.circular(12),
@@ -155,7 +172,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             Text(
               'Order Date: ${formatDate(order['orderDate'])}',
               style: TextStyle(
@@ -173,7 +190,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   fontSize: 14,
                 ),
               ),
-            
+
             const SizedBox(height: 16),
             Text(
               'Items:',
@@ -185,7 +202,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               ),
             ),
             const SizedBox(height: 8),
-            
+
             ...List.generate(order['items'].length, (index) {
               final item = order['items'][index];
               return Padding(
@@ -219,7 +236,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                 ),
               );
             }),
-            
+
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -244,7 +261,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
             if (order['status'].toLowerCase() == 'pending')
               SizedBox(
@@ -256,7 +273,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('Cancel Order'),
-                        content: const Text('Are you sure you want to cancel this order?'),
+                        content: const Text(
+                          'Are you sure you want to cancel this order?',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
@@ -267,7 +286,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                               Navigator.pop(context);
                               cancelOrder(order['id']);
                             },
-                            child: const Text('Yes', style: TextStyle(color: Colors.red)),
+                            child: const Text(
+                              'Yes',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ),
                         ],
                       ),
@@ -297,8 +319,12 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF121212)
+        : const Color(0xFFF2FBE0);
+    final headerColor = isDarkMode
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFF00C853);
     final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
@@ -351,7 +377,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               itemBuilder: (context, index) {
                 final filter = orderFilters[index];
                 final isSelected = selectedFilter == filter;
-                
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
@@ -388,7 +414,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          selectedFilter == 'All' ? 'No orders yet' : 'No ${selectedFilter.toLowerCase()} orders',
+                          selectedFilter == 'All'
+                              ? 'No orders yet'
+                              : 'No ${selectedFilter.toLowerCase()} orders',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 18,
@@ -413,7 +441,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                     itemBuilder: (context, index) {
                       final order = getFilteredOrders()[index];
                       final itemCount = order['items'].length;
-                      
+
                       return Card(
                         color: cardColor,
                         margin: const EdgeInsets.only(bottom: 12),
@@ -429,7 +457,8 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'Order #${order['id']}',
@@ -441,7 +470,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: getStatusColor(order['status']),
                                         borderRadius: BorderRadius.circular(8),
@@ -470,7 +502,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                
+
                                 Text(
                                   formatDate(order['orderDate']),
                                   style: TextStyle(
@@ -480,9 +512,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                
+
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       '$itemCount item${itemCount > 1 ? 's' : ''}',
@@ -503,7 +536,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,

@@ -93,11 +93,15 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                         children: [
                           Text(
                             'Weather Forecast',
-                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                            style: ThemeHelper.getHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
                           Text(
                             'Agricultural Weather Info',
-                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                            style: ThemeHelper.getSubHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
                         ],
                       ),
@@ -141,7 +145,9 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                                 minHeight: 16,
                               ),
                               child: Text(
-                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                unreadNotifications > 9
+                                    ? '9+'
+                                    : unreadNotifications.toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -169,7 +175,9 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         CircularProgressIndicator(
-                          color: isDarkMode ? Colors.white : const Color(0xFF00C853),
+                          color: isDarkMode
+                              ? Colors.white
+                              : const Color(0xFF00C853),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -183,50 +191,50 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                     ),
                   )
                 : currentWeather == null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.cloud_off,
-                              size: 64,
-                              color: isDarkMode ? Colors.white54 : Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Weather data unavailable',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                color: isDarkMode ? Colors.white54 : Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadWeather,
-                              child: const Text('Retry'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.cloud_off,
+                          size: 64,
+                          color: isDarkMode ? Colors.white54 : Colors.grey,
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async => _loadWeather(),
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildCurrentWeatherCard(),
-                              const SizedBox(height: 20),
-                              _buildWeatherDetails(),
-                              const SizedBox(height: 20),
-                              _buildFarmingAdvice(),
-                              const SizedBox(height: 20),
-                            ],
+                        const SizedBox(height: 16),
+                        Text(
+                          'Weather data unavailable',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.white54 : Colors.grey,
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadWeather,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () async => _loadWeather(),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildCurrentWeatherCard(),
+                          const SizedBox(height: 20),
+                          _buildWeatherDetails(),
+                          const SizedBox(height: 20),
+                          _buildFarmingAdvice(),
+                          const SizedBox(height: 20),
+                        ],
                       ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -243,7 +251,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDarkMode 
+          colors: isDarkMode
               ? [const Color(0xFF2E7D32), const Color(0xFF4CAF50)]
               : [const Color(0xFF00C853), const Color(0xFF4CAF50)],
         ),
@@ -457,14 +465,12 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDarkMode 
+        color: isDarkMode
             ? const Color(0xFF1B5E20).withOpacity(0.3)
             : const Color(0xFFE8F5E8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode 
-              ? const Color(0xFF4CAF50)
-              : const Color(0xFF81C784),
+          color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF81C784),
           width: 1,
         ),
       ),

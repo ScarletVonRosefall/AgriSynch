@@ -107,7 +107,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   // Create welcome notification for buyers
   Future<void> checkAndCreateWelcomeNotification() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasWelcomeNotification = prefs.getBool('buyer_welcome_notification_sent') ?? false;
+    final hasWelcomeNotification =
+        prefs.getBool('buyer_welcome_notification_sent') ?? false;
 
     if (!hasWelcomeNotification) {
       await NotificationHelper.addNotification(
@@ -173,7 +174,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
-                currentWeather != null 
+                currentWeather != null
                     ? _getWeatherIconData(currentWeather!.description)
                     : Icons.wb_sunny,
                 color: Colors.white,
@@ -234,7 +235,12 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   }
 
   // Build quick stat cards for buyer dashboard
-  Widget _buildQuickStat(String title, String value, IconData icon, Color color) {
+  Widget _buildQuickStat(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -319,11 +325,15 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       children: [
                         Text(
                           "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
-                          style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                          style: ThemeHelper.getHeaderTextStyle(
+                            isDark: isDarkMode,
+                          ),
                         ),
                         Text(
                           "Welcome to AgriSynch Marketplace!",
-                          style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                          style: ThemeHelper.getSubHeaderTextStyle(
+                            isDark: isDarkMode,
+                          ),
                         ),
                       ],
                     ),
@@ -340,7 +350,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                             onPressed: () async {
                               await Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const AgriNotificationPage()),
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriNotificationPage(),
+                                ),
                               );
                               loadUnreadNotifications();
                             },
@@ -366,7 +378,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                                 minHeight: 16,
                               ),
                               child: Text(
-                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                unreadNotifications > 9
+                                    ? '9+'
+                                    : unreadNotifications.toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -434,7 +448,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676),
+                        color: isDarkMode
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFF00E676),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Row(
@@ -544,7 +560,10 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const BrowseProductsPage()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const BrowseProductsPage(),
+                              ),
                             );
                           },
                         ),
@@ -555,7 +574,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const MyOrdersPage()),
+                              MaterialPageRoute(
+                                builder: (context) => const MyOrdersPage(),
+                              ),
                             );
                           },
                         ),
@@ -566,7 +587,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ShoppingCartPage()),
+                              MaterialPageRoute(
+                                builder: (context) => const ShoppingCartPage(),
+                              ),
                             );
                           },
                         ),
@@ -577,7 +600,10 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const DeliveryTrackingPage()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const DeliveryTrackingPage(),
+                              ),
                             );
                           },
                         ),
@@ -600,10 +626,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         unselectedItemColor: isDarkMode ? Colors.grey[400] : Colors.grey[600],
         elevation: 8,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',

@@ -7,16 +7,16 @@ class WeatherConfig {
   // 2. Sign up for a free account
   // 3. Go to your API keys section
   // 4. Copy your API key and paste it below
-  
+
   static const String openWeatherMapApiKey = '';
-  
+
   // You can also add other weather service APIs here in the future
   static const String weatherApiKey = '';
   static const String accuWeatherApiKey = '';
-  
+
   // Helper method to check if API key is configured
   static bool get hasApiKey => openWeatherMapApiKey.isNotEmpty;
-  
+
   // Instructions for getting API key
   static String get apiKeyInstructions => '''
 🌤️ To get real weather data for Manila:

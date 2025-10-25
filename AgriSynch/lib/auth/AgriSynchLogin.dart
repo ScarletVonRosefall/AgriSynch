@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AgriSynchLoginPage extends StatefulWidget {
   const AgriSynchLoginPage({super.key});
@@ -8,7 +10,8 @@ class AgriSynchLoginPage extends StatefulWidget {
   State<AgriSynchLoginPage> createState() => _AgriSynchLoginPageState();
 }
 
-class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProviderStateMixin {
+class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
+    with TickerProviderStateMixin {
   final storage = FlutterSecureStorage();
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -30,21 +33,13 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _slideController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
 
     _fadeController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -59,10 +54,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
     super.dispose();
   }
 
-  Future<bool> checkCredentials(String email, String password) async {
-    final storedEmail = await storage.read(key: 'email');
-    final storedPassword = await storage.read(key: 'password');
-    return email == storedEmail && password == storedPassword;
+  void showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -98,7 +93,8 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                 size: 24,
                                 color: Colors.black,
                               ),
-                              onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                              onPressed: () =>
+                                  Navigator.pushReplacementNamed(context, '/'),
                             ),
                             const SizedBox(height: 16),
                             Center(
@@ -122,7 +118,9 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                   ),
                                   const SizedBox(height: 8),
                                   TweenAnimationBuilder<double>(
-                                    duration: const Duration(milliseconds: 1200),
+                                    duration: const Duration(
+                                      milliseconds: 1200,
+                                    ),
                                     tween: Tween<double>(begin: 0.0, end: 1.0),
                                     builder: (context, value, child) {
                                       return Transform.scale(
@@ -180,10 +178,13 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                           obscure: !value,
                                           suffixIcon: IconButton(
                                             icon: Icon(
-                                              value ? Icons.visibility : Icons.visibility_off,
+                                              value
+                                                  ? Icons.visibility
+                                                  : Icons.visibility_off,
                                               color: Colors.grey,
                                             ),
-                                            onPressed: () => showPassword.value = !value,
+                                            onPressed: () =>
+                                                showPassword.value = !value,
                                           ),
                                         );
                                       },
@@ -197,73 +198,124 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                             onPressed: loading
                                                 ? null
                                                 : () async {
-                                                    final email = emailController.text.trim();
-                                                    final pass = passController.text.trim();
+                                                    final email =
+                                                        emailController.text
+                                                            .trim();
+                                                    final pass = passController
+                                                        .text
+                                                        .trim();
 
-                                                    if (email.isEmpty || pass.isEmpty) {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text("Please enter both email and password."),
-                                                        ),
-                                                      );
-                                                      return;
-                                                    }
-
-                                                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                                                    if (!emailRegex.hasMatch(email)) {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text("Please enter a valid email address."),
-                                                        ),
+                                                    if (email.isEmpty ||
+                                                        pass.isEmpty) {
+                                                      showError(
+                                                        "Please enter both email and password.",
                                                       );
                                                       return;
                                                     }
 
                                                     isLoading.value = true;
-                                                    await Future.delayed(const Duration(seconds: 1));
-                                                    isLoading.value = false;
+                                                    try {
+                                                      // Sign in with Firebase
+                                                      final credential =
+                                                          await FirebaseAuth
+                                                              .instance
+                                                              .signInWithEmailAndPassword(
+                                                                email: email,
+                                                                password: pass,
+                                                              );
 
-                                                    final storedEmail = (await storage.read(key: 'user_email'))?.trim();
-                                                    final storedPassword = (await storage.read(key: 'user_password'))?.trim();
-                                                    final accountType = (await storage.read(key: 'account_type'))?.trim();
+                                                      final user =
+                                                          credential.user;
 
-                                                    if (mounted) {
-                                                      if (email == storedEmail && pass == storedPassword) {
-                                                        // Check account type and route accordingly
-                                                        if (accountType == 'Buyer') {
-                                                          Navigator.pushReplacementNamed(context, '/buyer-home');
-                                                        } else {
-                                                          // For Farmer and Seller, use the normal home page
-                                                          Navigator.pushReplacementNamed(context, '/home');
-                                                        }
-                                                      } else {
-                                                        ScaffoldMessenger.of(context).showSnackBar(
-                                                          const SnackBar(
-                                                            content: Text("Invalid email or password."),
-                                                          ),
+                                                      if (user != null) {
+                                                        // Fetch account type from Firestore
+                                                        final doc =
+                                                            await FirebaseFirestore
+                                                                .instance
+                                                                .collection(
+                                                                  'users',
+                                                                )
+                                                                .doc(user.uid)
+                                                                .get();
+
+                                                        final data = doc.data();
+                                                        final accountType =
+                                                            data?['accountType'] ??
+                                                            'Farmer';
+
+                                                        // Store locally if needed
+                                                        await storage.write(
+                                                          key: 'user_uid',
+                                                          value: user.uid,
                                                         );
+                                                        await storage.write(
+                                                          key: 'account_type',
+                                                          value: accountType,
+                                                        );
+
+                                                        // Navigate based on type
+                                                        if (mounted) {
+                                                          if (accountType ==
+                                                              'Buyer') {
+                                                            Navigator.pushReplacementNamed(
+                                                              context,
+                                                              '/buyer-home',
+                                                            );
+                                                          } else {
+                                                            Navigator.pushReplacementNamed(
+                                                              context,
+                                                              '/home',
+                                                            );
+                                                          }
+                                                        }
                                                       }
+                                                    } on FirebaseAuthException catch (
+                                                      e
+                                                    ) {
+                                                      String message =
+                                                          'Login failed';
+                                                      if (e.code ==
+                                                          'user-not-found') {
+                                                        message =
+                                                            'No account found for this email.';
+                                                      } else if (e.code ==
+                                                          'wrong-password') {
+                                                        message =
+                                                            'Incorrect password.';
+                                                      }
+                                                      showError(message);
+                                                    } catch (e) {
+                                                      showError(
+                                                        'Error: ${e.toString()}',
+                                                      );
+                                                    } finally {
+                                                      isLoading.value = false;
                                                     }
                                                   },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF1B4D3E),
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 32,
-                                                vertical: 14,
+                                              backgroundColor: const Color(
+                                                0xFF1B4D3E,
                                               ),
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 32,
+                                                    vertical: 14,
+                                                  ),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(20),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
                                               ),
                                             ),
                                             child: loading
                                                 ? const SizedBox(
                                                     width: 24,
                                                     height: 24,
-                                                    child: CircularProgressIndicator(
-                                                      color: Colors.white,
-                                                      strokeWidth: 2.5,
-                                                    ),
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          color: Colors.white,
+                                                          strokeWidth: 2.5,
+                                                        ),
                                                   )
                                                 : const Text(
                                                     "Login",
@@ -278,7 +330,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
                                     const SizedBox(height: 16),
                                     Center(
                                       child: GestureDetector(
-                                        onTap: () => Navigator.pushNamed(context, '/recover'),
+                                        onTap: () => Navigator.pushNamed(
+                                          context,
+                                          '/recover',
+                                        ),
                                         child: const Text(
                                           "Forgot Password?",
                                           style: TextStyle(
@@ -318,16 +373,12 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage> with TickerProv
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
-      style: const TextStyle(
-        fontFamily: 'Poppins',
-      ),
+      style: const TextStyle(fontFamily: 'Poppins'),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
         fillColor: const Color(0xFFD9F2E6),
-        hintStyle: const TextStyle(
-          fontFamily: 'Poppins',
-        ),
+        hintStyle: const TextStyle(fontFamily: 'Poppins'),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,

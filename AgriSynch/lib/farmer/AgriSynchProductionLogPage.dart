@@ -3,18 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../shared/theme_helper.dart'; // Assumes your ThemeHelper provides necessary styling methods
 
-class AgriSynchProductionLog
-    extends
-        StatefulWidget {
-  const AgriSynchProductionLog({
-    super.key,
-  });
+class AgriSynchProductionLog extends StatefulWidget {
+  const AgriSynchProductionLog({super.key});
 
   @override
-  State<
-    AgriSynchProductionLog
-  >
-  createState() => _AgriSynchProductionLogState();
+  State<AgriSynchProductionLog> createState() => _AgriSynchProductionLogState();
 }
 
 class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
@@ -62,14 +55,18 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
 
   void _applyFilters() {
     List<Map<String, dynamic>> filtered = List.from(_logEntries);
-    
+
     // Apply search filter
     if (_searchController.text.isNotEmpty) {
-      filtered = filtered.where((entry) => 
-        entry['product'].toString().toLowerCase()
-          .contains(_searchController.text.toLowerCase())).toList();
+      filtered = filtered
+          .where(
+            (entry) => entry['product'].toString().toLowerCase().contains(
+              _searchController.text.toLowerCase(),
+            ),
+          )
+          .toList();
     }
-    
+
     // Apply date filter
     DateTime now = DateTime.now();
     if (_filterType != 'All') {
@@ -87,10 +84,12 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
         }
       }).toList();
     }
-    
+
     // Sort by date (newest first)
-    filtered.sort((a, b) => _parseDate(b['date']).compareTo(_parseDate(a['date'])));
-    
+    filtered.sort(
+      (a, b) => _parseDate(b['date']).compareTo(_parseDate(a['date'])),
+    );
+
     setState(() {
       _filteredEntries = filtered;
     });
@@ -98,170 +97,126 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
 
   DateTime _parseDate(String dateStr) {
     List<String> parts = dateStr.split('-');
-    return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+    return DateTime(
+      int.parse(parts[2]),
+      int.parse(parts[1]),
+      int.parse(parts[0]),
+    );
   }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   bool _isSameWeek(DateTime date1, DateTime date2) {
     DateTime startOfWeek = date2.subtract(Duration(days: date2.weekday - 1));
     DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
-    return date1.isAfter(startOfWeek.subtract(Duration(days: 1))) && 
-           date1.isBefore(endOfWeek.add(Duration(days: 1)));
+    return date1.isAfter(startOfWeek.subtract(Duration(days: 1))) &&
+        date1.isBefore(endOfWeek.add(Duration(days: 1)));
   }
 
   bool _isSameMonth(DateTime date1, DateTime date2) {
     return date1.year == date2.year && date1.month == date2.month;
   }
 
-  Future<
-    void
-  >
-  _loadTheme() async {
+  Future<void> _loadTheme() async {
     final darkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(
-      () {
-        _isDark = darkMode;
-        _themeLoaded = true;
-      },
-    );
+    setState(() {
+      _isDark = darkMode;
+      _themeLoaded = true;
+    });
   }
 
   void _showAddLogModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: ThemeHelper.getCardColor(
-        _isDark,
-      ),
+      backgroundColor: ThemeHelper.getCardColor(_isDark),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(
-            20,
-          ),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       isScrollControlled: true,
-      builder:
-          (
-            context,
-          ) => Padding(
-            padding: EdgeInsets.only(
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom:
-                  MediaQuery.of(
-                    context,
-                  ).viewInsets.bottom +
-                  20,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          top: 20,
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _productController,
+              keyboardType: TextInputType.text,
+              style: ThemeHelper.getTextStyle(isDark: _isDark),
+              decoration: ThemeHelper.getInputDecoration(
+                hintText: 'Product Name',
+                prefixIcon: Icons.agriculture,
+                isDark: _isDark,
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _productController,
-                  keyboardType: TextInputType.text,
-                  style: ThemeHelper.getTextStyle(isDark: _isDark),
-                  decoration: ThemeHelper.getInputDecoration(
-                    hintText: 'Product Name',
-                    prefixIcon: Icons.agriculture,
-                    isDark: _isDark,
-                  ),
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-                TextField(
-                  controller: _kgController,
-                  keyboardType: TextInputType.number,
-                  style: ThemeHelper.getTextStyle(isDark: _isDark),
-                  decoration: ThemeHelper.getInputDecoration(
-                    hintText: 'Kilograms',
-                    prefixIcon: Icons.scale,
-                    isDark: _isDark,
-                  ),
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-                TextField(
-                  controller: _dateController,
-                  readOnly: true,
-                  onTap: _pickDate,
-                  style: ThemeHelper.getTextStyle(isDark: _isDark),
-                  decoration: ThemeHelper.getInputDecoration(
-                    hintText: 'Select Date',
-                    prefixIcon: Icons.calendar_month,
-                    isDark: _isDark,
-                  ),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                ElevatedButton(
-                  style: ThemeHelper.getPrimaryButtonStyle(
-                    isDark: _isDark,
-                  ),
-                  onPressed: _addLogEntry,
-                  child: const Text(
-                    'Add Entry',
-                  ),
-                ),
-              ],
+            const SizedBox(height: 10),
+            TextField(
+              controller: _kgController,
+              keyboardType: TextInputType.number,
+              style: ThemeHelper.getTextStyle(isDark: _isDark),
+              decoration: ThemeHelper.getInputDecoration(
+                hintText: 'Kilograms',
+                prefixIcon: Icons.scale,
+                isDark: _isDark,
+              ),
             ),
-          ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _dateController,
+              readOnly: true,
+              onTap: _pickDate,
+              style: ThemeHelper.getTextStyle(isDark: _isDark),
+              decoration: ThemeHelper.getInputDecoration(
+                hintText: 'Select Date',
+                prefixIcon: Icons.calendar_month,
+                isDark: _isDark,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ThemeHelper.getPrimaryButtonStyle(isDark: _isDark),
+              onPressed: _addLogEntry,
+              child: const Text('Add Entry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Future<
-    void
-  >
-  _pickDate() async {
+  Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(
-        2020,
-      ),
-      lastDate: DateTime(
-        2030,
-      ),
-      builder:
-          (
-            context,
-            child,
-          ) {
-            return Theme(
-              data:
-                  Theme.of(
-                    context,
-                  ).copyWith(
-                    colorScheme: ColorScheme.light(
-                      primary: ThemeHelper.getHeaderColor(
-                        _isDark,
-                      ),
-                      surface: ThemeHelper.getCardColor(
-                        _isDark,
-                      ),
-                      onSurface: ThemeHelper.getTextColor(
-                        _isDark,
-                      ),
-                    ),
-                  ),
-              child: child!,
-            );
-          },
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: ThemeHelper.getHeaderColor(_isDark),
+              surface: ThemeHelper.getCardColor(_isDark),
+              onSurface: ThemeHelper.getTextColor(_isDark),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (picked !=
-        null) {
-      setState(
-        () {
-          _dateController.text = '${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}';
-        },
-      );
+    if (picked != null) {
+      setState(() {
+        _dateController.text =
+            '${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}';
+      });
     }
   }
 
@@ -311,7 +266,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     _productController.text = entry['product'];
     _kgController.text = entry['kg'].toString();
     _dateController.text = entry['date'];
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: ThemeHelper.getCardColor(_isDark),
@@ -423,7 +378,8 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
           'product': product,
           'kg': kg,
           'date': date,
-          'timestamp': _logEntries[index]['timestamp'], // Keep original timestamp
+          'timestamp':
+              _logEntries[index]['timestamp'], // Keep original timestamp
         };
       }
       _productController.clear();
@@ -436,19 +392,11 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     Navigator.pop(context);
   }
 
-  void _showSnackBar(
-    String message,
-  ) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: ThemeHelper.getHeaderColor(
-          _isDark,
-        ),
-        content: Text(
-          message,
-        ),
+        backgroundColor: ThemeHelper.getHeaderColor(_isDark),
+        content: Text(message),
       ),
     );
   }
@@ -456,9 +404,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   @override
   Widget build(BuildContext context) {
     if (!_themeLoaded) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -482,7 +428,10 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
               const PopupMenuItem(value: 'All', child: Text('All')),
               const PopupMenuItem(value: 'Today', child: Text('Today')),
               const PopupMenuItem(value: 'This Week', child: Text('This Week')),
-              const PopupMenuItem(value: 'This Month', child: Text('This Month')),
+              const PopupMenuItem(
+                value: 'This Month',
+                child: Text('This Month'),
+              ),
             ],
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -497,7 +446,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
           children: [
             // Analytics Dashboard
             _buildAnalyticsDashboard(),
-            
+
             // Search Bar
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -512,7 +461,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
                 ),
               ),
             ),
-            
+
             // Filter indicator
             if (_filterType != 'All' || _searchController.text.isNotEmpty)
               Padding(
@@ -543,7 +492,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
                   ],
                 ),
               ),
-            
+
             // Entries List
             Expanded(
               child: _filteredEntries.isEmpty
@@ -570,11 +519,14 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
 
   Widget _buildAnalyticsDashboard() {
     if (_logEntries.isEmpty) return const SizedBox.shrink();
-    
+
     final totalEntries = _logEntries.length;
-    final totalKg = _logEntries.fold<double>(0, (sum, entry) => sum + (entry['kg'] as num).toDouble());
+    final totalKg = _logEntries.fold<double>(
+      0,
+      (sum, entry) => sum + (entry['kg'] as num).toDouble(),
+    );
     final avgKg = totalKg / totalEntries;
-    
+
     // Find most productive crop
     Map<String, double> productTotals = {};
     for (var entry in _logEntries) {
@@ -585,7 +537,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     String topProduct = productTotals.entries
         .reduce((a, b) => a.value > b.value ? a : b)
         .key;
-    
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -633,11 +585,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildStatCard(
-                  'Top Product',
-                  topProduct,
-                  Icons.star,
-                ),
+                child: _buildStatCard('Top Product', topProduct, Icons.star),
               ),
             ],
           ),
@@ -680,21 +628,17 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.agriculture,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.agriculture, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            _logEntries.isEmpty 
+            _logEntries.isEmpty
                 ? 'No production data yet'
                 : 'No entries match your filters',
             style: ThemeHelper.getTextStyle(isDark: _isDark),
           ),
           const SizedBox(height: 8),
           Text(
-            _logEntries.isEmpty 
+            _logEntries.isEmpty
                 ? 'Tap the + button to add your first entry'
                 : 'Try adjusting your search or filters',
             style: ThemeHelper.getBodyTextStyle(isDark: _isDark),
@@ -726,7 +670,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
               ),
             ),
             const SizedBox(width: 12),
-            
+
             // Entry Details
             Expanded(
               child: Column(
@@ -751,7 +695,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
                 ],
               ),
             ),
-            
+
             // Actions
             PopupMenuButton<String>(
               onSelected: (value) {

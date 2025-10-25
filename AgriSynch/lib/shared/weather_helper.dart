@@ -12,9 +12,11 @@ class WeatherHelper {
     try {
       // Check if API key is configured
       if (ApiConfig.openWeatherApiKey == 'YOUR_API_KEY_HERE') {
-        throw Exception('Please set up your OpenWeatherMap API key:\n\n1. Go to: https://openweathermap.org/api\n2. Sign up for free\n3. Get your API key\n4. Update lib/api_config.dart\n5. Restart the app');
+        throw Exception(
+          'Please set up your OpenWeatherMap API key:\n\n1. Go to: https://openweathermap.org/api\n2. Sign up for free\n3. Get your API key\n4. Update lib/api_config.dart\n5. Restart the app',
+        );
       }
-      
+
       // If no coordinates provided, get current location
       if (lat == null || lon == null) {
         if (cityName == null) {
@@ -30,50 +32,62 @@ class WeatherHelper {
           }
         }
       }
-      
+
       // Build API URL
       String url;
       if (cityName != null) {
-        url = '${ApiConfig.openWeatherBaseUrl}?q=$cityName&appid=${ApiConfig.openWeatherApiKey}&units=metric';
+        url =
+            '${ApiConfig.openWeatherBaseUrl}?q=$cityName&appid=${ApiConfig.openWeatherApiKey}&units=metric';
       } else {
-        url = '${ApiConfig.openWeatherBaseUrl}?lat=$lat&lon=$lon&appid=${ApiConfig.openWeatherApiKey}&units=metric';
+        url =
+            '${ApiConfig.openWeatherBaseUrl}?lat=$lat&lon=$lon&appid=${ApiConfig.openWeatherApiKey}&units=metric';
       }
-      
+
       print('Using API key: ${ApiConfig.openWeatherApiKey}');
       print('Making weather API request to: $url');
-      
+
       // Make API request
-      final response = await http.get(Uri.parse(url)).timeout(
-        const Duration(seconds: 10),
-      );
-      
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 10));
+
       print('Weather API response status: ${response.statusCode}');
       print('Weather API response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Weather data received: ${data['name']}, ${data['main']['temp']}°C');
+        print(
+          'Weather data received: ${data['name']}, ${data['main']['temp']}°C',
+        );
         return WeatherData.fromJson(data);
       } else if (response.statusCode == 401) {
         // API key issues
         final errorData = json.decode(response.body);
         if (errorData['message'].toString().toLowerCase().contains('invalid')) {
-          throw Exception('API Key Error: Your API key "${ApiConfig.openWeatherApiKey}" is invalid. Please check it at https://openweathermap.org/api');
+          throw Exception(
+            'API Key Error: Your API key "${ApiConfig.openWeatherApiKey}" is invalid. Please check it at https://openweathermap.org/api',
+          );
         } else {
-          throw Exception('API Key Error: ${errorData['message']}. Your API key might not be activated yet (can take up to 2 hours).');
+          throw Exception(
+            'API Key Error: ${errorData['message']}. Your API key might not be activated yet (can take up to 2 hours).',
+          );
         }
       } else if (response.statusCode == 404) {
-        throw Exception('Location not found. Please check the city name or enable location services.');
+        throw Exception(
+          'Location not found. Please check the city name or enable location services.',
+        );
       } else {
         final errorData = json.decode(response.body);
-        throw Exception('Weather API error (${response.statusCode}): ${errorData['message'] ?? response.body}');
+        throw Exception(
+          'Weather API error (${response.statusCode}): ${errorData['message'] ?? response.body}',
+        );
       }
     } catch (e) {
       print('Weather API Exception: $e');
       rethrow; // Re-throw the exception instead of returning mock data
     }
   }
-  
+
   static Future<Position?> _getCurrentPosition() async {
     try {
       // Check if location services are enabled
@@ -92,7 +106,7 @@ class WeatherHelper {
           return null;
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         print('Location permissions are permanently denied');
         return null;
@@ -107,37 +121,45 @@ class WeatherHelper {
       return null;
     }
   }
-  
-  
+
   static String getWeatherIcon(String iconCode) {
     // Map OpenWeatherMap icon codes to appropriate icons
     switch (iconCode) {
-      case '01d': case '01n': // clear sky
+      case '01d':
+      case '01n': // clear sky
         return '☀️';
-      case '02d': case '02n': // few clouds
+      case '02d':
+      case '02n': // few clouds
         return '⛅';
-      case '03d': case '03n': // scattered clouds
+      case '03d':
+      case '03n': // scattered clouds
         return '☁️';
-      case '04d': case '04n': // broken clouds
+      case '04d':
+      case '04n': // broken clouds
         return '☁️';
-      case '09d': case '09n': // shower rain
+      case '09d':
+      case '09n': // shower rain
         return '🌦️';
-      case '10d': case '10n': // rain
+      case '10d':
+      case '10n': // rain
         return '🌧️';
-      case '11d': case '11n': // thunderstorm
+      case '11d':
+      case '11n': // thunderstorm
         return '⛈️';
-      case '13d': case '13n': // snow
+      case '13d':
+      case '13n': // snow
         return '❄️';
-      case '50d': case '50n': // mist
+      case '50d':
+      case '50n': // mist
         return '🌫️';
       default:
         return '🌤️';
     }
   }
-  
+
   static String getWeatherAdvice(String description, double temperature) {
     final desc = description.toLowerCase();
-    
+
     if (desc.contains('rain') || desc.contains('shower')) {
       return 'Good day for indoor farm work';
     } else if (desc.contains('sun') || desc.contains('clear')) {
@@ -164,7 +186,7 @@ class WeatherData {
   final String location;
   final String icon;
   final double feelsLike;
-  
+
   WeatherData({
     required this.temperature,
     required this.description,
@@ -174,21 +196,27 @@ class WeatherData {
     required this.icon,
     required this.feelsLike,
   });
-  
+
   factory WeatherData.fromJson(Map<String, dynamic> json) {
     return WeatherData(
       temperature: (json['main']['temp'] as num).toDouble(),
       description: json['weather'][0]['description'] as String,
       humidity: json['main']['humidity'] as int,
-      windSpeed: (json['wind']['speed'] as num).toDouble() * 3.6, // Convert m/s to km/h
+      windSpeed:
+          (json['wind']['speed'] as num).toDouble() *
+          3.6, // Convert m/s to km/h
       location: '${json['name']}, ${json['sys']['country']}',
       icon: json['weather'][0]['icon'] as String,
       feelsLike: (json['main']['feels_like'] as num).toDouble(),
     );
   }
-  
+
   String get temperatureString => '${temperature.round()}°C';
   String get feelsLikeString => '${feelsLike.round()}°C';
-  String get capitalizedDescription => description.split(' ').map((word) => 
-      word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1)).join(' ');
+  String get capitalizedDescription => description
+      .split(' ')
+      .map(
+        (word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
+      )
+      .join(' ');
 }

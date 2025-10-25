@@ -141,7 +141,7 @@ class AuthService {
       User? user = _auth.currentUser;
       if (user != null) {
         Map<String, dynamic> updateData = {};
-        
+
         if (name != null) {
           updateData['name'] = name;
           await user.updateDisplayName(name);

@@ -7,9 +7,7 @@ import '../auth/auth_service.dart';
 import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({
-    super.key,
-  });
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -22,7 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _emailController = TextEditingController();
   final _bioController = TextEditingController();
   final _locationController = TextEditingController();
-  
+
   String? _profileImageBase64;
   bool _isEditing = false;
   bool _isLoading = true;
@@ -45,11 +43,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Try to load from Firebase first
       final userData = await AuthService.getUserData();
-      
+
       if (userData != null && userData.exists) {
         final data = userData.data() as Map<String, dynamic>;
         setState(() {
@@ -69,7 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
         final bio = await _storage.read(key: 'user_bio') ?? '';
         final location = await _storage.read(key: 'user_location') ?? '';
         final profileImage = await _storage.read(key: 'profile_image');
-        
+
         setState(() {
           _nameController.text = name;
           _nicknameController.text = nickname;
@@ -83,9 +81,9 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading profile: $e')));
       }
     }
   }
@@ -103,17 +101,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Also save locally for offline capability
       await _storage.write(key: 'user_name', value: _nameController.text);
-      await _storage.write(key: 'user_nickname', value: _nicknameController.text);
+      await _storage.write(
+        key: 'user_nickname',
+        value: _nicknameController.text,
+      );
       await _storage.write(key: 'user_email', value: _emailController.text);
       await _storage.write(key: 'user_bio', value: _bioController.text);
-      await _storage.write(key: 'user_location', value: _locationController.text);
-      
+      await _storage.write(
+        key: 'user_location',
+        value: _locationController.text,
+      );
+
       if (_profileImageBase64 != null) {
         await _storage.write(key: 'profile_image', value: _profileImageBase64!);
       }
-      
+
       setState(() => _isEditing = false);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -124,9 +128,9 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
       }
     }
   }
@@ -140,20 +144,20 @@ class _ProfilePageState extends State<ProfilePage> {
         maxHeight: 512,
         imageQuality: 80,
       );
-      
+
       if (image != null) {
         final bytes = await image.readAsBytes();
         final base64String = base64Encode(bytes);
-        
+
         setState(() {
           _profileImageBase64 = base64String;
         });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
     }
   }
@@ -167,10 +171,7 @@ class _ProfilePageState extends State<ProfilePage> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.grey[200],
-          border: Border.all(
-            color: const Color(0xFF4CAF50),
-            width: 3,
-          ),
+          border: Border.all(color: const Color(0xFF4CAF50), width: 3),
         ),
         child: _profileImageBase64 != null
             ? ClipOval(
@@ -181,11 +182,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   fit: BoxFit.cover,
                 ),
               )
-            : Icon(
-                Icons.person,
-                size: 60,
-                color: Colors.grey[600],
-              ),
+            : Icon(Icons.person, size: 60, color: Colors.grey[600]),
       ),
     );
   }
@@ -195,10 +192,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Profile',
-            style: TextStyle(fontFamily: 'Poppins'),
-          ),
+          title: const Text('Profile', style: TextStyle(fontFamily: 'Poppins')),
           backgroundColor: const Color(0xFF4CAF50),
           foregroundColor: Colors.white,
         ),
@@ -212,16 +206,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(fontFamily: 'Poppins'),
-        ),
+        title: const Text('Profile', style: TextStyle(fontFamily: 'Poppins')),
         backgroundColor: const Color(0xFF4CAF50),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.save : Icons.edit),
-            onPressed: _isEditing ? _saveProfileData : () => setState(() => _isEditing = true),
+            onPressed: _isEditing
+                ? _saveProfileData
+                : () => setState(() => _isEditing = true),
           ),
           if (_isEditing)
             IconButton(
@@ -295,10 +288,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF4CAF50),
-                    width: 1,
-                  ),
+                  border: Border.all(color: const Color(0xFF4CAF50), width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,10 +352,7 @@ class _ProfilePageState extends State<ProfilePage> {
             controller: controller,
             enabled: _isEditing,
             keyboardType: keyboardType,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 16),
             decoration: InputDecoration(
               prefixIcon: Icon(
                 icon,
@@ -410,16 +397,15 @@ class _ProfilePageState extends State<ProfilePage> {
             controller: _bioController,
             enabled: _isEditing,
             maxLines: 4,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 16),
             decoration: InputDecoration(
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 60),
                 child: Icon(
                   Icons.description,
-                  color: _isEditing ? const Color(0xFF4CAF50) : Colors.grey[500],
+                  color: _isEditing
+                      ? const Color(0xFF4CAF50)
+                      : Colors.grey[500],
                 ),
               ),
               border: InputBorder.none,
@@ -427,7 +413,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 horizontal: 16,
                 vertical: 16,
               ),
-              hintText: _isEditing ? 'Tell others about your farming experience, crops, specialties...' : '',
+              hintText: _isEditing
+                  ? 'Tell others about your farming experience, crops, specialties...'
+                  : '',
               hintMaxLines: 3,
             ),
           ),

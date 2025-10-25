@@ -6,45 +6,33 @@ import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 
-class AgriSynchTasksPage
-    extends
-        StatefulWidget {
-  const AgriSynchTasksPage({
-    super.key,
-  });
-       
+class AgriSynchTasksPage extends StatefulWidget {
+  const AgriSynchTasksPage({super.key});
 
   @override
-  State<
-    AgriSynchTasksPage
-  >
-  createState() => _AgriSynchTasksPageState();
+  State<AgriSynchTasksPage> createState() => _AgriSynchTasksPageState();
 }
 
-class _AgriSynchTasksPageState
-    extends
-        State<
-          AgriSynchTasksPage
-        > {
-  List<
-    Map<
-      String,
-      dynamic
-    >
-  >
-  tasks = [];
+class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
+  List<Map<String, dynamic>> tasks = [];
 
   Timer? alarmTimer;
 
   bool isAlarmShowing = false;
   bool isDarkMode = false;
   int unreadNotifications = 0;
-  
+
   String searchQuery = '';
   String selectedCategory = 'All';
-  
+
   final List<String> taskCategories = [
-    'All', 'Feeding', 'Cleaning', 'Harvesting', 'Maintenance', 'Health Check', 'Other'
+    'All',
+    'Feeding',
+    'Cleaning',
+    'Harvesting',
+    'Maintenance',
+    'Health Check',
+    'Other',
   ];
 
   // Initialize the tasks page when widget is first created
@@ -54,7 +42,10 @@ class _AgriSynchTasksPageState
     loadTasks();
     _loadTheme();
     _loadUnreadNotifications();
-    alarmTimer = Timer.periodic(const Duration(seconds: 10), (_) => checkAlarms());
+    alarmTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => checkAlarms(),
+    );
   }
 
   // Clean up timers when page is closed
@@ -65,46 +56,20 @@ class _AgriSynchTasksPageState
   }
 
   // Load saved tasks from device storage
-  Future<
-    void
-  >
-  loadTasks() async {
+  Future<void> loadTasks() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedTasks = prefs.getString(
-      'tasks',
-    );
-    if (savedTasks !=
-        null) {
-      setState(
-        () {
-          tasks =
-              List<
-                Map<
-                  String,
-                  dynamic
-                >
-              >.from(
-                json.decode(
-                  savedTasks,
-                ),
-              );
-        },
-      );
+    final savedTasks = prefs.getString('tasks');
+    if (savedTasks != null) {
+      setState(() {
+        tasks = List<Map<String, dynamic>>.from(json.decode(savedTasks));
+      });
     }
   }
 
   // Save tasks to device storage
-  Future<
-    void
-  >
-  saveTasks() async {
+  Future<void> saveTasks() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'tasks',
-      json.encode(
-        tasks,
-      ),
-    );
+    await prefs.setString('tasks', json.encode(tasks));
   }
 
   Future<void> _loadTheme() async {
@@ -126,7 +91,7 @@ class _AgriSynchTasksPageState
       context: context,
       builder: (context) => const TaskCreationDialog(),
     );
-    
+
     if (result != null) {
       final newTask = {
         'title': result['title'] ?? 'New Task',
@@ -144,7 +109,7 @@ class _AgriSynchTasksPageState
         tasks.add(newTask);
       });
       await saveTasks();
-      
+
       // Create notification for new task
       NotificationHelper.addNotification(
         title: 'New Task Created',
@@ -156,29 +121,20 @@ class _AgriSynchTasksPageState
   }
 
   void clearTasks() async {
-    setState(
-      () {
-        tasks.clear();
-      },
-    );
-    await saveTasks();
-  }
-  
-  void clearDoneTasks() async {
-    setState(
-      () {
-        tasks.removeWhere(
-          (task) => task['done'] == true,
-        );
-      },
-    );
+    setState(() {
+      tasks.clear();
+    });
     await saveTasks();
   }
 
-  void toggleDone(
-    int index,
-    bool value,
-  ) async {
+  void clearDoneTasks() async {
+    setState(() {
+      tasks.removeWhere((task) => task['done'] == true);
+    });
+    await saveTasks();
+  }
+
+  void toggleDone(int index, bool value) async {
     setState(() {
       tasks[index]['done'] = value;
       if (value) {
@@ -186,7 +142,8 @@ class _AgriSynchTasksPageState
         // Create notification for task completion
         NotificationHelper.addNotification(
           title: 'Task Completed',
-          message: 'Task "${tasks[index]['title']}" has been completed successfully!',
+          message:
+              'Task "${tasks[index]['title']}" has been completed successfully!',
           type: 'task_reminder',
         );
       } else {
@@ -199,8 +156,11 @@ class _AgriSynchTasksPageState
 
   List<Map<String, dynamic>> getFilteredTasks() {
     return tasks.where((task) {
-      final titleMatch = task['title'].toString().toLowerCase().contains(searchQuery.toLowerCase());
-      final categoryMatch = selectedCategory == 'All' || task['category'] == selectedCategory;
+      final titleMatch = task['title'].toString().toLowerCase().contains(
+        searchQuery.toLowerCase(),
+      );
+      final categoryMatch =
+          selectedCategory == 'All' || task['category'] == selectedCategory;
       return titleMatch && categoryMatch;
     }).toList();
   }
@@ -269,11 +229,7 @@ class _AgriSynchTasksPageState
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.task_alt,
-              color: Colors.white,
-              size: 30,
-            ),
+            child: const Icon(Icons.task_alt, color: Colors.white, size: 30),
           ),
         ],
       ),
@@ -354,11 +310,7 @@ class _AgriSynchTasksPageState
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(
-                Icons.task_alt,
-                size: 64,
-                color: Colors.grey,
-              ),
+              child: const Icon(Icons.task_alt, size: 64, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -373,10 +325,7 @@ class _AgriSynchTasksPageState
             const SizedBox(height: 8),
             const Text(
               'Try adjusting your filters or add a new task',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
             ),
           ],
         ),
@@ -433,11 +382,16 @@ class _AgriSynchTasksPageState
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: task['done'] ? Colors.grey : const Color(0xFF2E7D32),
-                              decoration: task['done'] ? TextDecoration.lineThrough : null,
+                              color: task['done']
+                                  ? Colors.grey
+                                  : const Color(0xFF2E7D32),
+                              decoration: task['done']
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                           ),
-                          if (task['description'] != null && task['description'].isNotEmpty) ...[
+                          if (task['description'] != null &&
+                              task['description'].isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text(
                               task['description'],
@@ -477,7 +431,10 @@ class _AgriSynchTasksPageState
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF2FBE0),
                         borderRadius: BorderRadius.circular(8),
@@ -608,7 +565,7 @@ class _AgriSynchTasksPageState
   void showTaskStatistics(BuildContext context) {
     final completedTasks = tasks.where((t) => t['done'] == true).length;
     final pendingTasks = tasks.length - completedTasks;
-    
+
     final categoryStats = <String, int>{};
     for (final task in tasks) {
       final category = task['category'] ?? 'Other';
@@ -630,25 +587,46 @@ class _AgriSynchTasksPageState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildStatRow("Total Tasks", tasks.length.toString(), Icons.task_alt),
-              _buildStatRow("Completed", completedTasks.toString(), Icons.check_circle, Colors.green),
-              _buildStatRow("Pending", pendingTasks.toString(), Icons.pending, Colors.orange),
-              
-              const SizedBox(height: 16),
-              const Text("By Category:", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              
-              ...categoryStats.entries.map((entry) => 
-                _buildStatRow(entry.key, entry.value.toString(), getCategoryIcon(entry.key))
+              _buildStatRow(
+                "Total Tasks",
+                tasks.length.toString(),
+                Icons.task_alt,
               ),
-              
+              _buildStatRow(
+                "Completed",
+                completedTasks.toString(),
+                Icons.check_circle,
+                Colors.green,
+              ),
+              _buildStatRow(
+                "Pending",
+                pendingTasks.toString(),
+                Icons.pending,
+                Colors.orange,
+              ),
+
+              const SizedBox(height: 16),
+              const Text(
+                "By Category:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+
+              ...categoryStats.entries.map(
+                (entry) => _buildStatRow(
+                  entry.key,
+                  entry.value.toString(),
+                  getCategoryIcon(entry.key),
+                ),
+              ),
+
               if (completedTasks > 0) ...[
                 const SizedBox(height: 16),
                 _buildStatRow(
-                  "Completion Rate", 
-                  "${((completedTasks / tasks.length) * 100).toStringAsFixed(1)}%", 
+                  "Completion Rate",
+                  "${((completedTasks / tasks.length) * 100).toStringAsFixed(1)}%",
                   Icons.trending_up,
-                  Colors.blue
+                  Colors.blue,
                 ),
               ],
             ],
@@ -664,7 +642,12 @@ class _AgriSynchTasksPageState
     );
   }
 
-  Widget _buildStatRow(String label, String value, IconData icon, [Color? color]) {
+  Widget _buildStatRow(
+    String label,
+    String value,
+    IconData icon, [
+    Color? color,
+  ]) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -672,80 +655,81 @@ class _AgriSynchTasksPageState
           Icon(icon, size: 20, color: color ?? Colors.grey.shade600),
           const SizedBox(width: 8),
           Expanded(child: Text(label)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          ),
         ],
       ),
     );
   }
 
-void editTask(int index) {
-  showDialog(
-    context: context,
-    builder: (context) => TaskEditDialog(
-      task: tasks[index],
-      onSave: (updatedTask) async {
-        setState(() {
-          tasks[index] = updatedTask;
-        });
-        await saveTasks();
-      },
-    ),
-  );
-}
+  void editTask(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => TaskEditDialog(
+        task: tasks[index],
+        onSave: (updatedTask) async {
+          setState(() {
+            tasks[index] = updatedTask;
+          });
+          await saveTasks();
+        },
+      ),
+    );
+  }
 
-// Check if any tasks need alarm notifications
-void checkAlarms() {
-  final now = TimeOfDay.now();
-  for (var task in tasks) {
-    if (!task['done'] && (task['alarmCount'] ?? 0) < 3) {
-      final taskTimeStr = task['time'];
-      final timeParts = taskTimeStr.split(' ');
-      if (timeParts.length == 2) {
-        final hm = timeParts[0].split(':');
-        final ampm = timeParts[1];
-        int hour = int.parse(hm[0]);
-        int minute = int.parse(hm[1]);
-        if (ampm == 'PM' && hour != 12) hour += 12;
-        if (ampm == 'AM' && hour == 12) hour = 0;
-        if (hour == now.hour && minute == now.minute) {
-          showTaskAlarm(task['title'], task);
-          break;
+  // Check if any tasks need alarm notifications
+  void checkAlarms() {
+    final now = TimeOfDay.now();
+    for (var task in tasks) {
+      if (!task['done'] && (task['alarmCount'] ?? 0) < 3) {
+        final taskTimeStr = task['time'];
+        final timeParts = taskTimeStr.split(' ');
+        if (timeParts.length == 2) {
+          final hm = timeParts[0].split(':');
+          final ampm = timeParts[1];
+          int hour = int.parse(hm[0]);
+          int minute = int.parse(hm[1]);
+          if (ampm == 'PM' && hour != 12) hour += 12;
+          if (ampm == 'AM' && hour == 12) hour = 0;
+          if (hour == now.hour && minute == now.minute) {
+            showTaskAlarm(task['title'], task);
+            break;
+          }
         }
       }
     }
   }
-}
 
-void showTaskAlarm(String title, Map<String, dynamic> task) {
-  if (isAlarmShowing) return;
-  isAlarmShowing = true;
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text("Task Alarm"),
-      content: Text("Task \"$title\" Needs To Be Done!"),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            setState(() {
-              task['alarmCount'] = (task['alarmCount'] ?? 0) + 1;
-            });
-            isAlarmShowing = false;
-            await saveTasks();
-            Navigator.pop(context);
-          },
-          child: const Text("Okay"),
-        ),
-      ],
-    ),
-  );
-}
+  void showTaskAlarm(String title, Map<String, dynamic> task) {
+    if (isAlarmShowing) return;
+    isAlarmShowing = true;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Task Alarm"),
+        content: Text("Task \"$title\" Needs To Be Done!"),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              setState(() {
+                task['alarmCount'] = (task['alarmCount'] ?? 0) + 1;
+              });
+              isAlarmShowing = false;
+              await saveTasks();
+              Navigator.pop(context);
+            },
+            child: const Text("Okay"),
+          ),
+        ],
+      ),
+    );
+  }
 
-// Build the tasks page UI with fixed header and scrollable content
+  // Build the tasks page UI with fixed header and scrollable content
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -766,12 +750,16 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                         children: [
                           Text(
                             'Task Management',
-                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                            style: ThemeHelper.getHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             "Let's Get Tasks Done!",
-                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                            style: ThemeHelper.getSubHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
                         ],
                       ),
@@ -816,7 +804,9 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                                 minHeight: 16,
                               ),
                               child: Text(
-                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                unreadNotifications > 9
+                                    ? '9+'
+                                    : unreadNotifications.toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -834,11 +824,16 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                 // Search Section
                 Container(
                   height: 42,
-                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  decoration: ThemeHelper.getContainerDecoration(
+                    isDark: isDarkMode,
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      Icon(
+                        Icons.search,
+                        color: ThemeHelper.getIconColor(isDarkMode),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
@@ -850,9 +845,13 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                           decoration: InputDecoration(
                             hintText: 'Search tasks...',
                             border: InputBorder.none,
-                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                            hintStyle: ThemeHelper.getHintTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
-                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                          style: ThemeHelper.getBodyTextStyle(
+                            isDark: isDarkMode,
+                          ),
                         ),
                       ),
                     ],
@@ -861,7 +860,7 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
               ],
             ),
           ),
-          
+
           // --- Scrollable Content ---
           Expanded(
             child: SingleChildScrollView(
@@ -892,7 +891,10 @@ void showTaskAlarm(String title, Map<String, dynamic> task) {
                         GestureDetector(
                           onTap: addTask,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF00C853),
                               borderRadius: BorderRadius.circular(20),
@@ -954,9 +956,14 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
   String recurringType = 'None';
 
   final List<String> categories = [
-    'Feeding', 'Cleaning', 'Harvesting', 'Maintenance', 'Health Check', 'Other'
+    'Feeding',
+    'Cleaning',
+    'Harvesting',
+    'Maintenance',
+    'Health Check',
+    'Other',
   ];
-  
+
   final List<String> recurringTypes = ['None', 'Daily', 'Weekly'];
 
   @override
@@ -986,9 +993,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: Text("Time: $selectedTime"),
-                ),
+                Expanded(child: Text("Time: $selectedTime")),
                 ElevatedButton(
                   onPressed: () async {
                     TimeOfDay? picked = await showTimePicker(
@@ -1013,10 +1018,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 border: OutlineInputBorder(),
               ),
               items: categories.map((category) {
-                return DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                );
+                return DropdownMenuItem(value: category, child: Text(category));
               }).toList(),
               onChanged: (value) {
                 setState(() {
@@ -1057,11 +1059,7 @@ class TaskEditDialog extends StatefulWidget {
   final Map<String, dynamic> task;
   final Function(Map<String, dynamic>) onSave;
 
-  const TaskEditDialog({
-    super.key,
-    required this.task,
-    required this.onSave,
-  });
+  const TaskEditDialog({super.key, required this.task, required this.onSave});
 
   @override
   State<TaskEditDialog> createState() => _TaskEditDialogState();
@@ -1074,14 +1072,21 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
   late String selectedCategory;
 
   final List<String> categories = [
-    'Feeding', 'Cleaning', 'Harvesting', 'Maintenance', 'Health Check', 'Other'
+    'Feeding',
+    'Cleaning',
+    'Harvesting',
+    'Maintenance',
+    'Health Check',
+    'Other',
   ];
 
   @override
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.task['title'] ?? '');
-    descriptionController = TextEditingController(text: widget.task['description'] ?? '');
+    descriptionController = TextEditingController(
+      text: widget.task['description'] ?? '',
+    );
     selectedTime = widget.task['time'] ?? '00:00 AM';
     selectedCategory = widget.task['category'] ?? 'Other';
   }
@@ -1113,9 +1118,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: Text("Time: $selectedTime"),
-                ),
+                Expanded(child: Text("Time: $selectedTime")),
                 ElevatedButton(
                   onPressed: () async {
                     TimeOfDay? picked = await showTimePicker(
@@ -1140,10 +1143,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
                 border: OutlineInputBorder(),
               ),
               items: categories.map((category) {
-                return DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                );
+                return DropdownMenuItem(value: category, child: Text(category));
               }).toList(),
               onChanged: (value) {
                 setState(() {
@@ -1167,7 +1167,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
               updatedTask['description'] = descriptionController.text;
               updatedTask['time'] = selectedTime;
               updatedTask['category'] = selectedCategory;
-              
+
               widget.onSave(updatedTask);
               Navigator.pop(context);
             }

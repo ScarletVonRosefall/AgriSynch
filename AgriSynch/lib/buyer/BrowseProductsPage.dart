@@ -103,32 +103,35 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       }
     });
     await prefs.setString('favorite_products', json.encode(favoriteProducts));
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          favoriteProducts.contains(productId) 
-            ? 'Added to favorites!' 
-            : 'Removed from favorites!',
+        SnackBar(
+          content: Text(
+            favoriteProducts.contains(productId)
+                ? 'Added to favorites!'
+                : 'Removed from favorites!',
+          ),
+          backgroundColor: const Color(0xFF4CAF50),
+          duration: const Duration(seconds: 1),
         ),
-        backgroundColor: const Color(0xFF4CAF50),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+      );
     }
   }
 
   Future<void> addToCart(Map<String, dynamic> product) async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Check if product already in cart
-    final existingIndex = cart.indexWhere((item) => item['id'] == product['id']);
-    
+    final existingIndex = cart.indexWhere(
+      (item) => item['id'] == product['id'],
+    );
+
     setState(() {
       if (existingIndex >= 0) {
         // Increase quantity
-        cart[existingIndex]['quantity'] = (cart[existingIndex]['quantity'] ?? 1) + 1;
+        cart[existingIndex]['quantity'] =
+            (cart[existingIndex]['quantity'] ?? 1) + 1;
       } else {
         // Add new item
         cart.add({
@@ -138,31 +141,37 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         });
       }
     });
-    
+
     await prefs.setString('buyer_cart', json.encode(cart));
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Added to cart!'),
-        backgroundColor: Color(0xFF4CAF50),
-        duration: Duration(seconds: 1),
-      ),
-    );
+        const SnackBar(
+          content: Text('Added to cart!'),
+          backgroundColor: Color(0xFF4CAF50),
+          duration: Duration(seconds: 1),
+        ),
+      );
     }
   }
 
   List<Map<String, dynamic>> getFilteredProducts() {
     return products.where((product) {
-      final matchesSearch = product['name'].toLowerCase().contains(searchQuery.toLowerCase());
+      final matchesSearch = product['name'].toLowerCase().contains(
+        searchQuery.toLowerCase(),
+      );
       return matchesSearch;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF121212)
+        : const Color(0xFFF2FBE0);
+    final headerColor = isDarkMode
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFF00C853);
     final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
@@ -205,7 +214,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Search Bar
                 Container(
                   decoration: BoxDecoration(
@@ -222,7 +231,10 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                       hintText: 'Search products...',
                       prefixIcon: Icon(Icons.search, color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -244,7 +256,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
               itemBuilder: (context, index) {
                 final product = getFilteredProducts()[index];
                 final isFavorite = favoriteProducts.contains(product['id']);
-                
+
                 return Card(
                   color: cardColor,
                   shape: RoundedRectangleBorder(
@@ -285,8 +297,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
-                                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                                    color: isFavorite ? Colors.red : Colors.grey,
+                                    isFavorite
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: isFavorite
+                                        ? Colors.red
+                                        : Colors.grey,
                                     size: 20,
                                   ),
                                 ),
@@ -295,7 +311,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                           ],
                         ),
                       ),
-                      
+
                       // Product Info
                       Expanded(
                         flex: 2,
@@ -330,7 +346,8 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           '₱${product['price'].toStringAsFixed(0)}',

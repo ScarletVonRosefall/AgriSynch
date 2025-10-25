@@ -67,7 +67,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   // Add a new order with validation
   void _addOrder() {
     final quantity = _quantityController.text.trim();
-    
+
     // Form validation
     if (_selectedProduct == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,7 +79,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       );
       return;
     }
-    
+
     if (quantity.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -90,7 +90,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       );
       return;
     }
-    
+
     if (int.tryParse(quantity) == null || int.parse(quantity) <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -139,25 +139,28 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   void _toggleDelivery(int index) {
     final wasDelivered = _orders[index]['delivered'];
     final order = _orders[index];
-    
+
     setState(() {
       _orders[index]['delivered'] = !_orders[index]['delivered'];
     });
     _saveOrders();
-    
+
     // Create delivery notification
     if (!wasDelivered) {
       NotificationHelper.addOrderNotification(
         title: 'Order Delivered! 📦',
-        message: '${order['product']} (Qty: ${order['quantity']}) has been marked as delivered',
+        message:
+            '${order['product']} (Qty: ${order['quantity']}) has been marked as delivered',
         orderId: order.toString(),
       );
     }
-    
+
     // Show delivery toggle snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(wasDelivered ? 'Marked as Undelivered!' : 'Marked as Delivered!'),
+        content: Text(
+          wasDelivered ? 'Marked as Undelivered!' : 'Marked as Delivered!',
+        ),
         duration: const Duration(seconds: 2),
         backgroundColor: const Color(0xFF00C853),
       ),
@@ -169,7 +172,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       _orders.removeAt(index);
     });
     _saveOrders();
-    
+
     // Show delete confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -185,7 +188,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete All Delivered Orders'),
-        content: const Text('Are you sure you want to delete all delivered orders? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete all delivered orders? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -200,7 +205,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete All', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Delete All',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -209,54 +217,77 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
   List<Map<String, dynamic>> get _filteredOrders {
     List<Map<String, dynamic>> filtered = _orders;
-    
+
     // Filter by category
     if (_selectedCategory != 'All') {
-      filtered = filtered.where((order) => order['product'] == _selectedCategory).toList();
+      filtered = filtered
+          .where((order) => order['product'] == _selectedCategory)
+          .toList();
     }
-    
+
     // Filter by search term
     if (_searchTerm.isNotEmpty) {
       filtered = filtered.where((order) {
         final productName = order['product'].toString().toLowerCase();
         final quantity = order['quantity'].toString().toLowerCase();
         final searchLower = _searchTerm.toLowerCase();
-        return productName.contains(searchLower) || quantity.contains(searchLower);
+        return productName.contains(searchLower) ||
+            quantity.contains(searchLower);
       }).toList();
     }
-    
+
     // Sort the filtered list
     switch (_sortOption) {
       case 'Date (Newest First)':
-        filtered.sort((a, b) => DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
+        filtered.sort(
+          (a, b) =>
+              DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])),
+        );
         break;
       case 'Date (Oldest First)':
-        filtered.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
+        filtered.sort(
+          (a, b) =>
+              DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])),
+        );
         break;
       case 'Product Name (A-Z)':
-        filtered.sort((a, b) => a['product'].toString().compareTo(b['product'].toString()));
+        filtered.sort(
+          (a, b) => a['product'].toString().compareTo(b['product'].toString()),
+        );
         break;
       case 'Product Name (Z-A)':
-        filtered.sort((a, b) => b['product'].toString().compareTo(a['product'].toString()));
+        filtered.sort(
+          (a, b) => b['product'].toString().compareTo(a['product'].toString()),
+        );
         break;
       case 'Quantity (High to Low)':
-        filtered.sort((a, b) => int.parse(b['quantity'].toString()).compareTo(int.parse(a['quantity'].toString())));
+        filtered.sort(
+          (a, b) => int.parse(
+            b['quantity'].toString(),
+          ).compareTo(int.parse(a['quantity'].toString())),
+        );
         break;
       case 'Quantity (Low to High)':
-        filtered.sort((a, b) => int.parse(a['quantity'].toString()).compareTo(int.parse(b['quantity'].toString())));
+        filtered.sort(
+          (a, b) => int.parse(
+            a['quantity'].toString(),
+          ).compareTo(int.parse(b['quantity'].toString())),
+        );
         break;
       case 'Delivery Status':
         filtered.sort((a, b) {
           // Delivered orders first (true comes before false)
           if (a['delivered'] == b['delivered']) {
             // If same delivery status, sort by date (newest first)
-            return DateTime.parse(b['date']).compareTo(DateTime.parse(a['date']));
+            return DateTime.parse(
+              b['date'],
+            ).compareTo(DateTime.parse(a['date']));
           }
           return b['delivered'] == true ? 1 : -1;
         });
         break;
     }
-    
+
     return filtered;
   }
 
@@ -284,12 +315,16 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                         children: [
                           Text(
                             'Orders Management',
-                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                            style: ThemeHelper.getHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Manage your agricultural orders',
-                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                            style: ThemeHelper.getSubHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
                         ],
                       ),
@@ -334,7 +369,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                                 minHeight: 16,
                               ),
                               child: Text(
-                                unreadNotifications > 9 ? '9+' : unreadNotifications.toString(),
+                                unreadNotifications > 9
+                                    ? '9+'
+                                    : unreadNotifications.toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -353,7 +390,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               ],
             ),
           ),
-          
+
           // --- Scrollable Content ---
           Expanded(
             child: SingleChildScrollView(
@@ -406,28 +443,37 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 flex: 2,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
+                    color: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonFormField<String>(
                     initialValue: _selectedProduct,
                     decoration: InputDecoration(
                       labelText: 'Product',
-                      labelStyle: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                      labelStyle: ThemeHelper.getBodyTextStyle(
+                        isDark: isDarkMode,
+                      ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     dropdownColor: ThemeHelper.getCardColor(isDarkMode),
                     isExpanded: true,
                     items: _products
-                        .map((product) => DropdownMenuItem(
-                              value: product,
-                              child: Text(
-                                product,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ))
+                        .map(
+                          (product) => DropdownMenuItem(
+                            value: product,
+                            child: Text(
+                              product,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) {
                       setState(() {
@@ -442,7 +488,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 flex: 1,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
+                    color: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextFormField(
@@ -452,9 +500,14 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     decoration: InputDecoration(
                       labelText: 'Qty',
-                      labelStyle: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                      labelStyle: ThemeHelper.getBodyTextStyle(
+                        isDark: isDarkMode,
+                      ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -469,11 +522,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ),
                 child: IconButton(
                   onPressed: _addOrder,
-                  icon: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 24),
                 ),
               ),
             ],
@@ -510,7 +559,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           ),
           if (_searchTerm.isNotEmpty)
             IconButton(
-              icon: Icon(Icons.clear, color: ThemeHelper.getIconColor(isDarkMode)),
+              icon: Icon(
+                Icons.clear,
+                color: ThemeHelper.getIconColor(isDarkMode),
+              ),
               onPressed: () {
                 setState(() {
                   _searchController.clear();
@@ -524,7 +576,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildFilterAndSortSection() {
-    final deliveredCount = _orders.where((order) => order['delivered'] == true).length;
+    final deliveredCount = _orders
+        .where((order) => order['delivered'] == true)
+        .length;
     final sortOptions = [
       'Date (Newest First)',
       'Date (Oldest First)',
@@ -543,20 +597,29 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           // Filter Row
           Row(
             children: [
-              Icon(Icons.filter_list, color: ThemeHelper.getHeaderColor(isDarkMode), size: 20),
+              Icon(
+                Icons.filter_list,
+                color: ThemeHelper.getHeaderColor(isDarkMode),
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Filter:',
-                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: ThemeHelper.getBodyTextStyle(
+                  isDark: isDarkMode,
+                ).copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
+                    color: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButton<String>(
@@ -566,10 +629,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     dropdownColor: ThemeHelper.getCardColor(isDarkMode),
                     items: ['All', ..._products]
-                        .map((cat) => DropdownMenuItem(
-                              value: cat,
-                              child: Text(cat),
-                            ))
+                        .map(
+                          (cat) =>
+                              DropdownMenuItem(value: cat, child: Text(cat)),
+                        )
                         .toList(),
                     onChanged: (value) {
                       setState(() {
@@ -588,13 +651,24 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   ),
                   child: TextButton.icon(
                     onPressed: _deleteAllDelivered,
-                    icon: const Icon(Icons.delete_sweep, color: Colors.white, size: 16),
+                    icon: const Icon(
+                      Icons.delete_sweep,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                     label: Text(
                       'Clear ($deliveredCount)',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Poppins'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontFamily: 'Poppins',
+                      ),
                     ),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       minimumSize: const Size(0, 32),
                     ),
                   ),
@@ -606,20 +680,29 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           // Sort Row
           Row(
             children: [
-              Icon(Icons.sort, color: ThemeHelper.getHeaderColor(isDarkMode), size: 20),
+              Icon(
+                Icons.sort,
+                color: ThemeHelper.getHeaderColor(isDarkMode),
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Sort:',
-                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: ThemeHelper.getBodyTextStyle(
+                  isDark: isDarkMode,
+                ).copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
+                    color: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButton<String>(
@@ -628,10 +711,17 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     underline: const SizedBox(),
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     dropdownColor: ThemeHelper.getCardColor(isDarkMode),
-                    items: sortOptions.map((option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option, style: const TextStyle(fontSize: 13)),
-                    )).toList(),
+                    items: sortOptions
+                        .map(
+                          (option) => DropdownMenuItem(
+                            value: option,
+                            child: Text(
+                              option,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (value) {
                       setState(() {
                         _sortOption = value!;
@@ -711,23 +801,27 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               decoration: BoxDecoration(
                 color: order['delivered']
                     ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
-                    : (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676)).withOpacity(0.1),
+                    : (isDarkMode
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFF00E676))
+                          .withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 order['delivered'] ? Icons.check_circle : Icons.pending,
-                color: order['delivered'] 
+                color: order['delivered']
                     ? ThemeHelper.getHeaderColor(isDarkMode)
-                    : (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF00E676)),
+                    : (isDarkMode
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFF00E676)),
                 size: 24,
               ),
             ),
             title: Text(
               "${order['product']} - Qty: ${order['quantity']}",
-              style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+              style: ThemeHelper.getBodyTextStyle(
+                isDark: isDarkMode,
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -743,10 +837,15 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: order['delivered']
-                        ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
+                        ? ThemeHelper.getHeaderColor(
+                            isDarkMode,
+                          ).withOpacity(0.1)
                         : Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -756,7 +855,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       fontFamily: 'Poppins',
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: order['delivered'] 
+                      color: order['delivered']
                           ? ThemeHelper.getHeaderColor(isDarkMode)
                           : Colors.orange[700],
                     ),
@@ -770,14 +869,20 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 Container(
                   decoration: BoxDecoration(
                     color: order['delivered']
-                        ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
-                        : (isDarkMode ? Colors.white24 : Colors.grey.withOpacity(0.1)),
+                        ? ThemeHelper.getHeaderColor(
+                            isDarkMode,
+                          ).withOpacity(0.1)
+                        : (isDarkMode
+                              ? Colors.white24
+                              : Colors.grey.withOpacity(0.1)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
                     icon: Icon(
-                      order['delivered'] ? Icons.check_box : Icons.check_box_outline_blank,
-                      color: order['delivered'] 
+                      order['delivered']
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank,
+                      color: order['delivered']
                           ? ThemeHelper.getHeaderColor(isDarkMode)
                           : (isDarkMode ? Colors.white60 : Colors.grey[600]),
                       size: 20,
@@ -792,7 +897,11 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     onPressed: () => _deleteOrder(_orders.indexOf(order)),
                   ),
                 ),
@@ -812,7 +921,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     await showDialog(
       context: context,
       builder: (context) {
-        TextEditingController quantityController = TextEditingController(text: editedQuantity);
+        TextEditingController quantityController = TextEditingController(
+          text: editedQuantity,
+        );
 
         return AlertDialog(
           title: const Text('Edit Order'),
@@ -821,10 +932,14 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             children: [
               DropdownButtonFormField<String>(
                 initialValue: editedProduct,
-                items: _products.map((product) => DropdownMenuItem(
-                      value: product,
-                      child: Text(product),
-                    )).toList(),
+                items: _products
+                    .map(
+                      (product) => DropdownMenuItem(
+                        value: product,
+                        child: Text(product),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (value) {
                   if (value != null) editedProduct = value;
                 },
@@ -852,7 +967,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 });
                 _saveOrders();
                 Navigator.pop(context);
-                
+
                 // Show edit confirmation snackbar
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

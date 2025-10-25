@@ -70,10 +70,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.grey[200],
-        border: Border.all(
-          color: const Color(0xFF4CAF50),
-          width: 2,
-        ),
+        border: Border.all(color: const Color(0xFF4CAF50), width: 2),
       ),
       child: _profileImageBase64 != null
           ? ClipOval(
@@ -212,11 +209,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
+                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -238,10 +231,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
         if (widget.showEditButton) ...[
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(
-              Icons.edit,
-              color: Color(0xFF4CAF50),
-            ),
+            icon: const Icon(Icons.edit, color: Color(0xFF4CAF50)),
             onPressed: () {
               Navigator.pushNamed(context, '/profile');
             },
@@ -265,10 +255,7 @@ class ProfileHeaderWidget extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF4CAF50),
-            Color(0xFF8BC34A),
-          ],
+          colors: [Color(0xFF4CAF50), Color(0xFF8BC34A)],
         ),
       ),
       child: const UserProfileWidget(

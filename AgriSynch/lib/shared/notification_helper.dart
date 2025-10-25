@@ -13,7 +13,7 @@ class NotificationHelper {
   static Future<List<Map<String, dynamic>>> getNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsJson = prefs.getStringList(_notificationsKey) ?? [];
-    
+
     return notificationsJson.map((json) {
       return Map<String, dynamic>.from(jsonDecode(json));
     }).toList();
@@ -27,7 +27,7 @@ class NotificationHelper {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsJson = prefs.getStringList(_notificationsKey) ?? [];
-    
+
     final notification = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'title': title,
@@ -37,55 +37,59 @@ class NotificationHelper {
       'isRead': false,
       'data': data ?? {},
     };
-    
+
     notificationsJson.insert(0, jsonEncode(notification));
-    
+
     // Keep only last 50 notifications
     if (notificationsJson.length > 50) {
       notificationsJson.removeRange(50, notificationsJson.length);
     }
-    
+
     await prefs.setStringList(_notificationsKey, notificationsJson);
   }
 
   static Future<void> markAsRead(String notificationId) async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsJson = prefs.getStringList(_notificationsKey) ?? [];
-    
+
     for (int i = 0; i < notificationsJson.length; i++) {
-      final notification = Map<String, dynamic>.from(jsonDecode(notificationsJson[i]));
+      final notification = Map<String, dynamic>.from(
+        jsonDecode(notificationsJson[i]),
+      );
       if (notification['id'] == notificationId) {
         notification['isRead'] = true;
         notificationsJson[i] = jsonEncode(notification);
         break;
       }
     }
-    
+
     await prefs.setStringList(_notificationsKey, notificationsJson);
   }
 
   static Future<void> markAllAsRead() async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsJson = prefs.getStringList(_notificationsKey) ?? [];
-    
+
     for (int i = 0; i < notificationsJson.length; i++) {
-      final notification = Map<String, dynamic>.from(jsonDecode(notificationsJson[i]));
+      final notification = Map<String, dynamic>.from(
+        jsonDecode(notificationsJson[i]),
+      );
       notification['isRead'] = true;
       notificationsJson[i] = jsonEncode(notification);
     }
-    
+
     await prefs.setStringList(_notificationsKey, notificationsJson);
   }
 
   static Future<void> deleteNotification(String notificationId) async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsJson = prefs.getStringList(_notificationsKey) ?? [];
-    
+
     notificationsJson.removeWhere((json) {
       final notification = Map<String, dynamic>.from(jsonDecode(json));
       return notification['id'] == notificationId;
     });
-    
+
     await prefs.setStringList(_notificationsKey, notificationsJson);
   }
 
@@ -135,7 +139,7 @@ class NotificationHelper {
     final tasksData = prefs.getStringList('tasks') ?? [];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    
+
     for (String taskJson in tasksData) {
       try {
         final taskData = taskJson.split('|');
@@ -143,13 +147,13 @@ class NotificationHelper {
           final taskTitle = taskData[0];
           final taskDateStr = taskData[3];
           final taskStatus = taskData[4];
-          
+
           // Skip completed tasks
           if (taskStatus == 'Completed') continue;
-          
+
           final taskDate = DateTime.parse(taskDateStr);
           final taskDay = DateTime(taskDate.year, taskDate.month, taskDate.day);
-          
+
           // Check if task is due today and not completed
           if (taskDay.isAtSameMomentAs(today)) {
             await addTaskNotification(
@@ -164,7 +168,8 @@ class NotificationHelper {
             final daysOverdue = today.difference(taskDay).inDays;
             await addTaskNotification(
               title: 'Overdue Task',
-              message: '"$taskTitle" is $daysOverdue day${daysOverdue > 1 ? 's' : ''} overdue!',
+              message:
+                  '"$taskTitle" is $daysOverdue day${daysOverdue > 1 ? 's' : ''} overdue!',
               taskId: taskData.join('|'),
               type: taskDeadline,
             );

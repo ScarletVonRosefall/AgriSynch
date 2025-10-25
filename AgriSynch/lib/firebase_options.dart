@@ -41,21 +41,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'your-web-api-key',
-    appId: '1:your-project:web:your-app-id',
-    messagingSenderId: 'your-sender-id',
-    projectId: 'your-project-id',
-    authDomain: 'your-project.firebaseapp.com',
-    storageBucket: 'your-project.appspot.com',
-    measurementId: 'G-measurement-id',
+    apiKey: 'AIzaSyDBRNb9w2mJc-iM7B-7-vPdaliX0dCe6s4',
+    appId: '1:823257894813:web:b4d29b0b17428d7417e974',
+    messagingSenderId: '823257894813',
+    projectId: 'agrisynch-a9350',
+    authDomain: 'agrisynch-a9350.firebaseapp.com',
+    storageBucket: 'agrisynch-a9350.firebasestorage.app',
+    measurementId: 'G-BPV9N5DWCN',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'your-android-api-key',
-    appId: '1:your-project:android:your-app-id',
-    messagingSenderId: 'your-sender-id',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project.appspot.com',
+    apiKey: 'AIzaSyCv_9aLV49lLMPlnDPIzqw90wjSYwWKSCY',
+    appId: '1:823257894813:android:1f51c971c825b1ab17e974',
+    messagingSenderId: '823257894813',
+    projectId: 'agrisynch-a9350',
+    storageBucket: 'agrisynch-a9350.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

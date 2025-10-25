@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../AgriSynch.dart';
+import '../buyer/AgriSynchBuyerHomePage.dart';
 import 'AgriSynchSignUp.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
+
+  Future<String> _getUserRole(String uid) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return userDoc.data()?['accountType'] ?? 'Farmer'; // Default to Farmer if not found
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +30,23 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If user is signed in, show the main app
+        // If user is signed in, check their role and show appropriate page
         if (snapshot.hasData && snapshot.data != null) {
-          return const AgriSynchHome();
+          return FutureBuilder<String>(
+            future: _getUserRole(snapshot.data!.uid),
+            builder: (context, roleSnapshot) {
+              if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // Navigate based on user role
+              if (roleSnapshot.data == 'Buyer') {
+                return const AgriSynchBuyerHomePage();
+              } else {
+                return const AgriSynchHome(); // Farmer's home
+              }
+            },
+          );
         }
 
         // If user is not signed in, show sign up page

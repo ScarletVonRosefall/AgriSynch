@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=C:\flutter"
-export "FLUTTER_APPLICATION_PATH=C:\Users\Reddi\AgriSynch\AgriSynch"
+export "FLUTTER_ROOT=D:\Flutter-sdk\flutter"
+export "FLUTTER_APPLICATION_PATH=D:\AgriSynch\AgriSynch"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib\main.dart"
 export "FLUTTER_BUILD_DIR=build"

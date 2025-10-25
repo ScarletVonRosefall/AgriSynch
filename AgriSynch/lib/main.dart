@@ -29,125 +29,50 @@ import 'auth/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(
-    const AgriSynchApp(),
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const AgriSynchApp());
 }
 
-class AgriSynchApp
-    extends
-        StatelessWidget {
-  const AgriSynchApp({
-    super.key,
-  });
+class AgriSynchApp extends StatelessWidget {
+  const AgriSynchApp({super.key});
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'AgriSynch',
       theme: ThemeData(
         fontFamily: 'Poppins',
-        scaffoldBackgroundColor: const Color(
-          0xFFF2FDE0,
-        ),
+        scaffoldBackgroundColor: const Color(0xFFF2FDE0),
         useMaterial3: true,
       ),
       initialRoute: '/',
       routes: {
-        '/':
-            (
-              context,
-            ) => const AuthWrapper(),
-        '/login':
-            (
-              context,
-            ) => const AgriSynchLoginPage(),
-        '/home':
-            (
-              context,
-            ) => const AgriSynchHome(), // Use bottom navigation version
-        '/buyer':
-            (
-              context,
-            ) => const AgriSynchBuyerHomePage(), // Ensure this route is defined
-        '/recoverLocal':
-            (
-              context,
-            ) => const AgriSynchRecoverLocal(),
-        '/Storage':
-            (
-              context,
-            ) => const StorageViewerPage(), // Add StorageViewer route
-        '/customers':
-            (
-              context,
-            ) => const AgriCustomersPage(),
-        '/finances':
-            (
-              context,
-            ) => const AgriFinances(),
-        '/notifications':
-            (
-              context,
-            ) => const AgriNotificationPage(),
-        '/calendar':
-            (
-              context,
-            ) => const AgriSynchCalendarPage(),
-        '/orders':
-            (
-              context,
-            ) => const AgriSynchOrdersPage(),
-        '/production':
-            (
-              context,
-            ) => const AgriSynchProductionLog(),
-        '/recover':
-            (
-              context,
-            ) => const AgriSynchRecoverPage(),
-        '/settings':
-            (
-              context,
-            ) => const AgriSynchSettingsPage(),
-        '/tasks':
-            (
-              context,
-            ) => const AgriSynchTasksPage(),
-        '/verify':
-            (
-              context,
-            ) => const AgriSynchEmailVerificationPage(),
-        '/weather':
-            (
-              context,
-            ) => const AgriWeatherPage(),
-        '/browse':
-            (
-              context,
-            ) => const BrowseProductsPage(),
-        '/changePassword':
-            (
-              context,
-            ) => const ChangePasswordPage(),
-        '/help':
-            (
-              context,
-            ) => const HelpFeedbackPage(),
-        '/myOrders':
-            (
-              context,
-            ) => const MyOrdersPage(),
+        '/': (context) => const AuthWrapper(),
+        '/login': (context) => const AgriSynchLoginPage(),
+        '/home': (context) =>
+            const AgriSynchHome(), // Use bottom navigation version
+        '/buyer-home': (context) =>
+            const AgriSynchBuyerHomePage(), // Buyer home page route
+        '/recoverLocal': (context) => const AgriSynchRecoverLocal(),
+        '/Storage': (context) =>
+            const StorageViewerPage(), // Add StorageViewer route
+        '/customers': (context) => const AgriCustomersPage(),
+        '/finances': (context) => const AgriFinances(),
+        '/notifications': (context) => const AgriNotificationPage(),
+        '/calendar': (context) => const AgriSynchCalendarPage(),
+        '/orders': (context) => const AgriSynchOrdersPage(),
+        '/production': (context) => const AgriSynchProductionLog(),
+        '/recover': (context) => const AgriSynchRecoverPage(),
+        '/settings': (context) => const AgriSynchSettingsPage(),
+        '/tasks': (context) => const AgriSynchTasksPage(),
+        '/verify': (context) => const AgriSynchEmailVerificationPage(),
+        '/weather': (context) => const AgriWeatherPage(),
+        '/browse': (context) => const BrowseProductsPage(),
+        '/changePassword': (context) => const ChangePasswordPage(),
+        '/help': (context) => const HelpFeedbackPage(),
+        '/myOrders': (context) => const MyOrdersPage(),
         // Note: ProductDetailsPage requires parameters so cannot be added to static routes
-        '/profile':
-            (
-              context,
-            ) => const ProfilePage(),
+        '/profile': (context) => const ProfilePage(),
         // ... other routes
       },
     );

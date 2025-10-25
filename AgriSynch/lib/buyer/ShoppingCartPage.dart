@@ -59,7 +59,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       removeItem(index);
       return;
     }
-    
+
     setState(() {
       cart[index]['quantity'] = newQuantity;
     });
@@ -71,7 +71,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       cart.removeAt(index);
     });
     await updateCart();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Item removed from cart'),
@@ -86,7 +86,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       cart.clear();
     });
     await updateCart();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Cart cleared'),
@@ -114,7 +114,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       'total': getTotalPrice(),
       'status': 'pending',
       'orderDate': DateTime.now().toIso8601String(),
-      'estimatedDelivery': DateTime.now().add(const Duration(days: 3)).toIso8601String(),
+      'estimatedDelivery': DateTime.now()
+          .add(const Duration(days: 3))
+          .toIso8601String(),
     };
 
     // Add to orders
@@ -130,7 +132,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Order Placed!'),
-        content: Text('Order #${order['id']} has been placed successfully.\nEstimated delivery: 3 days'),
+        content: Text(
+          'Order #${order['id']} has been placed successfully.\nEstimated delivery: 3 days',
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -158,8 +162,12 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF121212)
+        : const Color(0xFFF2FBE0);
+    final headerColor = isDarkMode
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFF00C853);
     final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
@@ -203,7 +211,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('Clear Cart'),
-                          content: const Text('Are you sure you want to remove all items?'),
+                          content: const Text(
+                            'Are you sure you want to remove all items?',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
@@ -214,7 +224,10 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                 Navigator.pop(context);
                                 clearCart();
                               },
-                              child: const Text('Clear', style: TextStyle(color: Colors.red)),
+                              child: const Text(
+                                'Clear',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           ],
                         ),
@@ -336,7 +349,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       itemCount: cart.length,
                       itemBuilder: (context, index) {
                         final item = cart[index];
-                        
+
                         return Card(
                           color: cardColor,
                           margin: const EdgeInsets.only(bottom: 8),
@@ -361,13 +374,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                     size: 30,
                                   ),
                                 ),
-                                
+
                                 const SizedBox(width: 12),
-                                
+
                                 // Product Info
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item['name'],
@@ -398,7 +412,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                     ],
                                   ),
                                 ),
-                                
+
                                 // Quantity Controls
                                 Column(
                                   children: [
@@ -406,18 +420,26 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         GestureDetector(
-                                          onTap: () => updateQuantity(index, item['quantity'] - 1),
+                                          onTap: () => updateQuantity(
+                                            index,
+                                            item['quantity'] - 1,
+                                          ),
                                           child: Container(
                                             padding: const EdgeInsets.all(4),
                                             decoration: BoxDecoration(
                                               color: Colors.grey[300],
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(Icons.remove, size: 16),
+                                            child: const Icon(
+                                              Icons.remove,
+                                              size: 16,
+                                            ),
                                           ),
                                         ),
                                         Container(
-                                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
                                           child: Text(
                                             '${item['quantity']}',
                                             style: TextStyle(
@@ -429,14 +451,21 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                           ),
                                         ),
                                         GestureDetector(
-                                          onTap: () => updateQuantity(index, item['quantity'] + 1),
+                                          onTap: () => updateQuantity(
+                                            index,
+                                            item['quantity'] + 1,
+                                          ),
                                           child: Container(
                                             padding: const EdgeInsets.all(4),
                                             decoration: const BoxDecoration(
                                               color: Color(0xFF4CAF50),
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                            child: const Icon(
+                                              Icons.add,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                       ],

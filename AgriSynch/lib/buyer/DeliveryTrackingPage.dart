@@ -5,7 +5,7 @@ import 'dart:convert';
 
 class DeliveryTrackingPage extends StatefulWidget {
   final String? orderId;
-  
+
   const DeliveryTrackingPage({super.key, this.orderId});
 
   @override
@@ -16,13 +16,33 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
   bool isDarkMode = false;
   List<Map<String, dynamic>> deliveries = [];
   Map<String, dynamic>? currentOrder;
-  
+
   final List<Map<String, dynamic>> trackingSteps = [
-    {'step': 'Order Placed', 'icon': Icons.receipt, 'description': 'Your order has been placed'},
-    {'step': 'Processing', 'icon': Icons.autorenew, 'description': 'Farmer is preparing your order'},
-    {'step': 'Ready for Pickup', 'icon': Icons.local_shipping, 'description': 'Order is ready for delivery'},
-    {'step': 'Out for Delivery', 'icon': Icons.delivery_dining, 'description': 'On the way to your location'},
-    {'step': 'Delivered', 'icon': Icons.check_circle, 'description': 'Order has been delivered'},
+    {
+      'step': 'Order Placed',
+      'icon': Icons.receipt,
+      'description': 'Your order has been placed',
+    },
+    {
+      'step': 'Processing',
+      'icon': Icons.autorenew,
+      'description': 'Farmer is preparing your order',
+    },
+    {
+      'step': 'Ready for Pickup',
+      'icon': Icons.local_shipping,
+      'description': 'Order is ready for delivery',
+    },
+    {
+      'step': 'Out for Delivery',
+      'icon': Icons.delivery_dining,
+      'description': 'On the way to your location',
+    },
+    {
+      'step': 'Delivered',
+      'icon': Icons.check_circle,
+      'description': 'Order has been delivered',
+    },
   ];
 
   @override
@@ -42,19 +62,29 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
   Future<void> loadDeliveries() async {
     final prefs = await SharedPreferences.getInstance();
     final ordersString = prefs.getString('buyer_orders');
-    
+
     if (ordersString != null) {
       final orders = List<Map<String, dynamic>>.from(json.decode(ordersString));
-      
+
       setState(() {
         // Filter orders that are shipped or processing
-        deliveries = orders.where((order) => 
-          ['processing', 'shipped', 'delivered'].contains(order['status'].toLowerCase())
-        ).toList();
-        
+        deliveries = orders
+            .where(
+              (order) => [
+                'processing',
+                'shipped',
+                'delivered',
+              ].contains(order['status'].toLowerCase()),
+            )
+            .toList();
+
         // Sort by date (newest first)
-        deliveries.sort((a, b) => DateTime.parse(b['orderDate']).compareTo(DateTime.parse(a['orderDate'])));
-        
+        deliveries.sort(
+          (a, b) => DateTime.parse(
+            b['orderDate'],
+          ).compareTo(DateTime.parse(a['orderDate'])),
+        );
+
         // If orderId is provided, find and set current order
         if (widget.orderId != null) {
           currentOrder = orders.firstWhere(
@@ -103,11 +133,11 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
 
   Widget buildTrackingTimeline() {
     if (currentOrder == null) return const SizedBox();
-    
+
     final currentStep = getCurrentStepIndex(currentOrder!['status']);
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
-    
+
     return Card(
       color: backgroundColor,
       margin: const EdgeInsets.all(16),
@@ -137,12 +167,12 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             ...List.generate(trackingSteps.length, (index) {
               final step = trackingSteps[index];
               final isCompleted = index <= currentStep;
               final isCurrent = index == currentStep;
-              
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
@@ -155,16 +185,21 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isCompleted 
-                                ? const Color(0xFF4CAF50) 
+                            color: isCompleted
+                                ? const Color(0xFF4CAF50)
                                 : textColor.withOpacity(0.2),
-                            border: isCurrent 
-                                ? Border.all(color: const Color(0xFF4CAF50), width: 3)
+                            border: isCurrent
+                                ? Border.all(
+                                    color: const Color(0xFF4CAF50),
+                                    width: 3,
+                                  )
                                 : null,
                           ),
                           child: Icon(
                             step['icon'] as IconData,
-                            color: isCompleted ? Colors.white : textColor.withOpacity(0.5),
+                            color: isCompleted
+                                ? Colors.white
+                                : textColor.withOpacity(0.5),
                             size: 20,
                           ),
                         ),
@@ -172,15 +207,15 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                           Container(
                             width: 2,
                             height: 40,
-                            color: index < currentStep 
-                                ? const Color(0xFF4CAF50) 
+                            color: index < currentStep
+                                ? const Color(0xFF4CAF50)
                                 : textColor.withOpacity(0.2),
                           ),
                       ],
                     ),
-                    
+
                     const SizedBox(width: 16),
-                    
+
                     // Step info
                     Expanded(
                       child: Column(
@@ -191,7 +226,9 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                             style: TextStyle(
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.bold,
-                              color: isCompleted ? textColor : textColor.withOpacity(0.5),
+                              color: isCompleted
+                                  ? textColor
+                                  : textColor.withOpacity(0.5),
                               fontSize: 16,
                             ),
                           ),
@@ -199,7 +236,9 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                             step['description'] as String,
                             style: TextStyle(
                               fontFamily: 'Poppins',
-                              color: isCompleted ? textColor.withOpacity(0.7) : textColor.withOpacity(0.4),
+                              color: isCompleted
+                                  ? textColor.withOpacity(0.7)
+                                  : textColor.withOpacity(0.4),
                               fontSize: 12,
                             ),
                           ),
@@ -219,7 +258,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                         ],
                       ),
                     ),
-                    
+
                     // Timestamp (for completed steps)
                     if (isCompleted && index <= currentStep)
                       Text(
@@ -242,24 +281,32 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
 
   String _getStepTime(int stepIndex) {
     if (currentOrder == null) return '';
-    
+
     final orderDate = DateTime.parse(currentOrder!['orderDate']);
     final currentStepIndex = getCurrentStepIndex(currentOrder!['status']);
-    
+
     if (stepIndex > currentStepIndex) return '';
-    
+
     // Simulate realistic timestamps
     switch (stepIndex) {
       case 0: // Order placed
         return DateFormat('MMM dd, hh:mm a').format(orderDate);
       case 1: // Processing
-        return DateFormat('MMM dd, hh:mm a').format(orderDate.add(const Duration(hours: 2)));
+        return DateFormat(
+          'MMM dd, hh:mm a',
+        ).format(orderDate.add(const Duration(hours: 2)));
       case 2: // Ready for pickup
-        return DateFormat('MMM dd, hh:mm a').format(orderDate.add(const Duration(hours: 24)));
+        return DateFormat(
+          'MMM dd, hh:mm a',
+        ).format(orderDate.add(const Duration(hours: 24)));
       case 3: // Out for delivery
-        return DateFormat('MMM dd, hh:mm a').format(orderDate.add(const Duration(hours: 26)));
+        return DateFormat(
+          'MMM dd, hh:mm a',
+        ).format(orderDate.add(const Duration(hours: 26)));
       case 4: // Delivered
-        return DateFormat('MMM dd, hh:mm a').format(orderDate.add(const Duration(hours: 28)));
+        return DateFormat(
+          'MMM dd, hh:mm a',
+        ).format(orderDate.add(const Duration(hours: 28)));
       default:
         return '';
     }
@@ -267,10 +314,10 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
 
   Widget buildDeliveryInfo() {
     if (currentOrder == null) return const SizedBox();
-    
+
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
-    
+
     return Card(
       color: backgroundColor,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -290,12 +337,32 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
               ),
             ),
             const SizedBox(height: 16),
-            
-            _buildInfoRow(Icons.person, 'Delivery Person', 'Juan Dela Cruz', textColor),
-            _buildInfoRow(Icons.phone, 'Contact', '+63 912 345 6789', textColor),
-            _buildInfoRow(Icons.local_shipping, 'Vehicle', 'Motorcycle - ABC 123', textColor),
-            _buildInfoRow(Icons.location_on, 'Delivery Address', 'Your saved address', textColor),
-            
+
+            _buildInfoRow(
+              Icons.person,
+              'Delivery Person',
+              'Juan Dela Cruz',
+              textColor,
+            ),
+            _buildInfoRow(
+              Icons.phone,
+              'Contact',
+              '+63 912 345 6789',
+              textColor,
+            ),
+            _buildInfoRow(
+              Icons.local_shipping,
+              'Vehicle',
+              'Motorcycle - ABC 123',
+              textColor,
+            ),
+            _buildInfoRow(
+              Icons.location_on,
+              'Delivery Address',
+              'Your saved address',
+              textColor,
+            ),
+
             if (currentOrder!['status'].toLowerCase() == 'shipped')
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -334,7 +401,12 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, Color textColor) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    Color textColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -372,8 +444,12 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF121212)
+        : const Color(0xFFF2FBE0);
+    final headerColor = isDarkMode
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFF00C853);
     final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
@@ -436,19 +512,25 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                     color: textColor.withOpacity(0.7),
                   ),
                 ),
-                items: deliveries.map((delivery) => DropdownMenuItem<String>(
-                  value: delivery['id'],
-                  child: Text(
-                    'Order #${delivery['id']} - ${delivery['status']}',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      color: textColor,
-                    ),
-                  ),
-                )).toList(),
+                items: deliveries
+                    .map(
+                      (delivery) => DropdownMenuItem<String>(
+                        value: delivery['id'],
+                        child: Text(
+                          'Order #${delivery['id']} - ${delivery['status']}',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (orderId) {
                   setState(() {
-                    currentOrder = deliveries.firstWhere((d) => d['id'] == orderId);
+                    currentOrder = deliveries.firstWhere(
+                      (d) => d['id'] == orderId,
+                    );
                   });
                 },
               ),
@@ -488,26 +570,26 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                     ),
                   )
                 : currentOrder == null
-                    ? Center(
-                        child: Text(
-                          'Select an order to view tracking details',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                            color: textColor.withOpacity(0.7),
-                          ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            buildTrackingTimeline(),
-                            const SizedBox(height: 16),
-                            buildDeliveryInfo(),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
+                ? Center(
+                    child: Text(
+                      'Select an order to view tracking details',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 16,
+                        color: textColor.withOpacity(0.7),
                       ),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        buildTrackingTimeline(),
+                        const SizedBox(height: 16),
+                        buildDeliveryInfo(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
