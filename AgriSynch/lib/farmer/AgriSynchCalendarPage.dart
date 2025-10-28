@@ -25,6 +25,56 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
   int unreadNotifications = 0;
   Stream<List<CalendarEvent>>? _eventsStream;
 
+  Color getCategoryColor(String category) {
+    switch (category) {
+      case 'Planting':
+        return const Color(0xFF4CAF50); // Green
+      case 'Harvesting':
+        return const Color(0xFFFF9800); // Orange
+      case 'Fertilizing':
+        return const Color(0xFF8BC34A); // Light Green
+      case 'Pest Control':
+        return const Color(0xFFF44336); // Red
+      case 'Irrigation':
+        return const Color(0xFF2196F3); // Blue
+      case 'Feeding':
+        return const Color(0xFFFFEB3B); // Yellow
+      case 'Maintenance':
+        return const Color(0xFF9C27B0); // Purple
+      case 'Health Check':
+        return const Color(0xFFE91E63); // Pink
+      case 'Inventory':
+        return const Color(0xFF9C27B0); // Purple
+      default:
+        return const Color(0xFF757575); // Dark Grey
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Planting':
+        return Icons.grass;
+      case 'Harvesting':
+        return Icons.agriculture;
+      case 'Fertilizing':
+        return Icons.water_drop;
+      case 'Pest Control':
+        return Icons.bug_report;
+      case 'Irrigation':
+        return Icons.water;
+      case 'Feeding':
+        return Icons.lunch_dining;
+      case 'Maintenance':
+        return Icons.build;
+      case 'Health Check':
+        return Icons.healing;
+      case 'Inventory':
+        return Icons.inventory;
+      default:
+        return Icons.event;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -103,20 +153,25 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
   void _showAddEventDialog() {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    String selectedCategory = 'Other';
-
+    
     // Agricultural specific controllers
     final cropTypeController = TextEditingController();
     final fieldLocationController = TextEditingController();
     final expectedYieldController = TextEditingController();
     final weatherDependencyController = TextEditingController();
 
+    var selectedCategory = 'Planting'; // Default to Planting for farmers
+
     final categories = [
-      'Feeding',
-      'Cleaning',
+      'Planting',
       'Harvesting',
+      'Fertilizing',
+      'Pest Control',
+      'Irrigation',
+      'Feeding',
       'Maintenance',
       'Health Check',
+      'Inventory',
       'Other',
     ];
 
@@ -167,12 +222,17 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                     border: OutlineInputBorder(),
                   ),
                 ),
-                if (selectedCategory == 'Harvesting') ...[
+                // Show crop and field for all agricultural categories
+                if (selectedCategory == 'Planting' ||
+                    selectedCategory == 'Harvesting' ||
+                    selectedCategory == 'Fertilizing' ||
+                    selectedCategory == 'Pest Control' ||
+                    selectedCategory == 'Irrigation') ...[
                   const SizedBox(height: 16),
                   const Divider(),
-                  const Text(
-                    'Harvest Details',
-                    style: TextStyle(
+                  Text(
+                    '${selectedCategory} Details',
+                    style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
                     ),
@@ -193,23 +253,34 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: expectedYieldController,
-                    decoration: const InputDecoration(
-                      labelText: 'Expected Yield (kg)',
-                      border: OutlineInputBorder(),
+                  // Additional fields specific to Harvesting
+                  if (selectedCategory == 'Harvesting') ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: expectedYieldController,
+                      decoration: InputDecoration(
+                        labelText: 'Expected Yield (kg)',
+                        border: OutlineInputBorder(),
+                        hintText: '1000',  // Add this line to show example value
+                        helperText: 'Enter harvest amount in kg (e.g., 1000 for 1 ton)',
+                        suffixText: 'kg',
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: weatherDependencyController,
-                    decoration: const InputDecoration(
-                      labelText: 'Weather Requirements',
-                      border: OutlineInputBorder(),
+                  ],
+                  // Weather dependency for weather-sensitive activities
+                  if (selectedCategory == 'Planting' ||
+                      selectedCategory == 'Harvesting' ||
+                      selectedCategory == 'Irrigation') ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: weatherDependencyController,
+                      decoration: const InputDecoration(
+                        labelText: 'Weather Requirements',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ],
             ),
@@ -229,12 +300,25 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                 }
 
                 AgriculturalData? agriculturalData;
-                if (selectedCategory == 'Harvesting') {
+                if (selectedCategory == 'Planting' ||
+                    selectedCategory == 'Harvesting' ||
+                    selectedCategory == 'Fertilizing' ||
+                    selectedCategory == 'Pest Control' ||
+                    selectedCategory == 'Irrigation') {
                   agriculturalData = AgriculturalData(
                     cropType: cropTypeController.text.trim(),
                     fieldLocation: fieldLocationController.text.trim(),
-                    expectedYield: double.tryParse(expectedYieldController.text.trim()),
-                    weatherDependency: weatherDependencyController.text.trim(),
+                    expectedYield: selectedCategory == 'Harvesting' 
+                        ? double.tryParse(expectedYieldController.text.trim())
+                        : null,
+                    weatherDependency: (selectedCategory == 'Planting' ||
+                            selectedCategory == 'Harvesting' ||
+                            selectedCategory == 'Irrigation')
+                        ? weatherDependencyController.text.trim()
+                        : null,
+                    plantingDate: selectedCategory == 'Planting' 
+                        ? _selectedDay 
+                        : null,
                   );
                 }
 
@@ -410,37 +494,110 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              child: ListTile(
-                                title: Text(
-                                  event.title,
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.bold,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: getCategoryColor(event.category),
+                                      width: 4,
+                                    ),
                                   ),
                                 ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(event.category),
-                                    if (event.description.isNotEmpty)
-                                      Text(event.description),
-                                    if (event.agricultural != null) ...[
-                                      const Divider(),
-                                      Text(
-                                        'Crop: ${event.agricultural!['cropType']}',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      Text(
-                                        'Field: ${event.agricultural!['fieldLocation']}',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      if (event.agricultural!['expectedYield'] != null)
-                                        Text(
-                                          'Expected Yield: ${event.agricultural!['expectedYield']} kg',
-                                          style: const TextStyle(fontSize: 12),
+                                child: ListTile(
+                                  title: Text(
+                                    event.title,
+                                    style: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: getCategoryColor(event.category).withOpacity(0.2),
+                                    child: Icon(
+                                      _getCategoryIcon(event.category),
+                                      color: getCategoryColor(event.category),
+                                    ),
+                                  ),
+                                  trailing: PopupMenuButton(
+                                    icon: const Icon(Icons.more_vert),
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem(
+                                        child: ListTile(
+                                          leading: const Icon(Icons.delete, color: Colors.red),
+                                          title: const Text('Delete Event'),
+                                          contentPadding: EdgeInsets.zero,
                                         ),
+                                        onTap: () async {
+                                          // Show confirmation dialog
+                                          await Future.delayed(const Duration(seconds: 0));
+                                          if (!context.mounted) return;
+                                          
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Delete Event?'),
+                                              content: const Text('This action cannot be undone.'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () async {
+                                                    Navigator.pop(context);
+                                                    try {
+                                                      await _calendarService.deleteEvent(event.id);
+                                                      if (!context.mounted) return;
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Event deleted successfully')),
+                                                      );
+                                                    } catch (e) {
+                                                      if (!context.mounted) return;
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(content: Text('Failed to delete event: $e')),
+                                                      );
+                                                    }
+                                                  },
+                                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ],
-                                  ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(event.category),
+                                      if (event.description.isNotEmpty)
+                                        Text(event.description),
+                                      if (event.agricultural != null) ...[
+                                        const Divider(),
+                                        if (event.agricultural!['cropType'] != null)
+                                          Text(
+                                            'Crop: ${event.agricultural!['cropType']}',
+                                            style: const TextStyle(fontSize: 12),
+                                          ),
+                                        if (event.agricultural!['fieldLocation'] != null)
+                                          Text(
+                                            'Field: ${event.agricultural!['fieldLocation']}',
+                                            style: const TextStyle(fontSize: 12),
+                                          ),
+                                        if (event.agricultural!['expectedYield'] != null)
+                                          Text(
+                                            'Expected Yield: ${event.agricultural!['expectedYield']} kg',
+                                            style: const TextStyle(fontSize: 12),
+                                          ),
+                                        if (event.agricultural!['weatherDependency'] != null)
+                                          Text(
+                                            'Weather: ${event.agricultural!['weatherDependency']}',
+                                            style: const TextStyle(fontSize: 12),
+                                          ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

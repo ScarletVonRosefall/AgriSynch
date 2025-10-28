@@ -15,56 +15,204 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
   bool isDarkMode = false;
   bool isLoading = true;
 
+  bool _mounted = false;
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    loadNotifications();
-    loadTheme();
+    _mounted = true;
+    _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload theme when returning to this page
-    loadTheme();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      return;
+    }
+    // Only reload theme when returning to this page
+    _safeLoadTheme();
   }
 
-  Future<void> loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
+  Future<void> _initializeData() async {
+    if (!_mounted) return;
+    
+    setState(() => isLoading = true);
+    
+    try {
+      // Load theme and notifications in parallel
+      final results = await Future.wait([
+        ThemeHelper.isDarkModeEnabled(),
+        NotificationHelper.getNotifications(),
+      ]);
+
+      if (!_mounted) return;
+
+      setState(() {
+        isDarkMode = results[0] as bool;
+        notifications = results[1] as List<Map<String, dynamic>>;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!_mounted) return;
+      setState(() {
+        notifications = [];
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _safeLoadTheme() async {
+    if (!_mounted) return;
+    try {
+      final newDarkMode = await ThemeHelper.isDarkModeEnabled();
+      if (!_mounted) return;
+      if (newDarkMode != isDarkMode) {
+        setState(() {
+          isDarkMode = newDarkMode;
+        });
+      }
+    } catch (e) {
+      // Silently fail theme loading
+    }
   }
 
   Future<void> loadNotifications() async {
+    if (!_mounted) return;
+    
     setState(() => isLoading = true);
-    notifications = await NotificationHelper.getNotifications();
-    setState(() => isLoading = false);
+    
+    try {
+      final newNotifications = await NotificationHelper.getNotifications()
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      
+      setState(() {
+        notifications = newNotifications;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!_mounted) return;
+      setState(() {
+        notifications = [];
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> markAsRead(String notificationId) async {
-    await NotificationHelper.markAsRead(notificationId);
-    await loadNotifications();
+    if (!_mounted) return;
+    
+    try {
+      // Optimistically update UI
+      setState(() {
+        final index = notifications.indexWhere((n) => n['id'] == notificationId);
+        if (index != -1) {
+          notifications[index]['isRead'] = true;
+        }
+      });
+
+      await NotificationHelper.markAsRead(notificationId)
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      await loadNotifications();
+    } catch (e) {
+      if (!_mounted) return;
+      // Revert optimistic update on error
+      await loadNotifications();
+    }
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    await NotificationHelper.deleteNotification(notificationId);
-    await loadNotifications();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Notification deleted'),
-        backgroundColor: Color(0xFF00C853),
-      ),
-    );
+    if (!_mounted) return;
+    
+    try {
+      // Optimistically update UI
+      final deletedNotification = notifications.firstWhere((n) => n['id'] == notificationId);
+      setState(() {
+        notifications.removeWhere((n) => n['id'] == notificationId);
+      });
+
+      await NotificationHelper.deleteNotification(notificationId)
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Notification deleted'),
+          backgroundColor: const Color(0xFF00C853),
+          action: SnackBarAction(
+            label: 'Undo',
+            textColor: Colors.white,
+            onPressed: () async {
+              if (!_mounted) return;
+              setState(() {
+                notifications.add(deletedNotification);
+                notifications.sort((a, b) => 
+                  DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp']))
+                );
+              });
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!_mounted) return;
+      // Revert optimistic update on error
+      await loadNotifications();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete notification'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> markAllAsRead() async {
-    await NotificationHelper.markAllAsRead();
-    await loadNotifications();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('All notifications marked as read'),
-        backgroundColor: Color(0xFF00C853),
-      ),
-    );
+    if (!_mounted) return;
+    
+    try {
+      // Optimistically update UI
+      setState(() {
+        for (var notification in notifications) {
+          notification['isRead'] = true;
+        }
+      });
+
+      await NotificationHelper.markAllAsRead()
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All notifications marked as read'),
+          backgroundColor: Color(0xFF00C853),
+        ),
+      );
+    } catch (e) {
+      if (!_mounted) return;
+      // Revert optimistic update on error
+      await loadNotifications();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to mark all as read'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> clearAllNotifications() async {

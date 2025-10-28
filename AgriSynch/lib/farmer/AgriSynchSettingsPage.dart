@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
@@ -83,31 +84,38 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   String userEmail = '';
   String userRole = '';
 
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    loadUserInfo();
-    loadPreferences();
-    _loadUnreadNotifications();
+    _initializeSettings();
+  }
+
+  Future<void> _initializeSettings() async {
+    try {
+      // Load user info first
+      await loadUserInfo();
+      
+      // Then load preferences and notifications in parallel
+      await Future.wait<void>([
+        loadPreferences(),
+        Future.microtask(() => _loadUnreadNotifications()),
+      ]);
+    } catch (e) {
+      print('Error loading settings: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload preferences when returning to this page
-    _reloadThemeState();
-  }
-
-  void _reloadThemeState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentDarkMode = prefs.getBool('dark_mode') ?? false;
-    if (mounted && currentDarkMode != _darkModeEnabled) {
-      setState(() {
-        _darkModeEnabled = currentDarkMode;
-      });
-    }
-    await loadPreferences();
-    _loadUnreadNotifications();
   }
 
   Future<void> loadUserInfo() async {
@@ -118,25 +126,73 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   }
 
   Future<void> loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentCurrency = await CurrencyHelper.getCurrentCurrency();
-    setState(() {
-      _notificationsEnabled = prefs.getBool('notifications') ?? true;
-      _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
-      _selectedCurrency = currentCurrency;
-    });
+    try {
+      final results = await Future.wait([
+        SharedPreferences.getInstance(),
+        CurrencyHelper.getCurrentCurrency(),
+      ]);
+      
+      final prefs = results[0] as SharedPreferences;
+      final currentCurrency = results[1] as String;
+      
+      if (mounted) {
+        setState(() {
+          _notificationsEnabled = prefs.getBool('notifications') ?? true;
+          _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
+          _selectedCurrency = currentCurrency;
+        });
+      }
+    } catch (e) {
+      print('Error loading preferences: $e');
+    }
   }
 
-  void _loadUnreadNotifications() async {
-    final count = await NotificationHelper.getUnreadCount();
-    setState(() {
-      unreadNotifications = count;
-    });
+  Future<void> _loadUnreadNotifications() async {
+    try {
+      final count = await NotificationHelper.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          unreadNotifications = count;
+        });
+      }
+    } catch (e) {
+      print('Error loading notifications: $e');
+    }
   }
 
   Future<void> updatePreference(String key, bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+    } catch (e) {
+      print('Error updating preference: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update setting'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Debounce expansion changes to prevent rapid state updates
+  DateTime _lastExpansionChange = DateTime.now();
+  static const _expansionThrottle = Duration(milliseconds: 200);
+
+  void _handleExpansionChanged(int index, bool isExpanded) {
+    final now = DateTime.now();
+    if (now.difference(_lastExpansionChange) < _expansionThrottle) {
+      return;
+    }
+    _lastExpansionChange = now;
+    
+    if (mounted) {
+      setState(() {
+        _expanded[index] = isExpanded;
+      });
+    }
   }
 
   @override
@@ -155,7 +211,13 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Column(
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF00C853),
+              ),
+            )
+          : Column(
         children: [
           // --- Top Green Header ---
           Container(
@@ -653,11 +715,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
           ),
         ),
         initiallyExpanded: _expanded[index],
-        onExpansionChanged: (val) {
-          setState(() {
-            _expanded[index] = val;
-          });
-        },
+        onExpansionChanged: (val) => _handleExpansionChanged(index, val),
         children: child != null
             ? [Padding(padding: const EdgeInsets.all(12), child: child)]
             : [],
@@ -787,29 +845,54 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
     );
   }
 
-  void _showLogoutDialog() {
-    showDialog(
+  Future<void> _showLogoutDialog() async {
+    final bool? confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Confirm Logout"),
         content: const Text("Are you sure you want to log out?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil('/login', (route) => false);
-            },
+            onPressed: () => Navigator.pop(context, true),
             child: const Text("Logout", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      setState(() => _isLoading = true);
+
+      // Clear all stored data
+      await Future.wait([
+        storage.deleteAll(),
+        SharedPreferences.getInstance().then((prefs) => prefs.clear()),
+        FirebaseAuth.instance.signOut(),
+      ]);
+
+      if (!mounted) return;
+
+      // Navigate to login page
+      await Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error logging out. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Widget _infoRow(String label, String value, Color textColor) {

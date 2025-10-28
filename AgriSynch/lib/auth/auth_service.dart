@@ -5,6 +5,11 @@ class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Initialize Firebase Auth settings
+  static Future<void> initializeAuth() async {
+    await _auth.setPersistence(Persistence.LOCAL);
+  }
+
   // Get current user
   static User? get currentUser => _auth.currentUser;
 
@@ -39,6 +44,8 @@ class AuthService {
 
         // Update display name
         await result.user!.updateDisplayName(name);
+        // Send verification email
+        await result.user!.sendEmailVerification();
       }
 
       return result;
@@ -100,18 +107,66 @@ class AuthService {
     }
   }
 
-  // Update password
-  static Future<bool> updatePassword(String newPassword) async {
+  // Re-authenticate user
+  static Future<bool> reauthenticateUser(String password) async {
     try {
       User? user = _auth.currentUser;
-      if (user != null) {
-        await user.updatePassword(newPassword);
+      if (user != null && user.email != null) {
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
         return true;
       }
       return false;
-    } catch (e) {
-      print('Error updating password: $e');
+    } on FirebaseAuthException catch (e) {
+      print('Error during reauthentication: ${e.code} - ${e.message}');
       return false;
+    }
+  }
+
+  // Update password with current password verification
+  static Future<Map<String, dynamic>> updatePassword(String currentPassword, String newPassword) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        // First re-authenticate
+        bool reauthed = await reauthenticateUser(currentPassword);
+        if (!reauthed) {
+          return {
+            'success': false,
+            'message': 'Current password is incorrect'
+          };
+        }
+        
+        // Then update password
+        await user.updatePassword(newPassword);
+        return {
+          'success': true,
+          'message': 'Password updated successfully'
+        };
+      }
+      return {
+        'success': false,
+        'message': 'No user logged in'
+      };
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'weak-password':
+          message = 'The new password is too weak';
+          break;
+        case 'requires-recent-login':
+          message = 'Please log in again before changing your password';
+          break;
+        default:
+          message = e.message ?? 'Failed to update password';
+      }
+      return {
+        'success': false,
+        'message': message
+      };
     }
   }
 

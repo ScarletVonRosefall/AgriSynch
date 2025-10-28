@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'AgriSynch.dart'; // Import for bottom navigation
 import 'auth/AgriSynchLogin.dart';
-import 'auth/AgriSynchRecoverLocal.dart';
 import 'buyer/AgriSynchBuyerHomePage.dart'; // Import the Buyer Page
 import 'shared/StorageViewer.dart'; // Import StorageViewer
 import 'farmer/AgriCustomersPage.dart';
@@ -15,7 +14,7 @@ import 'farmer/AgriSynchOrdersPage.dart';
 import 'farmer/AgriSynchProductionLogPage.dart';
 import 'auth/AgriSynchRecover.dart';
 import 'farmer/AgriSynchSettingsPage.dart';
-import 'farmer/AgriSynchTasksPage.dart';
+import 'farmer/AgriSynchTasksPage_old.dart';
 import 'auth/AgriSynchVerify.dart';
 import 'shared/AgriWeatherPage.dart';
 import 'buyer/BrowseProductsPage.dart';
@@ -24,6 +23,7 @@ import 'shared/HelpFeedbackPage.dart';
 import 'buyer/MyOrdersPage.dart';
 import 'shared/profile_page.dart';
 import 'auth/auth_wrapper.dart';
+import 'auth/AgriSynchSignUp.dart';
 
 // ... other imports ...
 
@@ -49,11 +49,11 @@ class AgriSynchApp extends StatelessWidget {
       routes: {
         '/': (context) => const AuthWrapper(),
         '/login': (context) => const AgriSynchLoginPage(),
+        '/signup': (context) => const AgriSynchSignUpPage(),
         '/home': (context) =>
             const AgriSynchHome(), // Use bottom navigation version
         '/buyer-home': (context) =>
             const AgriSynchBuyerHomePage(), // Buyer home page route
-        '/recoverLocal': (context) => const AgriSynchRecoverLocal(),
         '/Storage': (context) =>
             const StorageViewerPage(), // Add StorageViewer route
         '/customers': (context) => const AgriCustomersPage(),
@@ -65,7 +65,9 @@ class AgriSynchApp extends StatelessWidget {
         '/recover': (context) => const AgriSynchRecoverPage(),
         '/settings': (context) => const AgriSynchSettingsPage(),
         '/tasks': (context) => const AgriSynchTasksPage(),
-        '/verify': (context) => const AgriSynchEmailVerificationPage(),
+        '/verify': (context) => AgriSynchEmailVerificationPage(
+          email: ModalRoute.of(context)?.settings.arguments as String?,
+        ),
         '/weather': (context) => const AgriWeatherPage(),
         '/browse': (context) => const BrowseProductsPage(),
         '/changePassword': (context) => const ChangePasswordPage(),

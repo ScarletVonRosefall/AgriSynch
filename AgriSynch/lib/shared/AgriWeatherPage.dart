@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import 'weather_helper.dart';
 import 'theme_helper.dart';
 import 'notification_helper.dart';
@@ -18,52 +19,152 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   WeatherData? currentWeather;
   bool isLoading = true;
 
+  bool _mounted = false;
+  bool _isInitialized = false;
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
-    _loadTheme();
-    _loadWeather();
-    _loadUnreadNotifications();
+    _mounted = true;
+    _initializeData();
+    
+    // Set up periodic weather refresh every 15 minutes
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => _loadWeather(showError: false),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadTheme();
-    _loadUnreadNotifications();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      return;
+    }
+    _safeLoadTheme();
   }
 
-  void _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
-  }
+  Future<void> _initializeData() async {
+    if (!_mounted) return;
 
-  void _loadUnreadNotifications() async {
-    final count = await NotificationHelper.getUnreadCount();
-    setState(() {
-      unreadNotifications = count;
-    });
-  }
-
-  void _loadWeather() async {
     setState(() => isLoading = true);
+
     try {
-      final weather = await WeatherHelper.getCurrentWeather();
+      // Load all data in parallel
+      final results = await Future.wait([
+        ThemeHelper.isDarkModeEnabled(),
+        NotificationHelper.getUnreadCount(),
+        WeatherHelper.getCurrentWeather().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Weather data load timeout'),
+        ),
+      ]);
+
+      if (!_mounted) return;
+
+      setState(() {
+        isDarkMode = results[0] as bool;
+        unreadNotifications = results[1] as int;
+        currentWeather = results[2] as WeatherData;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!_mounted) return;
+      setState(() {
+        isLoading = false;
+        currentWeather = null;
+      });
+      _showError('Failed to load initial data');
+    }
+  }
+
+  Future<void> _safeLoadTheme() async {
+    if (!_mounted) return;
+    try {
+      final newDarkMode = await ThemeHelper.isDarkModeEnabled()
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      
+      if (newDarkMode != isDarkMode) {
+        setState(() {
+          isDarkMode = newDarkMode;
+        });
+      }
+    } catch (e) {
+      // Silently fail theme loading
+    }
+  }
+
+  Future<void> _loadUnreadNotifications() async {
+    if (!_mounted) return;
+    
+    try {
+      final count = await NotificationHelper.getUnreadCount()
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      
+      setState(() {
+        unreadNotifications = count;
+      });
+    } catch (e) {
+      // Silently fail notification count loading
+    }
+  }
+
+  Future<void> _loadWeather({bool showError = true}) async {
+    if (!_mounted) return;
+    
+    setState(() => isLoading = true);
+    
+    try {
+      final weather = await WeatherHelper.getCurrentWeather()
+          .timeout(const Duration(seconds: 10));
+          
+      if (!_mounted) return;
+      
       setState(() {
         currentWeather = weather;
         isLoading = false;
       });
     } catch (e) {
-      setState(() => isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load weather data: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (!_mounted) return;
+      
+      setState(() {
+        currentWeather = null;
+        isLoading = false;
+      });
+      
+      if (showError) {
+        _showError('Failed to load weather data');
       }
     }
+  }
+
+  void _showError(String message) {
+    if (!_mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: () => _loadWeather(),
+        ),
+      ),
+    );
   }
 
   @override

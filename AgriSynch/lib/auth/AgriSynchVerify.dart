@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class AgriSynchEmailVerificationPage extends StatefulWidget {
-  const AgriSynchEmailVerificationPage({super.key});
+  final String? email;
+  const AgriSynchEmailVerificationPage({super.key, this.email});
 
   @override
   State<AgriSynchEmailVerificationPage> createState() =>
@@ -10,18 +13,205 @@ class AgriSynchEmailVerificationPage extends StatefulWidget {
 
 class _AgriSynchEmailVerificationPageState
     extends State<AgriSynchEmailVerificationPage> {
+  bool isLoading = false;
+  final auth = FirebaseAuth.instance;
   final TextEditingController codeController = TextEditingController();
 
-  void _verifyCode() {
-    final code = codeController.text.trim();
-    if (code == '123456') {
+  Timer? _timer;
+  bool _navigating = false;
+
+  int _checkAttempts = 0;
+  static const int _maxAttempts = 60; // 3 minutes maximum (60 * 3 seconds)
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVerification();
+  }
+
+  Future<void> _initializeVerification() async {
+    if (!mounted) return;
+    
+    setState(() => isLoading = true);
+    
+    try {
+      final user = auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        startVerificationCheck();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending verification email: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  void startVerificationCheck() {
+    _timer?.cancel();
+    _checkAttempts = 0;
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (_checkAttempts >= _maxAttempts) {
+        _timer?.cancel();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification timeout. Please try again.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      _checkAttempts++;
+      checkEmailVerification();
+    });
+  }
+
+  Future<void> checkEmailVerification() async {
+    if (_navigating || !mounted) return;
+
+    User? user = auth.currentUser;
+    if (user == null) {
+      _timer?.cancel();
+      if (mounted && !_navigating) {
+        setState(() => _navigating = true);
+        await Navigator.pushReplacementNamed(context, '/login');
+      }
+      return;
+    }
+
+    try {
+      await user.reload();
+      user = auth.currentUser;
+
+      if (user?.emailVerified == true) {
+        _timer?.cancel();
+        if (!mounted || _navigating) return;
+
+        setState(() => _navigating = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email verified successfully!'),
+            backgroundColor: Color(0xFF00C853),
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      print('Error checking email verification: $e');
+    }
+  }
+
+  Future<void> resendVerificationEmail() async {
+    setState(() => isLoading = true);
+    try {
+      User? user = auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification email sent! Please check your inbox.'),
+              backgroundColor: Color(0xFF00C853),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> verifyEmail() async {
+    if (!mounted || _navigating || isLoading) return;
+    
+    setState(() => isLoading = true);
+    
+    try {
+      User? user = auth.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
+
+      // Add timeout to reload operation
+      await Future.any([
+        user.reload(),
+        Future.delayed(const Duration(seconds: 10))
+            .then((_) => throw TimeoutException('Verification check timed out')),
+      ]);
+
+      user = auth.currentUser; // Get fresh user instance
+      
+      if (user?.emailVerified == true) {
+        if (!mounted) return;
+        
+        setState(() => _navigating = true);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email verified successfully!'),
+            backgroundColor: Color(0xFF00C853),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Add slight delay to show the success message
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        
+        await Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please click the link in your email to verify.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } on TimeoutException {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email verified successfully!')),
+        const SnackBar(
+          content: Text('Verification check timed out. Please try again.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
+        ),
       );
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid code. Please try again.')),
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
       );
+    } finally {
+      if (mounted && !_navigating) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -47,34 +237,19 @@ class _AgriSynchEmailVerificationPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Enter the 6-digit code sent to your email",
+              "Please verify your email address",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 24),
-            TextFormField(
-              controller: codeController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              decoration: InputDecoration(
-                hintText: "Enter verification code",
-                filled: true,
-                fillColor: Colors.white,
-                counterText: "",
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 20,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-              ),
+            const SizedBox(height: 16),
+            const Text(
+              "We've sent you a verification link. Click the link in the email to verify your account.",
+              style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _verifyCode,
+                onPressed: isLoading ? null : verifyEmail,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00C853),
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -82,15 +257,25 @@ class _AgriSynchEmailVerificationPageState
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Verify', style: TextStyle(fontSize: 16)),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Check Verification Status',
+                        style: TextStyle(fontSize: 16)),
               ),
             ),
             const SizedBox(height: 16),
             Center(
               child: TextButton(
-                onPressed: () {},
+                onPressed: isLoading ? null : resendVerificationEmail,
                 child: const Text(
-                  "Resend Code",
+                  "Resend Verification Email",
                   style: TextStyle(color: Colors.green),
                 ),
               ),
@@ -99,5 +284,12 @@ class _AgriSynchEmailVerificationPageState
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    codeController.dispose();
+    super.dispose();
   }
 }

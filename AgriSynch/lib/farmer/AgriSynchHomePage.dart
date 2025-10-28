@@ -11,7 +11,9 @@ import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../test/test_task_creation.dart';
 import 'dart:convert';
+import 'dart:async';
 
 class AgriSynchHomePage extends StatefulWidget {
   const AgriSynchHomePage({super.key});
@@ -31,57 +33,215 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   int unreadNotifications = 0;
   WeatherData? currentWeather;
 
-  // Initialize the homepage when widget is first created
+  bool _isLoading = true;
+  bool _needsReload = false;
+  Timer? _debounceTimer;
+  Timer? _refreshTimer;
+  Timer? _reloadTimer;
+
   @override
   void initState() {
     super.initState();
-    loadUserName();
-    loadTheme();
-    loadTasksAndOrders();
-    loadUnreadNotifications();
-    loadWeather();
-    checkAndCreateSampleNotifications();
+    _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _refreshTimer?.cancel();
+    _reloadTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initializeData() async {
+    if (!mounted) return;
+
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Load most essential data first with timeout
+      await Future.wait([
+        loadUserName(),
+        loadTheme(),
+      ]).timeout(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
+      // Load primary data with timeout
+      await Future.wait([
+        loadTasksAndOrders(),
+        loadUnreadNotifications(),
+      ]).timeout(const Duration(seconds: 5));
+
+      if (!mounted) return;
+
+      // Set up periodic refresh for notifications and tasks
+      _refreshTimer?.cancel();
+      _refreshTimer = Timer.periodic(
+        const Duration(minutes: 1),
+        (_) => _refreshData(),
+      );
+
+      // Load non-critical data last
+      _loadNonCriticalData();
+    } catch (e) {
+      // Handle initialization errors gracefully
+      if (!mounted) return;
+      _handleLoadError();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _handleLoadError() {
+    setState(() {
+      tasks = [];
+      orders = [];
+      isDarkMode = false;
+      userName = '';
+    });
+  }
+
+  Future<void> _refreshData() async {
+    if (!mounted || _isLoading) return;
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        await Future.wait([
+          loadTasksAndOrders(),
+          loadUnreadNotifications(),
+        ]).timeout(const Duration(seconds: 5));
+      } catch (e) {
+        // Handle refresh errors silently
+      }
+    });
+  }
+
+  Future<void> _loadNonCriticalData() async {
+    if (!mounted) return;
+
+    try {
+      await Future.wait([
+        loadWeather(),
+        checkAndCreateSampleNotifications(),
+      ]).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      // Handle non-critical data load errors silently
+    }
   }
 
   // Load user's name from secure storage
   Future<void> loadUserName() async {
-    userName = await storage.read(key: 'name') ?? '';
-    setState(() {});
+    if (!mounted) return;
+    try {
+      final name = await storage.read(key: 'name')
+          .timeout(const Duration(seconds: 5));
+      if (!mounted) return;
+      setState(() {
+        userName = name ?? '';
+      });
+    } catch (e) {
+      // Handle error silently
+      if (mounted) {
+        setState(() {
+          userName = '';
+        });
+      }
+    }
   }
 
   // Load the current theme setting (dark/light mode)
   Future<void> loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
+    if (!mounted) return;
+    try {
+      final darkMode = await ThemeHelper.isDarkModeEnabled()
+          .timeout(const Duration(seconds: 5));
+      if (!mounted) return;
+      setState(() {
+        isDarkMode = darkMode;
+      });
+    } catch (e) {
+      // Handle error silently
+      if (mounted) {
+        setState(() {
+          isDarkMode = false;
+        });
+      }
+    }
   }
 
   // Load tasks and orders data for dashboard statistics
   Future<void> loadTasksAndOrders() async {
-    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
 
-    // Load tasks
-    final savedTasks = prefs.getString('tasks');
-    if (savedTasks != null) {
-      tasks = List<Map<String, dynamic>>.from(json.decode(savedTasks));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Load tasks
+      final savedTasks = prefs.getString('tasks');
+      final newTasks = savedTasks != null
+          ? List<Map<String, dynamic>>.from(json.decode(savedTasks))
+          : <Map<String, dynamic>>[];
+
+      // Load orders
+      final savedOrders = prefs.getString('orders');
+      final newOrders = savedOrders != null
+          ? List<Map<String, dynamic>>.from(json.decode(savedOrders))
+          : <Map<String, dynamic>>[];
+
+      // Only update state if data has changed
+      if (!mounted) return;
+      
+      if (!_areListsEqual(tasks, newTasks) || !_areListsEqual(orders, newOrders)) {
+        setState(() {
+          tasks = newTasks;
+          orders = newOrders;
+        });
+      }
+    } catch (e) {
+      // Handle load errors silently but ensure we have valid lists
+      if (mounted) {
+        setState(() {
+          tasks = [];
+          orders = [];
+        });
+      }
     }
+  }
 
-    // Load orders
-    final savedOrders = prefs.getString('orders');
-    if (savedOrders != null) {
-      orders = List<Map<String, dynamic>>.from(json.decode(savedOrders));
+  bool _areListsEqual(List<Map<String, dynamic>> list1, List<Map<String, dynamic>> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (!_areMapContentsEqual(list1[i], list2[i])) return false;
     }
+    return true;
+  }
 
-    setState(() {});
+  bool _areMapContentsEqual(Map<String, dynamic> map1, Map<String, dynamic> map2) {
+    return json.encode(map1) == json.encode(map2);
   }
 
   // Update data when user returns to homepage
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload data and theme when returning to this page
-    loadTheme();
-    loadTasksAndOrders();
-    loadUnreadNotifications();
+    if (_needsReload && !_isLoading) {
+      _needsReload = false;
+      // Schedule reload for next frame to avoid immediate heavy loading
+      _reloadTimer?.cancel();
+      _reloadTimer = Timer(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _refreshData();
+        }
+      });
+    }
   }
 
   // Load count of unread notifications
@@ -92,16 +252,26 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
   // Fetch current weather data for the dashboard
   Future<void> loadWeather() async {
+    if (!mounted) return;
+
     try {
-      final weather = await WeatherHelper.getCurrentWeather();
+      final weather = await WeatherHelper.getCurrentWeather().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('Weather data load timeout'),
+      );
+      
+      if (!mounted) return;
+      
       setState(() {
         currentWeather = weather;
       });
     } catch (e) {
       // Silently fail - weather is optional
-      setState(() {
-        currentWeather = null;
-      });
+      if (mounted) {
+        setState(() {
+          currentWeather = null;
+        });
+      }
     }
   }
 
@@ -296,6 +466,15 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   // Build the homepage UI with fixed header and scrollable content
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -551,49 +730,96 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                         _homeTile(
                           icon: Icons.calendar_month,
                           title: "Calendar",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AgriSynchCalendarPage(),
-                              ),
-                            );
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriSynchCalendarPage(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {
+                              // Handle navigation error silently
+                            }
                           },
                         ),
                         _homeTile(
                           icon: Icons.attach_money,
                           title: "Finances",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AgriFinances(),
-                              ),
-                            );
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriFinances(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {
+                              // Handle navigation error silently
+                            }
                           },
                         ),
                         _homeTile(
                           icon: Icons.engineering,
                           title: "Production Log",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AgriSynchProductionLog(),
-                              ),
-                            );
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriSynchProductionLog(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {
+                              // Handle navigation error silently
+                            }
                           },
                         ),
                         _homeTile(
                           icon: Icons.people_alt,
                           title: "Customers",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AgriCustomersPage(),
-                              ),
-                            );
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriCustomersPage(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {
+                              // Handle navigation error silently
+                            }
+                          },
+                        ),
+                        _homeTile(
+                          icon: Icons.task_alt,
+                          title: "Test Tasks",
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TestTaskCreation(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {
+                              // Handle navigation error silently
+                            }
                           },
                         ),
                         // Add some bottom padding

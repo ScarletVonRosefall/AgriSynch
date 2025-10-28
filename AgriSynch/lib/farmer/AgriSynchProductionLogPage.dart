@@ -19,38 +19,73 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
 
   bool _isDark = false;
   bool _themeLoaded = false;
+  bool _mounted = false;
+  bool _isInitialized = false;
   String _filterType = 'All'; // All, Today, This Week, This Month
   List<Map<String, dynamic>> _filteredEntries = [];
 
   @override
   void initState() {
     super.initState();
-    _loadTheme();
-    _loadEntries();
+    _mounted = true;
+    _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    _productController.dispose();
+    _kgController.dispose();
+    _dateController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadTheme();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      return;
+    }
+    _safeLoadTheme();
   }
 
   Future<void> _loadEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedEntries = prefs.getString('production_entries');
-    if (savedEntries != null) {
-      final List<dynamic> decoded = json.decode(savedEntries);
+    if (!_mounted) return;
+    
+    try {
+      final loadedEntries = await _loadEntriesFromStorage()
+          .timeout(const Duration(seconds: 5));
+      
+      if (!_mounted) return;
+      
       setState(() {
         _logEntries.clear();
-        _logEntries.addAll(decoded.cast<Map<String, dynamic>>());
+        _logEntries.addAll(loadedEntries);
         _applyFilters();
       });
+    } catch (e) {
+      if (!_mounted) return;
+      _showError('Failed to load entries');
     }
   }
 
   Future<void> _saveEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('production_entries', json.encode(_logEntries));
+    if (!_mounted) return;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      
+      if (!_mounted) return;
+      
+      await prefs.setString('production_entries', json.encode(_logEntries))
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      if (!_mounted) return;
+      _showError('Failed to save entries');
+    }
   }
 
   void _applyFilters() {
@@ -121,12 +156,92 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     return date1.year == date2.year && date1.month == date2.month;
   }
 
-  Future<void> _loadTheme() async {
-    final darkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {
-      _isDark = darkMode;
-      _themeLoaded = true;
-    });
+  Future<void> _initializeData() async {
+    if (!_mounted) return;
+    
+    try {
+      // Load theme and entries in parallel
+      final results = await Future.wait([
+        ThemeHelper.isDarkModeEnabled(),
+        _loadEntriesFromStorage(),
+      ]).timeout(const Duration(seconds: 5));
+
+      if (!_mounted) return;
+
+      setState(() {
+        _isDark = results[0] as bool;
+        _themeLoaded = true;
+        
+        final loadedEntries = results[1] as List<Map<String, dynamic>>;
+        _logEntries.clear();
+        _logEntries.addAll(loadedEntries);
+        _applyFilters();
+      });
+    } catch (e) {
+      if (!_mounted) return;
+      setState(() {
+        _isDark = false;
+        _themeLoaded = true;
+      });
+      _showError('Failed to load data');
+    }
+  }
+
+  Future<void> _safeLoadTheme() async {
+    if (!_mounted) return;
+    
+    try {
+      final newDarkMode = await ThemeHelper.isDarkModeEnabled()
+          .timeout(const Duration(seconds: 5));
+          
+      if (!_mounted) return;
+      
+      if (newDarkMode != _isDark) {
+        setState(() {
+          _isDark = newDarkMode;
+        });
+      }
+    } catch (e) {
+      // Silently fail theme loading
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadEntriesFromStorage() async {
+    try {
+      if (!_mounted) return [];
+      
+      final prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final savedEntries = prefs.getString('production_entries');
+      if (savedEntries != null) {
+        final List<dynamic> decoded = json.decode(savedEntries);
+        return decoded.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      // Handle load error
+      if (_mounted) {
+        _showError('Failed to load entries');
+      }
+    }
+    return [];
+  }
+
+  void _showError(String message) {
+    if (!_mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: () {
+            if (_mounted) _initializeData();
+          },
+        ),
+      ),
+    );
   }
 
   void _showAddLogModal() {
@@ -220,49 +335,78 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     }
   }
 
-  void _addLogEntry() {
+  Future<void> _addLogEntry() async {
+    if (!_mounted) return;
+    
     final String product = _productController.text.trim();
     final String kgText = _kgController.text.trim();
     final String date = _dateController.text.trim();
 
     if (product.isEmpty || kgText.isEmpty || date.isEmpty) {
-      _showSnackBar('All fields are required.');
+      if (!_mounted) return;
+      _showError('All fields are required.');
       return;
     }
 
     final double? kg = double.tryParse(kgText);
     if (kg == null || kg <= 0) {
-      _showSnackBar('Please enter a valid number for kilograms.');
+      if (!_mounted) return;
+      _showError('Please enter a valid number for kilograms.');
       return;
     }
 
-    setState(() {
-      _logEntries.add({
+    try {
+      final newEntry = {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'product': product,
         'kg': kg,
         'date': date,
         'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      setState(() {
+        _logEntries.add(newEntry);
+        _applyFilters();
       });
+
+      await _saveEntries();
+      
+      if (!_mounted) return;
+      
       _productController.clear();
       _kgController.clear();
       _dateController.clear();
-      _applyFilters();
-    });
-
-    _saveEntries();
-    Navigator.pop(context);
+      Navigator.pop(context);
+      
+    } catch (e) {
+      if (!_mounted) return;
+      _showError('Failed to add entry');
+      await _loadEntries(); // Revert changes
+    }
   }
 
-  void _deleteEntry(String id) {
-    setState(() {
-      _logEntries.removeWhere((entry) => entry['id'] == id);
-      _applyFilters();
-    });
-    _saveEntries();
+  Future<void> _deleteEntry(String id) async {
+    if (!_mounted) return;
+    
+    try {
+      setState(() {
+        _logEntries.removeWhere((entry) => entry['id'] == id);
+        _applyFilters();
+      });
+      
+      await _saveEntries();
+    } catch (e) {
+      if (!_mounted) return;
+      _showError('Failed to delete entry');
+      
+      // Revert the deletion
+      await _loadEntries();
+    }
   }
 
   void _editEntry(Map<String, dynamic> entry) {
+    if (!_mounted) return;
+    
     _productController.text = entry['product'];
     _kgController.text = entry['kg'].toString();
     _dateController.text = entry['date'];
@@ -354,42 +498,60 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     );
   }
 
-  void _updateEntry(String id) {
+  Future<void> _updateEntry(String id) async {
+    if (!_mounted) return;
+    
     final String product = _productController.text.trim();
     final String kgText = _kgController.text.trim();
     final String date = _dateController.text.trim();
 
     if (product.isEmpty || kgText.isEmpty || date.isEmpty) {
-      _showSnackBar('All fields are required.');
+      if (!_mounted) return;
+      _showError('All fields are required.');
       return;
     }
 
     final double? kg = double.tryParse(kgText);
     if (kg == null || kg <= 0) {
-      _showSnackBar('Please enter a valid number for kilograms.');
+      if (!_mounted) return;
+      _showError('Please enter a valid number for kilograms.');
       return;
     }
 
-    setState(() {
+    try {
       final index = _logEntries.indexWhere((entry) => entry['id'] == id);
-      if (index != -1) {
+      if (index == -1) {
+        if (!_mounted) return;
+        _showError('Entry not found');
+        return;
+      }
+
+      final originalEntry = Map<String, dynamic>.from(_logEntries[index]);
+      setState(() {
         _logEntries[index] = {
           'id': id,
           'product': product,
           'kg': kg,
           'date': date,
-          'timestamp':
-              _logEntries[index]['timestamp'], // Keep original timestamp
+          'timestamp': originalEntry['timestamp'], // Keep original timestamp
         };
-      }
+        _applyFilters();
+      });
+
+      await _saveEntries();
+      
+      if (!_mounted) return;
+      
       _productController.clear();
       _kgController.clear();
       _dateController.clear();
-      _applyFilters();
-    });
-
-    _saveEntries();
-    Navigator.pop(context);
+      Navigator.pop(context);
+      
+    } catch (e) {
+      if (!_mounted) return;
+      _showError('Failed to update entry');
+      await _loadEntries(); // Revert changes
+    }
   }
 
   void _showSnackBar(String message) {

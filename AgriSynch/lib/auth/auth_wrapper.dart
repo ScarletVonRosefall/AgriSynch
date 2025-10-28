@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../AgriSynch.dart';
 import '../buyer/AgriSynchBuyerHomePage.dart';
-import 'AgriSynchSignUp.dart';
+import 'AgriSynchLogin.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -49,9 +49,51 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If user is not signed in, show sign up page
-        return const AgriSynchSignUpPage();
+        // If user is not signed in, show login page
+        return snapshot.hasError 
+          ? _buildErrorScreen(context, snapshot.error.toString())
+          : const AgriSynchLoginPage();
       },
+    );
+  }
+
+  Widget _buildErrorScreen(BuildContext context, String error) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2FDE0),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Connection Error',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please check your internet connection and try again.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                // Refresh the page
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                );
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

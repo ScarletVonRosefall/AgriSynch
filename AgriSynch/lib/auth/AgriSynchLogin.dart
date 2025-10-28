@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 
 class AgriSynchLoginPage extends StatefulWidget {
   const AgriSynchLoginPage({super.key});
@@ -198,60 +199,67 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                             onPressed: loading
                                                 ? null
                                                 : () async {
-                                                    final email =
-                                                        emailController.text
-                                                            .trim();
-                                                    final pass = passController
-                                                        .text
-                                                        .trim();
+                                                    final email = emailController.text.trim();
+                                                    final pass = passController.text.trim();
 
-                                                    if (email.isEmpty ||
-                                                        pass.isEmpty) {
-                                                      showError(
-                                                        "Please enter both email and password.",
-                                                      );
+                                                    if (email.isEmpty || pass.isEmpty) {
+                                                      showError("Please enter both email and password.");
                                                       return;
                                                     }
 
+                                                    if (!mounted) return;
                                                     isLoading.value = true;
-                                                    try {
-                                                      // Sign in with Firebase
-                                                      final credential =
-                                                          await FirebaseAuth
-                                                              .instance
-                                                              .signInWithEmailAndPassword(
-                                                                email: email,
-                                                                password: pass,
-                                                              );
 
-                                                      final user =
-                                                          credential.user;
+                                                    try {
+                                                      // Add timeout for Firebase operations
+                                                      final loginFuture = FirebaseAuth.instance
+                                                          .signInWithEmailAndPassword(
+                                                            email: email,
+                                                            password: pass,
+                                                          );
+
+                                                      final credential = await Future.any([
+                                                        loginFuture,
+                                                        Future.delayed(
+                                                          const Duration(seconds: 10),
+                                                          () => throw TimeoutException('Login timeout'),
+                                                        ),
+                                                      ]);
+
+                                                      final user = credential.user;
+                                                      if (!mounted) return;
 
                                                       if (user != null) {
-                                                        // Fetch account type from Firestore
-                                                        final doc =
-                                                            await FirebaseFirestore
-                                                                .instance
-                                                                .collection(
-                                                                  'users',
-                                                                )
-                                                                .doc(user.uid)
-                                                                .get();
+                                                        // Add timeout for Firestore operation
+                                                        final docFuture = FirebaseFirestore.instance
+                                                            .collection('users')
+                                                            .doc(user.uid)
+                                                            .get();
+
+                                                        final doc = await Future.any([
+                                                          docFuture,
+                                                          Future.delayed(
+                                                            const Duration(seconds: 10),
+                                                            () => throw TimeoutException('Firestore timeout'),
+                                                          ),
+                                                        ]);
+
+                                                        if (!mounted) return;
 
                                                         final data = doc.data();
-                                                        final accountType =
-                                                            data?['accountType'] ??
-                                                            'Farmer';
+                                                        final accountType = data?['accountType'] ?? 'Farmer';
 
-                                                        // Store locally if needed
-                                                        await storage.write(
-                                                          key: 'user_uid',
-                                                          value: user.uid,
-                                                        );
-                                                        await storage.write(
-                                                          key: 'account_type',
-                                                          value: accountType,
-                                                        );
+                                                        // Store data in parallel
+                                                        await Future.wait([
+                                                          storage.write(
+                                                            key: 'user_uid',
+                                                            value: user.uid,
+                                                          ),
+                                                          storage.write(
+                                                            key: 'account_type',
+                                                            value: accountType,
+                                                          ),
+                                                        ]);
 
                                                         // Navigate based on type
                                                         if (mounted) {
@@ -269,27 +277,34 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                           }
                                                         }
                                                       }
-                                                    } on FirebaseAuthException catch (
-                                                      e
-                                                    ) {
-                                                      String message =
-                                                          'Login failed';
-                                                      if (e.code ==
-                                                          'user-not-found') {
-                                                        message =
-                                                            'No account found for this email.';
-                                                      } else if (e.code ==
-                                                          'wrong-password') {
-                                                        message =
-                                                            'Incorrect password.';
+                                                    } on FirebaseAuthException catch (e) {
+                                                      if (!mounted) return;
+                                                      String message = 'Login failed';
+                                                      switch (e.code) {
+                                                        case 'user-not-found':
+                                                          message = 'No account found for this email.';
+                                                          break;
+                                                        case 'wrong-password':
+                                                          message = 'Incorrect password.';
+                                                          break;
+                                                        case 'too-many-requests':
+                                                          message = 'Too many attempts. Please try again later.';
+                                                          break;
+                                                        case 'network-request-failed':
+                                                          message = 'Network error. Please check your connection.';
+                                                          break;
                                                       }
                                                       showError(message);
+                                                    } on TimeoutException {
+                                                      if (!mounted) return;
+                                                      showError('Connection timeout. Please try again.');
                                                     } catch (e) {
-                                                      showError(
-                                                        'Error: ${e.toString()}',
-                                                      );
+                                                      if (!mounted) return;
+                                                      showError('An unexpected error occurred. Please try again.');
                                                     } finally {
-                                                      isLoading.value = false;
+                                                      if (mounted) {
+                                                        isLoading.value = false;
+                                                      }
                                                     }
                                                   },
                                             style: ElevatedButton.styleFrom(
@@ -329,19 +344,53 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                     ),
                                     const SizedBox(height: 16),
                                     Center(
-                                      child: GestureDetector(
-                                        onTap: () => Navigator.pushNamed(
-                                          context,
-                                          '/recover',
-                                        ),
-                                        child: const Text(
-                                          "Forgot Password?",
-                                          style: TextStyle(
-                                            fontFamily: 'Poppins',
-                                            fontSize: 13,
-                                            color: Colors.white,
+                                      child: Column(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => Navigator.pushNamed(
+                                              context,
+                                              '/recover',
+                                            ),
+                                            child: const Text(
+                                              "Forgot Password?",
+                                              style: TextStyle(
+                                                fontFamily: 'Poppins',
+                                                fontSize: 13,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          const SizedBox(height: 16),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              const Text(
+                                                "Don't have an account? ",
+                                                style: TextStyle(
+                                                  fontFamily: 'Poppins',
+                                                  fontSize: 13,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () => Navigator.pushReplacementNamed(
+                                                  context,
+                                                  '/signup',
+                                                ),
+                                                child: const Text(
+                                                  "Sign Up",
+                                                  style: TextStyle(
+                                                    fontFamily: 'Poppins',
+                                                    fontSize: 13,
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    decoration: TextDecoration.underline,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],

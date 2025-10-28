@@ -3,12 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'farmer/AgriSynchHomePage.dart';
-import 'farmer/AgriSynchTasksPage.dart';
+import 'farmer/AgriSynchTasksPage_old.dart';
 import 'farmer/AgriSynchOrdersPage.dart';
 import 'farmer/AgriSynchSettingsPage.dart';
 import 'auth/AgriSynchSignUp.dart';
 import 'auth/AgriSynchLogin.dart';
-import 'auth/AgriSynchRecoverLocal.dart';
+import 'auth/AgriSynchRecover.dart';
 import 'shared/StorageViewer.dart';
 import 'buyer/AgriSynchBuyerHomePage.dart';
 
@@ -37,7 +37,7 @@ class AgriSynchApp extends StatelessWidget {
         '/home': (context) => const AgriSynchHome(),
         '/buyer-home': (context) => const AgriSynchBuyerHomePage(),
         '/storage': (context) => const StorageViewerPage(),
-        '/recover': (context) => const AgriSynchRecoverLocal(),
+        '/recover': (context) => const AgriSynchRecoverPage(),
       },
       debugShowCheckedModeBanner: false,
     );

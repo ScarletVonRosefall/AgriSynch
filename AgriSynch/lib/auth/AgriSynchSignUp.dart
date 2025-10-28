@@ -392,6 +392,9 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
 
                                                 final user = credential.user;
                                                 if (user != null) {
+                                                  // Send verification email
+                                                  await user.sendEmailVerification();
+                                                  
                                                   // 3) Move/merge the pre-user data into the canonical 'users' collection keyed by uid
                                                   final userRef = FirebaseFirestore
                                                       .instance
@@ -443,7 +446,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     );
                                                     Navigator.pushReplacementNamed(
                                                       context,
-                                                      '/login',
+                                                      '/verify',
+                                                      arguments: email,
                                                     );
                                                   }
                                                 } else {

@@ -10,6 +10,10 @@ class CalendarEvent {
   final String userId;
   final String? time;
   final bool? done;
+  final String priority; // high, medium, low
+  final Map<String, dynamic>? recurrence; // For repeating events
+  final bool? isWeatherDependent;
+  final List<String>? linkedItemIds; // For linked tasks or orders
   final Map<String, dynamic>? agricultural;  // For crop-specific data
 
   CalendarEvent({
@@ -22,6 +26,10 @@ class CalendarEvent {
     required this.userId,
     this.time,
     this.done = false,
+    this.priority = 'medium',
+    this.recurrence,
+    this.isWeatherDependent = false,
+    this.linkedItemIds = const [],
     this.agricultural,
   });
 
@@ -38,6 +46,10 @@ class CalendarEvent {
       userId: data['userId'] ?? '',
       time: data['time'],
       done: data['done'] ?? false,
+      priority: data['priority'] ?? 'medium',
+      recurrence: data['recurrence'],
+      isWeatherDependent: data['isWeatherDependent'] ?? false,
+      linkedItemIds: List<String>.from(data['linkedItemIds'] ?? []),
       agricultural: data['agricultural'],
     );
   }
@@ -53,6 +65,10 @@ class CalendarEvent {
       'userId': userId,
       'time': time,
       'done': done,
+      'priority': priority,
+      'recurrence': recurrence,
+      'isWeatherDependent': isWeatherDependent,
+      'linkedItemIds': linkedItemIds,
       'agricultural': agricultural ?? {},
       'createdAt': FieldValue.serverTimestamp(),
     };
