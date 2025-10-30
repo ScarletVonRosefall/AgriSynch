@@ -38,7 +38,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   ];
 
   // Initialize the tasks page when widget is first created
-  bool _isInitialized = false;
+  final bool _isInitialized = false;
   
   bool _isLoading = true;
 
@@ -1310,7 +1310,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: priority,
+                    initialValue: priority,
                     decoration: const InputDecoration(
                       labelText: "Priority",
                       border: OutlineInputBorder(),
@@ -1514,7 +1514,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: priority,
+                    initialValue: priority,
                     decoration: const InputDecoration(
                       labelText: "Priority",
                       border: OutlineInputBorder(),

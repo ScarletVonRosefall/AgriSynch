@@ -196,7 +196,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   decoration: const InputDecoration(
                     labelText: 'Category',
                     border: OutlineInputBorder(),
@@ -231,7 +231,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                   const SizedBox(height: 16),
                   const Divider(),
                   Text(
-                    '${selectedCategory} Details',
+                    '$selectedCategory Details',
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,

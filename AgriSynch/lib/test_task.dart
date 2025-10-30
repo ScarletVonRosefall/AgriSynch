@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'services/task_service.dart';
 
 class TestTaskPage extends StatelessWidget {
-  TestTaskPage({Key? key}) : super(key: key);
+  TestTaskPage({super.key});
 
   final TaskService _taskService = TaskService();
 
@@ -68,7 +68,7 @@ class TestTaskPage extends StatelessWidget {
                         subtitle: Text(data['description'] ?? ''),
                         trailing: Text(data['priority'] ?? ''),
                       );
-                    }).toList(),
+                    }),
                   ],
                 );
               },

@@ -14,7 +14,6 @@ class AgriSynchSignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<AgriSynchSignUpPage>
     with TickerProviderStateMixin {
-  bool _isDarkMode = false;
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -85,80 +84,29 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = _isDarkMode
-        ? ThemeData(
-            brightness: Brightness.dark,
-            primaryColor: const Color(0xFF388E3C),
-            scaffoldBackgroundColor: const Color(0xFF232D23),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF2E473B),
-              foregroundColor: Colors.white,
-              elevation: 2,
-              iconTheme: IconThemeData(color: Color(0xFFB2FF59)),
-              titleTextStyle: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFB2FF59),
-              ),
-            ),
-            inputDecorationTheme: const InputDecorationTheme(
-              filled: true,
-              fillColor: Color(0xFF2E473B),
-              hintStyle: TextStyle(
-                color: Colors.white70,
-                fontFamily: 'Poppins',
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            textTheme: const TextTheme(
-              bodyMedium: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
-            ),
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF388E3C),
-              secondary: Color(0xFFB2FF59),
-              surface: Color(0xFF232D23),
-              onPrimary: Colors.white,
-              onSecondary: Color(0xFF232D23),
-            ),
-          )
-        : ThemeData.light().copyWith(
-            primaryColor: const Color(0xFF388E3C),
-            scaffoldBackgroundColor: Colors.white,
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF388E3C),
-              foregroundColor: Colors.white,
-            ),
-            inputDecorationTheme: const InputDecorationTheme(
-              filled: true,
-              fillColor: Color(0xFFD9F2E6),
-              hintStyle: TextStyle(fontFamily: 'Poppins'),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          );
+    final theme = ThemeData.light().copyWith(
+      primaryColor: const Color(0xFF388E3C),
+      scaffoldBackgroundColor: Colors.white,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF388E3C),
+        foregroundColor: Colors.white,
+      ),
+      inputDecorationTheme: const InputDecorationTheme(
+        filled: true,
+        fillColor: Color(0xFFD9F2E6),
+        hintStyle: TextStyle(fontFamily: 'Poppins'),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
     return Theme(
       data: theme,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: const Text('Sign Up', style: TextStyle(fontFamily: 'Poppins')),
-          actions: [
-            IconButton(
-              icon: Icon(_isDarkMode ? Icons.wb_sunny : Icons.nightlight_round),
-              tooltip: 'Toggle Dark Mode',
-              onPressed: () {
-                setState(() {
-                  _isDarkMode = !_isDarkMode;
-                });
-              },
-            ),
-          ],
         ),
         body: SafeArea(
           child: FadeTransition(
@@ -465,12 +413,14 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
 
                                                 String message =
                                                     'Signup failed';
-                                                if (e.code == 'email-already-in-use')
+                                                if (e.code == 'email-already-in-use') {
                                                   message =
                                                       'Email already registered.';
-                                                if (e.code == 'weak-password')
+                                                }
+                                                if (e.code == 'weak-password') {
                                                   message =
                                                       'Password too weak.';
+                                                }
                                                 print("FirebaseAuthException during signup: ${e.code} - ${e.message}");
                                                 showError(message);
                                               } catch (e) {
