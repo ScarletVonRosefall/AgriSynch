@@ -488,9 +488,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                      backgroundImage: AssetImage('assets/user_avatar.png'),
+                    CircleAvatar(
+                      backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                       radius: 20,
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Column(

@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
+import '../shared/theme_helper.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -259,16 +260,9 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _darkModeEnabled;
-    final backgroundColor = isDarkMode
-        ? const Color(0xFF121212)
-        : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFF00C853);
-    final cardColor = isDarkMode
-        ? const Color(0xFF1E1E1E)
-        : const Color(0xFFC5E1A5);
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final backgroundColor = ThemeHelper.getBackgroundColor(isDarkMode);
+    final cardColor = ThemeHelper.getCardColor(isDarkMode);
+    final textColor = ThemeHelper.getTextColor(isDarkMode);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -284,20 +278,14 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: headerColor,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Row(
               children: [
                 // Back Button
                 Container(
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
@@ -315,23 +303,14 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Settings',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: 24,
-                        ),
+                        style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Manage account & preferences',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
-                        ),
+                        style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                       ),
                     ],
                   ),
@@ -339,7 +318,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                 // Notification Button
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Stack(
@@ -408,35 +387,28 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                   Container(
                     margin: const EdgeInsets.only(bottom: 20),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: headerColor.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
+                    decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.person, color: headerColor, size: 24),
+                            Icon(Icons.person, color: ThemeHelper.getHeaderColor(isDarkMode), size: 24),
                             const SizedBox(width: 8),
                             Text(
                               'My Profile',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
+                              style: ThemeHelper.getTextStyle(
+                                isDark: isDarkMode,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: headerColor,
+                                customColor: ThemeHelper.getHeaderColor(isDarkMode),
                               ),
                             ),
                             const Spacer(),
                             IconButton(
                               icon: Icon(
                                 Icons.edit,
-                                color: headerColor,
+                                color: ThemeHelper.getHeaderColor(isDarkMode),
                                 size: 20,
                               ),
                               onPressed: () {

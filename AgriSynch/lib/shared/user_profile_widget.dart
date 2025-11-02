@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import '../auth/auth_service.dart';
 
 class UserProfileWidget extends StatefulWidget {
   final bool showEmail;
@@ -45,26 +46,43 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
 
   Future<void> _loadUserData() async {
     try {
-      // Try to get name from profile first, then fallback to signup data
-      String name = await _storage.read(key: 'user_name') ?? '';
-      if (name.isEmpty) {
-        name = await _storage.read(key: 'name') ?? 'User';
-      }
-      
-      final nickname = await _storage.read(key: 'user_nickname') ?? '';
-      final email = await _storage.read(key: 'user_email') ?? '';
-      final location = await _storage.read(key: 'user_location') ?? '';
-      final profileImage = await _storage.read(key: 'profile_image');
+      // Try to load from Firebase first
+      final userData = await AuthService.getUserData();
 
-      if (mounted) {
-        setState(() {
-          _name = name.isEmpty ? 'User' : name;
-          _nickname = nickname;
-          _email = email;
-          _location = location;
-          _profileImageBase64 = profileImage;
-          _isLoading = false;
-        });
+      if (userData != null && userData.exists) {
+        final data = userData.data() as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _name = data['name'] ?? data['nickname'] ?? 'User';
+            _nickname = data['nickname'] ?? '';
+            _email = data['email'] ?? '';
+            _location = data['location'] ?? '';
+            _profileImageBase64 = data['profileImage'] ?? '';
+            _isLoading = false;
+          });
+        }
+      } else {
+        // Fallback to local storage for offline capability
+        String name = await _storage.read(key: 'user_name') ?? '';
+        if (name.isEmpty) {
+          name = await _storage.read(key: 'name') ?? 'User';
+        }
+        
+        final nickname = await _storage.read(key: 'user_nickname') ?? '';
+        final email = await _storage.read(key: 'user_email') ?? '';
+        final location = await _storage.read(key: 'user_location') ?? '';
+        final profileImage = await _storage.read(key: 'profile_image');
+
+        if (mounted) {
+          setState(() {
+            _name = name.isEmpty ? 'User' : name;
+            _nickname = nickname;
+            _email = email;
+            _location = location;
+            _profileImageBase64 = profileImage;
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {

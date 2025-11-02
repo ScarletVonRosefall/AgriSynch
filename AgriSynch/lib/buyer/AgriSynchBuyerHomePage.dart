@@ -316,7 +316,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                 Row(
                   children: [
                     const CircleAvatar(
-                      backgroundImage: AssetImage('assets/user_avatar.png'),
+                      child: Icon(Icons.person, color: Colors.white),
+                      backgroundColor: Colors.blue,
                       radius: 20,
                     ),
                     const SizedBox(width: 10),
