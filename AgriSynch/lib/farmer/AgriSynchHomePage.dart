@@ -11,6 +11,7 @@ import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../auth/auth_service.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -23,7 +24,6 @@ class AgriSynchHomePage extends StatefulWidget {
 
 class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   final storage = FlutterSecureStorage();
-  String userName = '';
   bool isDarkMode = false;
 
   // Data for summary
@@ -62,7 +62,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
       // Load most essential data first with timeout
       await Future.wait([
-        loadUserName(),
         loadTheme(),
       ]).timeout(const Duration(seconds: 3));
 
@@ -103,7 +102,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       tasks = [];
       orders = [];
       isDarkMode = false;
-      userName = '';
     });
   }
 
@@ -133,26 +131,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       ]).timeout(const Duration(seconds: 10));
     } catch (e) {
       // Handle non-critical data load errors silently
-    }
-  }
-
-  // Load user's name from secure storage
-  Future<void> loadUserName() async {
-    if (!mounted) return;
-    try {
-      final name = await storage.read(key: 'name')
-          .timeout(const Duration(seconds: 5));
-      if (!mounted) return;
-      setState(() {
-        userName = name ?? '';
-      });
-    } catch (e) {
-      // Handle error silently
-      if (mounted) {
-        setState(() {
-          userName = '';
-        });
-      }
     }
   }
 
@@ -488,25 +466,12 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-                      radius: 20,
-                      child: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
+                    _buildProfileAvatar(),
                     const SizedBox(width: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
-                          style: ThemeHelper.getHeaderTextStyle(
-                            isDark: isDarkMode,
-                          ),
-                        ),
+                        _buildGreetingText(),
                         Text(
                           "Let's Get Tasks Done!",
                           style: ThemeHelper.getSubHeaderTextStyle(
@@ -866,6 +831,100 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       return Icons.air;
     } else {
       return Icons.wb_sunny;
+    }
+  }
+
+  Widget _buildProfileAvatar() {
+    return FutureBuilder<Map<String, String?>>(
+      future: _loadUserProfileData(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final profileImageBase64 = snapshot.data!['profileImage'];
+          if (profileImageBase64 != null && profileImageBase64.isNotEmpty) {
+            return Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: Image.memory(
+                  base64Decode(profileImageBase64),
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          }
+        }
+        
+        // Default avatar
+        return CircleAvatar(
+          backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+          radius: 20,
+          child: Icon(
+            Icons.person,
+            color: Colors.white,
+            size: 24,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGreetingText() {
+    return FutureBuilder<Map<String, String?>>(
+      future: _loadUserProfileData(),
+      builder: (context, snapshot) {
+        String displayName = '';
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          displayName = data['name'] ?? data['nickname'] ?? '';
+        }
+        
+        return Text(
+          "${_getGreeting()}${displayName.isNotEmpty ? ' $displayName' : ''}!",
+          style: ThemeHelper.getHeaderTextStyle(
+            isDark: isDarkMode,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Map<String, String?>> _loadUserProfileData() async {
+    try {
+      // Import auth service here to load from Firebase
+      final userData = await AuthService.getUserData();
+
+      if (userData != null && userData.exists) {
+        final data = userData.data() as Map<String, dynamic>;
+        return {
+          'name': data['name'] ?? '',
+          'nickname': data['nickname'] ?? '',
+          'profileImage': data['profileImage'] ?? '',
+        };
+      } else {
+        // Fallback to local storage
+        final name = await storage.read(key: 'user_name') ?? 
+                     await storage.read(key: 'name') ?? '';
+        final nickname = await storage.read(key: 'user_nickname') ?? '';
+        final profileImage = await storage.read(key: 'profile_image') ?? '';
+        
+        return {
+          'name': name,
+          'nickname': nickname,
+          'profileImage': profileImage,
+        };
+      }
+    } catch (e) {
+      return {
+        'name': '',
+        'nickname': '',
+        'profileImage': '',
+      };
     }
   }
 }

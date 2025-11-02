@@ -7,6 +7,7 @@ import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
 import '../shared/theme_helper.dart';
+import '../shared/feedback_service.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -87,6 +88,11 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   String userRole = '';
 
   bool _isLoading = true;
+  
+  // Feedback form controllers
+  final TextEditingController _feedbackController = TextEditingController();
+  String _feedbackCategory = 'General';
+  bool _isSubmittingFeedback = false;
 
   @override
   void initState() {
@@ -113,6 +119,12 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
   }
 
   @override
@@ -615,14 +627,67 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
+                        
+                        // Category Selection
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Category:",
+                              style: TextStyle(
+                                color: textColor,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                              ),
+                              child: DropdownButton<String>(
+                                value: _feedbackCategory,
+                                isExpanded: true,
+                                underline: const SizedBox(),
+                                dropdownColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                                style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+                                items: const [
+                                  DropdownMenuItem(value: 'General', child: Text('General Question/Comment')),
+                                  DropdownMenuItem(value: 'Bug Report', child: Text('Bug Report')),
+                                  DropdownMenuItem(value: 'Feature Request', child: Text('Feature Request')),
+                                  DropdownMenuItem(value: 'Technical Support', child: Text('Technical Support')),
+                                  DropdownMenuItem(value: 'Account Issues', child: Text('Account Issues')),
+                                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _feedbackCategory = value ?? 'General';
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Feedback Text Field
                         TextFormField(
-                          maxLines: 3,
+                          controller: _feedbackController,
+                          maxLines: 4,
+                          maxLength: 500,
                           style: TextStyle(
                             color: textColor,
                             fontFamily: 'Poppins',
                           ),
                           decoration: InputDecoration(
-                            hintText: "Describe your issue or feedback...",
+                            hintText: "Describe your issue or feedback in detail...",
                             hintStyle: TextStyle(
                               color: isDarkMode
                                   ? Colors.grey.shade400
@@ -649,24 +714,59 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                                     : Colors.grey.shade300,
                               ),
                             ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                                width: 2,
+                              ),
+                            ),
                           ),
                         ),
+                        
                         const SizedBox(height: 10),
+                        
+                        // Submit Button
                         Align(
                           alignment: Alignment.centerRight,
-                          child: _actionButton(
-                            "Send Feedback",
-                            icon: Icons.send,
-                            isDarkMode: isDarkMode,
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Feedback sent. Thank you!"),
-                                  backgroundColor: Color(0xFF00C853),
+                          child: _isSubmittingFeedback
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade400,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            isDarkMode ? Colors.white : Colors.black,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "Sending...",
+                                        style: TextStyle(
+                                          color: isDarkMode ? Colors.white : Colors.black,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _actionButton(
+                                  "Send Feedback",
+                                  icon: Icons.send,
+                                  isDarkMode: isDarkMode,
+                                  onTap: _submitFeedback,
                                 ),
-                              );
-                            },
-                          ),
                         ),
                       ],
                     ),
@@ -1077,5 +1177,68 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         );
       },
     );
+  }
+
+  Future<void> _submitFeedback() async {
+    if (_feedbackController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Please enter your feedback before submitting."),
+          backgroundColor: Colors.orange.shade600,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmittingFeedback = true;
+    });
+
+    try {
+      final success = await FeedbackService.submitFeedback(
+        feedback: _feedbackController.text.trim(),
+        category: _feedbackCategory,
+        // No priority parameter - will use default "Medium"
+      );
+
+      if (success) {
+        // Clear the form
+        _feedbackController.clear();
+        setState(() {
+          _feedbackCategory = 'General';
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Feedback sent successfully! Thank you for helping us improve AgriSynch."),
+            backgroundColor: Color(0xFF00C853),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Failed to send feedback. Please try again later."),
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error submitting feedback: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("An error occurred while sending feedback. Please check your connection and try again."),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingFeedback = false;
+        });
+      }
+    }
   }
 }
