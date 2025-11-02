@@ -14,7 +14,7 @@ import 'farmer/AgriSynchOrdersPage.dart';
 import 'farmer/AgriSynchProductionLogPage.dart';
 import 'auth/AgriSynchRecover.dart';
 import 'farmer/AgriSynchSettingsPage.dart';
-import 'farmer/AgriSynchTasksPage_old.dart';
+import 'farmer/AgriSynchTasksPage.dart';
 import 'auth/AgriSynchVerify.dart';
 import 'shared/AgriWeatherPage.dart';
 import 'buyer/BrowseProductsPage.dart';

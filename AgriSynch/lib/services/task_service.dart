@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class TaskService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -11,7 +12,10 @@ class TaskService {
   // Reference to user's tasks collection
   CollectionReference<Map<String, dynamic>> get _tasksCollection {
     final userId = _auth.currentUser?.uid;
-    print('Current user ID: $userId'); // Debug print
+    if (userId == null) {
+      throw Exception('No authenticated user found');
+    }
+    print('Current user ID: $userId');
     return _firestore.collection('users').doc(userId).collection('tasks');
   }
 
@@ -33,38 +37,27 @@ class TaskService {
   }) async {
     if (currentUserId == null) throw Exception('User not authenticated');
     
-    print('Creating task in users/$currentUserId/tasks/'); // Debug print
+    print('Creating task in users/$currentUserId/tasks/');
     
     await _tasksCollection.add({
-      'alarmCount': 0, // Initialize alarmCount for new tasks
-      // Basic Task Info
+      'alarmCount': 0,
       'title': title,
       'description': description,
       'priority': priority,
       'status': 'pending',
-      
-      // Timing
       'dueDate': Timestamp.fromDate(dueDate),
       'createdAt': Timestamp.now(),
       'updatedAt': Timestamp.now(),
       'completedAt': null,
-      
-      // Agricultural Specific
       'category': category,
       'fieldLocation': fieldLocation,
       'cropType': cropType,
-      
-      // Task Management
       'assignedTo': assignedTo,
       'estimatedDuration': estimatedDuration,
       'weatherDependent': weatherDependent ?? false,
-      
-      // Progress Tracking
       'completed': false,
       'progress': 0,
       'notes': notes,
-      
-      // Metadata
       'userId': currentUserId,
       'recurringTask': recurringTask ?? false,
       'recurringFrequency': recurringFrequency,
@@ -72,12 +65,16 @@ class TaskService {
   }
 
   // Get all tasks stream
-  Stream<QuerySnapshot<Map<String, dynamic>>> getTasks() {
-    if (currentUserId == null) throw Exception('User not authenticated');
-
+  Stream<QuerySnapshot<Map<String, dynamic>>> getTasks({int limit = 20}) {
+    if (currentUserId == null) {
+      throw Exception('Please sign in to view tasks.');
+    }
+    
+    // TODO: Restore second orderBy after creating composite index
+    // Temporary fix until index is created
     return _tasksCollection
         .orderBy('dueDate')
-        .orderBy('priority')
+        .limit(limit)
         .snapshots();
   }
 
@@ -91,12 +88,147 @@ class TaskService {
         .snapshots();
   }
 
-  // Update task
   Future<void> updateTask(String taskId, Map<String, dynamic> updates) async {
-    if (currentUserId == null) throw Exception('User not authenticated');
+    if (currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
 
-    updates['updatedAt'] = Timestamp.now();
-    await _tasksCollection.doc(taskId).update(updates);
+    print('=== Task Update Process Started ===');
+    print('TaskId: $taskId');
+    print('Updates: $updates');
+
+    // Create a copy of the updates to avoid concurrent modification
+    final updateData = Map<String, dynamic>.from(updates);
+
+    // Set up a timeout for the entire operation
+    return Future.any([
+      // The main update operation
+      _performTaskUpdate(taskId, updateData),
+      
+      // A timeout that will throw if the update takes too long
+      Future.delayed(const Duration(seconds: 10)).then((_) {
+        throw TimeoutException('Task update timed out after 10 seconds');
+      }),
+    ]).catchError((error) {
+      print('=== Task Update Error ===');
+      print('Error type: ${error.runtimeType}');
+      print('Error details: $error');
+      
+      if (error is TimeoutException) {
+        throw Exception('Update timed out. Please try again.');
+      }
+      throw Exception('Failed to update task: $error');
+    });
+  }
+
+  Future<void> _performTaskUpdate(String taskId, Map<String, dynamic> updateData) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // Get the task document with timeout
+        final taskRef = _tasksCollection.doc(taskId);
+        final taskDoc = await transaction.get(taskRef)
+            .timeout(const Duration(seconds: 3));
+
+        if (!taskDoc.exists) {
+          throw Exception('Task not found');
+        }
+
+        // Start with a fresh copy of the current data
+        final currentData = taskDoc.data() as Map<String, dynamic>;
+        final newData = Map<String, dynamic>.from(currentData);
+
+        // Update timestamp first
+        newData['updatedAt'] = FieldValue.serverTimestamp();
+
+        // Basic fields with validation and sanitization
+        if (updateData.containsKey('title')) {
+          final title = updateData['title']?.toString().trim() ?? '';
+          if (title.isEmpty) {
+            throw Exception('Task title cannot be empty');
+          }
+          newData['title'] = title;
+        }
+
+        // Description
+        if (updateData.containsKey('description')) {
+          newData['description'] = updateData['description']?.toString().trim() ?? '';
+        }
+
+        // Category with validation
+        if (updateData.containsKey('category')) {
+          final category = updateData['category']?.toString().trim();
+          if (category?.isNotEmpty == true) {
+            newData['category'] = category;
+          }
+        }
+
+        // Priority with validation
+        if (updateData.containsKey('priority')) {
+          final priority = updateData['priority']?.toString().trim();
+          if (['Low', 'Medium', 'High', 'Urgent'].contains(priority)) {
+            newData['priority'] = priority;
+          } else {
+            newData['priority'] = 'Medium';
+          }
+        }
+
+        // Location
+        if (updateData.containsKey('location')) {
+          newData['location'] = updateData['location']?.toString().trim() ?? '';
+        }
+
+        // Boolean fields
+        newData['weatherDependent'] = updateData['weatherDependent'] == true;
+        newData['recurringTask'] = updateData['recurringTask'] == true;
+
+        // Recurring frequency
+        if (updateData.containsKey('recurringFrequency')) {
+          newData['recurringFrequency'] = 
+              updateData['recurringFrequency']?.toString().trim() ?? '';
+        }
+
+        // Due date with validation
+        if (updateData.containsKey('dueDate')) {
+          final dueDate = updateData['dueDate'];
+          if (dueDate is DateTime) {
+            newData['dueDate'] = Timestamp.fromDate(dueDate);
+          } else if (dueDate is Timestamp) {
+            newData['dueDate'] = dueDate;
+          } else {
+            throw Exception('Invalid due date format');
+          }
+        }
+
+        // Duration with validation
+        if (updateData.containsKey('estimatedDuration')) {
+          final duration = updateData['estimatedDuration'];
+          if (duration is num) {
+            if (duration <= 0) {
+              throw Exception('Duration must be greater than 0');
+            }
+            newData['estimatedDuration'] = duration.toDouble();
+          } else {
+            final parsedDuration = double.tryParse(duration.toString());
+            if (parsedDuration == null || parsedDuration <= 0) {
+              throw Exception('Invalid duration value');
+            }
+            newData['estimatedDuration'] = parsedDuration;
+          }
+        }
+
+        // Perform the update
+        transaction.set(taskRef, newData);
+
+      }, timeout: const Duration(seconds: 5));
+
+      print('Task update completed successfully');
+      print('=== Task Update Process Completed ===');
+    } catch (e) {
+      if (e is TimeoutException) {
+        throw Exception('Database operation timed out');
+      }
+      rethrow;
+    }
   }
 
   // Mark task as complete

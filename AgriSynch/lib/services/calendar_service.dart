@@ -6,25 +6,21 @@ class CalendarService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current user ID or throw error if not logged in
   String get _userId {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Must be logged in to manage calendar');
     return user.uid;
   }
 
-  // Get reference to events collection
   CollectionReference<Map<String, dynamic>> get _eventsCollection =>
       _firestore.collection('calendar_events');
 
-  // Create a new calendar event
   Future<CalendarEvent> createEvent(CalendarEvent event) async {
     final docRef = await _eventsCollection.add(event.toFirestore());
     final doc = await docRef.get();
     return CalendarEvent.fromFirestore(doc);
   }
 
-  // Get all events for current user
   Stream<List<CalendarEvent>> getUserEvents() {
     return _eventsCollection
         .where('userId', isEqualTo: _userId)
@@ -34,36 +30,74 @@ class CalendarService {
             .toList());
   }
 
-  // Get events for a specific date
   Stream<List<CalendarEvent>> getEventsForDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
-    return _eventsCollection
+    print('Fetching events and tasks for date: $startOfDay');
+
+    // Create a stream for regular events
+    final eventStream = _eventsCollection
         .where('userId', isEqualTo: _userId)
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CalendarEvent.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final events = snapshot.docs
+              .map((doc) => CalendarEvent.fromFirestore(doc))
+              .toList();
+          print('Found ${events.length} events');
+          return events;
+        });
+
+    // Create a stream for tasks
+    final taskStream = _firestore
+        .collection('users')
+        .doc(_userId)
+        .collection('tasks')
+        .snapshots()
+        .map((snapshot) {
+          final tasks = snapshot.docs.where((doc) {
+            final dueDate = (doc.data()['dueDate'] as Timestamp?)?.toDate();
+            if (dueDate == null) return false;
+            
+            final taskDate = DateTime(dueDate.year, dueDate.month, dueDate.day);
+            final compareDate = DateTime(date.year, date.month, date.day);
+            return taskDate.isAtSameMomentAs(compareDate);
+          }).map((doc) {
+            final data = doc.data();
+            return CalendarEvent(
+              id: doc.id,
+              title: data['title'] ?? '',
+              type: 'task',
+              category: data['category'] ?? 'Other',
+              description: data['description'] ?? '',
+              date: (data['dueDate'] as Timestamp).toDate(),
+              userId: data['userId'] ?? '',
+              done: data['completed'] ?? false,
+              priority: data['priority']?.toLowerCase() ?? 'medium',
+              isWeatherDependent: data['weatherDependent'] ?? false,
+              agricultural: {
+                'cropType': data['cropType'],
+                'fieldLocation': data['fieldLocation'],
+              },
+            );
+          }).toList();
+          
+          print('Found ${tasks.length} tasks for date $date');
+          return tasks;
+        });
+
+    // Combine both streams
+    return eventStream.asyncMap((events) async {
+      final tasks = await taskStream.first;
+      final combined = [...events, ...tasks];
+      combined.sort((a, b) => a.date.compareTo(b.date));
+      return combined;
+    });
   }
 
-  // Update an existing event
-  Future<void> updateEvent(CalendarEvent event) async {
-    await _eventsCollection.doc(event.id).update(event.toFirestore());
-  }
-
-  // Delete an event
-  Future<void> deleteEvent(String eventId) async {
-    await _eventsCollection.doc(eventId).delete();
-  }
-
-  // Get events for a date range (useful for month view)
-  Stream<List<CalendarEvent>> getEventsForRange(
-    DateTime start,
-    DateTime end,
-  ) {
+  Stream<List<CalendarEvent>> getEventsForRange(DateTime start, DateTime end) {
     return _eventsCollection
         .where('userId', isEqualTo: _userId)
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
@@ -74,12 +108,14 @@ class CalendarService {
             .toList());
   }
 
-  // Mark a task as complete/incomplete
-  Future<void> toggleTaskCompletion(String eventId, bool isDone) async {
-    await _eventsCollection.doc(eventId).update({'done': isDone});
+  Future<void> updateEvent(CalendarEvent event) async {
+    await _eventsCollection.doc(event.id).update(event.toFirestore());
   }
 
-  // Get all events in a specific category
+  Future<void> deleteEvent(String eventId) async {
+    await _eventsCollection.doc(eventId).delete();
+  }
+
   Stream<List<CalendarEvent>> getEventsByCategory(String category) {
     return _eventsCollection
         .where('userId', isEqualTo: _userId)
@@ -90,11 +126,8 @@ class CalendarService {
             .toList());
   }
 
-  // Add or update agricultural data for an event
   Future<void> updateAgriculturalData(
-    String eventId,
-    Map<String, dynamic> agriculturalData,
-  ) async {
+      String eventId, Map<String, dynamic> agriculturalData) async {
     await _eventsCollection.doc(eventId).update({
       'agricultural': agriculturalData,
     });

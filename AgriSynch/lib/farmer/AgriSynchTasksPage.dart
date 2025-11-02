@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import '../services/task_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'task_creation_dialog.dart';
+import 'task_edit_dialog.dart';
 
 class AgriSynchTasksPage extends StatefulWidget {
   const AgriSynchTasksPage({super.key});
@@ -22,6 +25,31 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   bool isDarkMode = false;
   int unreadNotifications = 0;
   BuildContext? alarmContext;
+
+  // Date formatters for consistent display
+  final DateFormat _dateFormat = DateFormat('MMM d, y');
+  final DateFormat _timeFormat = DateFormat('h:mm a');
+  
+  String formatDateTime(DateTime? dateTime) {
+    if (dateTime == null) return 'No date';
+    return '${_dateFormat.format(dateTime)} at ${_timeFormat.format(dateTime)}';
+  }
+
+  bool _areTaskListsEqual(List<Map<String, dynamic>> list1, List<Map<String, dynamic>> list2) {
+    if (list1.length != list2.length) return false;
+    
+    for (int i = 0; i < list1.length; i++) {
+      final task1 = list1[i];
+      final task2 = list2[i];
+      
+      if (task1['id'] != task2['id']) return false;
+      if (task1['title'] != task2['title']) return false;
+      if (task1['completed'] != task2['completed']) return false;
+      if (task1['updatedAt'] != task2['updatedAt']) return false;
+    }
+    
+    return true;
+  }
 
   String searchQuery = '';
   String selectedCategory = 'All';
@@ -42,9 +70,18 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   void initState() {
     super.initState();
     _taskService = TaskService();
-    _initializeData();
+    // Add a slight delay to ensure Firebase Auth is initialized
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _initializeData();
+      }
+    });
   }
 
+  StreamSubscription? _tasksSubscription;
+  bool _isFirstLoad = true;
+  Timer? _debounceTimer;
+  
   Future<void> _initializeData() async {
     if (!mounted) return;
     
@@ -53,50 +90,91 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         _isLoading = true;
       });
 
-      // Load critical data first
-      await loadTasks();
+      // Cancel any existing subscriptions and timers
+      await _tasksSubscription?.cancel();
+      _debounceTimer?.cancel();
       
-      if (!mounted) return;
+      // Set up subscription for updates with debouncing
+      _tasksSubscription = _taskService.getTasks(limit: 50)
+          .distinct() // Only emit if the data has changed
+          .listen(
+        (snapshot) {
+          if (!mounted) return;
+          
+          // Cancel any pending debounce
+          _debounceTimer?.cancel();
+          
+          // Debounce setState calls
+          _debounceTimer = Timer(
+            Duration(milliseconds: _isFirstLoad ? 0 : 500), 
+            () {
+              if (!mounted) return;
+              
+              final newTasks = snapshot.docs.map((doc) {
+                final data = Map<String, dynamic>.from(doc.data());
+                data['id'] = doc.id;
+                return data;
+              }).toList();
+
+              // Only update state if data has actually changed
+              if (!_areTaskListsEqual(tasks, newTasks)) {
+                setState(() {
+                  tasks = newTasks;
+                  _isFirstLoad = false;
+                  if (_isLoading) _isLoading = false;
+                });
+              }
+            }
+          );
+        },
+        onError: (error, stackTrace) {
+          print('Error in tasks subscription: $error');
+          print('Stack trace: $stackTrace');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error updating tasks: ${error.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+      );
       
       // Load other data in parallel
       await Future.wait([
         _loadTheme(),
         _loadUnreadNotifications(),
-      ]).timeout(const Duration(seconds: 5));
+      ]).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          print('Warning: Theme or notifications load timed out');
+          return [];
+        },
+      );
       
       if (!mounted) return;
       
-      // Set up alarm timer and listen for task updates
+      // Set up alarm timer
+      alarmTimer?.cancel(); // Cancel any existing timer
       alarmTimer = Timer.periodic(
         const Duration(seconds: 10),
         (_) => checkAlarms(),
       );
-      
-      // Listen for task updates
-      _taskService.getTasks().listen((snapshot) {
-        if (mounted) {
-          setState(() {
-            tasks = snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList();
-          });
-        }
-      });
       
     } catch (e) {
       print('Error initializing data: $e');
       if (!mounted) return;
       setState(() {
         tasks = [];
+        _isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error initializing. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -104,6 +182,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   void dispose() {
     alarmTimer?.cancel();
     alarmDismissTimer?.cancel();
+    _tasksSubscription?.cancel();
     cleanupAlarm();
     super.dispose();
   }
@@ -116,7 +195,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     isAlarmShowing = false;
   }
 
-  void dismissAlarm(Map<String, dynamic> task) async {
+  void dismissAlarm(Map<String, dynamic> task, {bool snooze = false}) async {
     alarmDismissTimer?.cancel();
     if (alarmContext != null) {
       Navigator.of(alarmContext!).pop();
@@ -124,19 +203,44 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     }
     
     final String taskId = task['id'];
-    final int newAlarmCount = (task['alarmCount'] ?? 0) + 1;
     
     try {
-      await _taskService.updateAlarmCount(taskId, newAlarmCount);
+      if (snooze) {
+        // Get current due date and add 10 minutes
+        final DateTime currentDueDate = (task['dueDate'] as Timestamp).toDate();
+        final DateTime newDueDate = currentDueDate.add(const Duration(minutes: 10));
+        
+        // Update the task with new due date
+        await _taskService.updateTask(taskId, {
+          'dueDate': Timestamp.fromDate(newDueDate),
+        });
+      } else {
+        // If not snoozing, increment alarm count
+        final int newAlarmCount = (task['alarmCount'] ?? 0) + 1;
+        await _taskService.updateAlarmCount(taskId, newAlarmCount);
+        
+        if (mounted) {
+          setState(() {
+            task['alarmCount'] = newAlarmCount;
+          });
+        }
+      }
       
       if (mounted) {
         setState(() {
-          task['alarmCount'] = newAlarmCount;
           isAlarmShowing = false;
         });
       }
     } catch (e) {
-      print('Error updating alarm count: $e');
+      print('Error updating task: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error ${snooze ? 'snoozing' : 'dismissing'} task'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -206,12 +310,10 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
       if (!mounted) return;
       if (result == null) return;
 
-      final DateTime dueDate = DateTime.now().add(const Duration(minutes: 5)); // Example due date
-
       await _taskService.createTask(
         title: result['title'] ?? 'New Task',
         description: result['description'] ?? '',
-        dueDate: dueDate,
+        dueDate: result['dueDate'],
         priority: result['priority'] ?? 'Medium',
         category: result['category'],
         fieldLocation: result['location'],
@@ -268,35 +370,64 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   }
 
   Future<void> toggleDone(int index, bool value) async {
-    if (!mounted) return;
+    if (!mounted || index < 0 || index >= tasks.length) return;
+
     final String taskId = tasks[index]['id'];
     final String taskTitle = tasks[index]['title'] ?? 'Untitled Task';
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // Optimistically update UI
+    setState(() {
+      tasks[index]['completed'] = value;
+      tasks[index]['completedAt'] = value ? Timestamp.now() : null;
+    });
 
     try {
-      if (value) {
-        await _taskService.completeTask(taskId);
-        
-        // Create notification for task completion
-        await NotificationHelper.addNotification(
+      await Future.wait([
+        // Update task completion status
+        value 
+          ? _taskService.completeTask(taskId)
+              .timeout(const Duration(seconds: 5))
+          : _taskService.updateTask(
+              taskId, 
+              {'completed': false, 'completedAt': null}
+            ).timeout(const Duration(seconds: 5)),
+            
+        // Create notification if completing
+        if (value) NotificationHelper.addNotification(
           title: 'Task Completed',
           message: 'Task "$taskTitle" has been completed successfully!',
           type: 'task_reminder',
-        );
-      } else {
-        await _taskService.updateTask(taskId, {'completed': false, 'completedAt': null});
-      }
+        ).timeout(const Duration(seconds: 3)),
+      ]);
+
+      if (!mounted) return;
       
-      await _loadUnreadNotifications(); // Refresh notification count
+      // Refresh notification count
+      _loadUnreadNotifications();
+
     } catch (e) {
       print('Error toggling task completion: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error ${value ? 'completing' : 'uncompleting'} task'),
-            backgroundColor: Colors.red,
+      if (!mounted) return;
+
+      // Revert optimistic update on error
+      setState(() {
+        tasks[index]['completed'] = !value;
+        tasks[index]['completedAt'] = !value ? Timestamp.now() : null;
+      });
+
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Error ${value ? 'completing' : 'uncompleting'} task: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => toggleDone(index, value),
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
@@ -313,26 +444,104 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
 
   // ... Rest of the UI code remains the same ...
   
-  void editTask(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => TaskEditDialog(
-        task: tasks[index],
-        onSave: (updatedTask) async {
-          final String taskId = tasks[index]['id'];
-          await _taskService.updateTask(taskId, {
-            'title': updatedTask['title'],
-            'description': updatedTask['description'],
-            'category': updatedTask['category'],
-            'priority': updatedTask['priority'],
-            'weatherDependent': updatedTask['weatherDependent'],
-            'location': updatedTask['location'],
-            'duration': updatedTask['duration'],
-            'dependencies': updatedTask['dependencies'],
-          });
-        },
-      ),
-    );
+    Future<void> editTask(int index) async {
+    if (!mounted || index < 0 || index >= tasks.length) {
+      print('Invalid task index: $index');
+      return;
+    }
+
+    final task = Map<String, dynamic>.from(tasks[index]);
+    print('Editing task: ${task['title']} (${task['id']})');
+
+    // Store context reference for later use
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => WillPopScope(
+          onWillPop: () async => false,
+          child: TaskEditDialog(
+            task: task,
+            onSave: (Map<String, dynamic> updates) async {
+              final String taskId = task['id'];
+              print('Saving updates for task $taskId: $updates');
+
+              try {
+                // Update local state first (optimistic update)
+                setState(() {
+                  final taskIndex = tasks.indexWhere((t) => t['id'] == taskId);
+                  if (taskIndex != -1) {
+                    tasks[taskIndex] = {
+                      ...tasks[taskIndex],
+                      ...updates,
+                      'id': taskId, // Preserve the ID
+                    };
+                  }
+                });
+
+                // Update the task using the service
+                await _taskService.updateTask(taskId, updates)
+                    .timeout(const Duration(seconds: 10));
+
+                // Only proceed if still mounted
+                if (!mounted) return;
+
+                // Show success message
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Task updated successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+
+                // Close the dialog
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+
+                // Refresh notifications
+                _loadUnreadNotifications();
+              } on TimeoutException {
+                print('Task update timed out');
+                if (!mounted) return;
+                
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Update timed out. Please try again.'),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 5),
+                  ),
+                );
+              } catch (e) {
+                print('Error updating task: $e');
+                if (!mounted) return;
+                
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Error updating task: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error showing edit dialog: $e');
+      if (!mounted) return;
+      
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Error editing task: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   // Check if any tasks need alarm notifications
@@ -418,7 +627,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => dismissAlarm(task),
+              onPressed: () => dismissAlarm(task, snooze: true),
               child: const Text("Snooze (10 min)"),
             ),
             ElevatedButton(
@@ -467,5 +676,418 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     });
   }
 
-  // Rest of the code...
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final backgroundColor = ThemeHelper.getBackgroundColor(isDarkMode);
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      floatingActionButton: FloatingActionButton(
+        onPressed: addTask,
+        backgroundColor: const Color(0xFF00C853),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with gradient background
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+              width: double.infinity,
+              decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tasks',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 24,
+                        ),
+                      ),
+                      const Spacer(),
+                      Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AgriNotificationPage(),
+                                  ),
+                                );
+                                _loadUnreadNotifications();
+                              },
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                          if (unreadNotifications > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  unreadNotifications > 9
+                                      ? '9+'
+                                      : unreadNotifications.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Manage and track your farm tasks',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Search field with improved styling
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                onChanged: (value) => setState(() => searchQuery = value),
+                decoration: InputDecoration(
+                  hintText: 'Search tasks...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF00C853),
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: isDarkMode
+                      ? const Color(0xFF2C2C2C)
+                      : Colors.grey.shade50,
+                  hintStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.grey.shade600,
+                  ),
+                ),
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Category filters with improved styling
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: taskCategories.map((category) {
+                  final isSelected = selectedCategory == category;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      selected: isSelected,
+                      label: Text(
+                        category,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : (isDarkMode ? Colors.white : Colors.black87),
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      selectedColor: const Color(0xFF00C853),
+                      backgroundColor: isDarkMode
+                          ? const Color(0xFF2C2C2C)
+                          : Colors.grey.shade100,
+                      checkmarkColor: Colors.white,
+                      onSelected: (selected) {
+                        setState(() {
+                          selectedCategory = selected ? category : 'All';
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Tasks list with improved styling
+            Expanded(
+              child: getFilteredTasks().isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.task_alt,
+                            size: 64,
+                            color: isDarkMode
+                                ? Colors.white54
+                                : Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No tasks found',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode
+                                  ? Colors.white70
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add a new task to get started',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              color: isDarkMode
+                                  ? Colors.white54
+                                  : Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: getFilteredTasks().length,
+                      itemBuilder: (context, index) {
+                        final task = getFilteredTasks()[index];
+                        final originalIndex = tasks.indexOf(task);
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? const Color(0xFF2C2C2C)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Dismissible(
+                            key: Key(task['id']),
+                            background: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
+                            ),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (direction) async {
+                              return await showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Task'),
+                                  content: Text('Are you sure you want to delete "${task['title']}"?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(true),
+                                      child: const Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            onDismissed: (direction) async {
+                              try {
+                                await _taskService.deleteTask(task['id']);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Task "${task['title']}" deleted'),
+                                    action: SnackBarAction(
+                                      label: 'Undo',
+                                      onPressed: () async {
+                                        // Re-create the task
+                                        await _taskService.createTask(
+                                          title: task['title'],
+                                          description: task['description'] ?? '',
+                                          dueDate: (task['dueDate'] as Timestamp).toDate(),
+                                          priority: task['priority'] ?? 'Medium',
+                                          category: task['category'],
+                                          fieldLocation: task['location'],
+                                          estimatedDuration: task['duration']?.toDouble(),
+                                          weatherDependent: task['weatherDependent'] ?? false,
+                                          recurringTask: false,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Error deleting task'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              title: Text(
+                                task['title'] ?? 'Untitled Task',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  decoration: task['completed'] == true
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: isDarkMode ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (task['description']?.isNotEmpty == true) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    task['description'],
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 14,
+                                      color: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.event,
+                                      size: 16,
+                                      color: isDarkMode
+                                          ? Colors.white54
+                                          : Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Due: ${formatDateTime((task['dueDate'] as Timestamp?)?.toDate())}',
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 12,
+                                        color: isDarkMode
+                                            ? Colors.white54
+                                            : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () => editTask(originalIndex),
+                                  color: const Color(0xFF00C853),
+                                ),
+                                Transform.scale(
+                                  scale: 1.2,
+                                  child: Checkbox(
+                                    value: task['completed'] == true,
+                                    onChanged: (value) =>
+                                        toggleDone(originalIndex, value ?? false),
+                                    activeColor: const Color(0xFF00C853),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
+
+

@@ -11,7 +11,6 @@ import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
-import '../test/test_task_creation.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -803,26 +802,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                             }
                           },
                         ),
-                        _homeTile(
-                          icon: Icons.task_alt,
-                          title: "Test Tasks",
-                          onTap: () async {
-                            try {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => TestTaskCreation(),
-                                ),
-                              );
-                              if (mounted) {
-                                _needsReload = true;
-                              }
-                            } catch (e) {
-                              // Handle navigation error silently
-                            }
-                          },
-                        ),
-                        // Add some bottom padding
                         const SizedBox(height: 20),
                       ],
                     ),

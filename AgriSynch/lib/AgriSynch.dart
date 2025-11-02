@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'farmer/AgriSynchHomePage.dart';
-import 'farmer/AgriSynchTasksPage_old.dart';
+import 'farmer/AgriSynchTasksPage.dart';
 import 'farmer/AgriSynchOrdersPage.dart';
 import 'farmer/AgriSynchSettingsPage.dart';
 import 'auth/AgriSynchSignUp.dart';

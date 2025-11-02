@@ -16,15 +16,18 @@ class AgriSynchOrdersPage extends StatefulWidget {
 class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   List<Map<String, dynamic>> _orders = [];
   final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   bool isDarkMode = false;
   int unreadNotifications = 0;
 
   final List<String> _products = ['Quail Eggs', 'Chicken Egg', 'Pigs'];
+  final List<String> _statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
   String? _selectedProduct;
   String _selectedCategory = 'All';
   String _searchTerm = '';
   String _sortOption = 'Date (Newest First)';
+  String _selectedStatus = 'Pending';
 
   // Initialize the orders page when widget is first created
   @override
@@ -65,8 +68,49 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   // Add a new order with validation
+  String _generateOrderId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = timestamp.toString().substring(timestamp.toString().length - 4);
+    return 'ORD-${DateTime.now().year}${random}';
+  }
+
+  int _getStatusPriority(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 0;
+      case 'processing':
+        return 1;
+      case 'shipped':
+        return 2;
+      case 'delivered':
+        return 3;
+      case 'cancelled':
+        return 4;
+      default:
+        return 5;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.schedule;
+      case 'processing':
+        return Icons.autorenew;
+      case 'shipped':
+        return Icons.local_shipping;
+      case 'delivered':
+        return Icons.check_circle;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
   void _addOrder() {
     final quantity = _quantityController.text.trim();
+    final price = _priceController.text.trim();
 
     // Form validation
     if (_selectedProduct == null) {
@@ -102,11 +146,36 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       return;
     }
 
+    if (price.isEmpty || double.tryParse(price) == null || double.parse(price) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid price'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final priceValue = double.parse(price);
+    final quantityValue = int.parse(quantity);
+    final total = priceValue * quantityValue;
+    
     final newOrder = {
+      'id': _generateOrderId(),
       'product': _selectedProduct,
       'quantity': quantity,
-      'date': DateTime.now().toIso8601String(),
-      'delivered': false,
+      'price': priceValue,
+      'total': total,
+      'orderDate': DateTime.now().toIso8601String(),
+      'status': _selectedStatus,
+      'statusHistory': [
+        {
+          'status': _selectedStatus,
+          'date': DateTime.now().toIso8601String(),
+        }
+      ],
+      'estimatedDelivery': DateTime.now().add(const Duration(days: 3)).toIso8601String(),
     };
 
     setState(() {
@@ -136,36 +205,190 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     );
   }
 
-  void _toggleDelivery(int index) {
-    final wasDelivered = _orders[index]['delivered'];
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'shipped':
+        return Colors.purple;
+      case 'delivered':
+        return const Color(0xFF4CAF50);
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  List<String> _getValidTransitions(String currentStatus) {
+    switch (currentStatus.toLowerCase()) {
+      case 'pending':
+        return ['Processing', 'Cancelled'];
+      case 'processing':
+        return ['Shipped', 'Cancelled'];
+      case 'shipped':
+        return ['Delivered', 'Processing'];
+      case 'delivered':
+        return ['Processing']; // Allow return to processing if needed
+      case 'cancelled':
+        return ['Pending']; // Allow reactivating cancelled orders
+      default:
+        return ['Pending'];
+    }
+  }
+
+  Future<void> _showStatusUpdateDialog(int index) async {
     final order = _orders[index];
+    final currentStatus = order['status'] as String? ?? 'Pending';
+    final validTransitions = _getValidTransitions(currentStatus);
+
+    String? selectedStatus = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Update Order Status'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Current Status: $currentStatus',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Order History:'),
+              const SizedBox(height: 4),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 100),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...(order['statusHistory'] as List<dynamic>? ?? [])
+                          .map((history) {
+                        final date = DateTime.parse(history['date']);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            '${history['status']} - ${date.day}/${date.month}/${date.year}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Select New Status:'),
+              const SizedBox(height: 8),
+              ...validTransitions.map((status) => ListTile(
+                    leading: Icon(
+                      Icons.circle,
+                      color: _getStatusColor(status),
+                      size: 12,
+                    ),
+                    title: Text(status),
+                    onTap: () => Navigator.pop(context, status),
+                    contentPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedStatus != null) {
+      _updateOrderStatus(index, selectedStatus);
+    }
+  }
+
+  void _updateOrderStatus(int index, String newStatus) {
+    final order = _orders[index];
+    final oldStatus = order['status'];
+
+    if (oldStatus == newStatus) return;
+
+    // Update estimated delivery based on new status
+    DateTime? estimatedDelivery;
+    if (newStatus == 'Processing') {
+      estimatedDelivery = DateTime.now().add(const Duration(days: 3));
+    } else if (newStatus == 'Shipped') {
+      estimatedDelivery = DateTime.now().add(const Duration(days: 1));
+    }
 
     setState(() {
-      _orders[index]['delivered'] = !_orders[index]['delivered'];
+      _orders[index]['status'] = newStatus;
+      if (estimatedDelivery != null) {
+        _orders[index]['estimatedDelivery'] = estimatedDelivery.toIso8601String();
+      }
+      // Cast the existing history to List<dynamic> first, then add new entry
+      final existingHistory = (order['statusHistory'] as List<dynamic>? ?? []).map((item) {
+        if (item is Map<String, dynamic>) return item;
+        return {'status': 'Unknown', 'date': DateTime.now().toIso8601String()};
+      }).toList();
+      
+      _orders[index]['statusHistory'] = [
+        ...existingHistory,
+        {
+          'status': newStatus,
+          'date': DateTime.now().toIso8601String(),
+        }
+      ];
     });
     _saveOrders();
 
-    // Create delivery notification
-    if (!wasDelivered) {
-      NotificationHelper.addOrderNotification(
-        title: 'Order Delivered! 📦',
-        message:
-            '${order['product']} (Qty: ${order['quantity']}) has been marked as delivered',
-        orderId: order.toString(),
-      );
+    // Create status update notification with appropriate emoji
+    String emoji = '';
+    switch (newStatus.toLowerCase()) {
+      case 'processing':
+        emoji = '⚙️';
+        break;
+      case 'shipped':
+        emoji = '🚚';
+        break;
+      case 'delivered':
+        emoji = '📦';
+        break;
+      case 'cancelled':
+        emoji = '❌';
+        break;
+      default:
+        emoji = '📋';
     }
 
-    // Show delivery toggle snackbar
+    NotificationHelper.addOrderNotification(
+      title: 'Order Status Updated $emoji',
+      message:
+          '${order['product']} (Order #${order['id']}) status changed to $newStatus',
+      orderId: order['id'].toString(),
+    );
+
+    // Show status update snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          wasDelivered ? 'Marked as Undelivered!' : 'Marked as Delivered!',
-        ),
+        content: Text('Order status updated to $newStatus!'),
         duration: const Duration(seconds: 2),
-        backgroundColor: const Color(0xFF00C853),
+        backgroundColor: _getStatusColor(newStatus),
       ),
     );
   }
+
 
   void _deleteOrder(int index) {
     setState(() {
@@ -199,7 +422,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           ElevatedButton(
             onPressed: () {
               setState(() {
-                _orders.removeWhere((order) => order['delivered'] == true);
+                _orders.removeWhere((order) => (order['status'] as String?) == 'Delivered');
               });
               _saveOrders();
               Navigator.pop(context);
@@ -225,14 +448,23 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           .toList();
     }
 
+    // Filter by status
+    if (_selectedStatus != 'All') {
+      filtered = filtered
+          .where((order) => order['status'] == _selectedStatus)
+          .toList();
+    }
+
     // Filter by search term
     if (_searchTerm.isNotEmpty) {
       filtered = filtered.where((order) {
         final productName = order['product'].toString().toLowerCase();
         final quantity = order['quantity'].toString().toLowerCase();
+        final orderId = order['id'].toString().toLowerCase();
         final searchLower = _searchTerm.toLowerCase();
         return productName.contains(searchLower) ||
-            quantity.contains(searchLower);
+            quantity.contains(searchLower) ||
+            orderId.contains(searchLower);
       }).toList();
     }
 
@@ -241,13 +473,13 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       case 'Date (Newest First)':
         filtered.sort(
           (a, b) =>
-              DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])),
+              DateTime.parse(b['orderDate']).compareTo(DateTime.parse(a['orderDate'])),
         );
         break;
       case 'Date (Oldest First)':
         filtered.sort(
           (a, b) =>
-              DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])),
+              DateTime.parse(a['orderDate']).compareTo(DateTime.parse(b['orderDate'])),
         );
         break;
       case 'Product Name (A-Z)':
@@ -274,16 +506,25 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           ).compareTo(int.parse(b['quantity'].toString())),
         );
         break;
-      case 'Delivery Status':
+      case 'Price (High to Low)':
+        filtered.sort(
+          (a, b) => (b['total'] as num).compareTo(a['total'] as num),
+        );
+        break;
+      case 'Price (Low to High)':
+        filtered.sort(
+          (a, b) => (a['total'] as num).compareTo(b['total'] as num),
+        );
+        break;
+      case 'Status':
         filtered.sort((a, b) {
-          // Delivered orders first (true comes before false)
-          if (a['delivered'] == b['delivered']) {
-            // If same delivery status, sort by date (newest first)
-            return DateTime.parse(
-              b['date'],
-            ).compareTo(DateTime.parse(a['date']));
+          final statusA = a['status']?.toString().toLowerCase() ?? '';
+          final statusB = b['status']?.toString().toLowerCase() ?? '';
+          if (statusA == statusB) {
+            return DateTime.parse(b['orderDate'])
+                .compareTo(DateTime.parse(a['orderDate']));
           }
-          return b['delivered'] == true ? 1 : -1;
+          return _getStatusPriority(statusA).compareTo(_getStatusPriority(statusB));
         });
         break;
     }
@@ -513,6 +754,37 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ),
               ),
               const SizedBox(width: 12),
+              Expanded(
+                flex: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextFormField(
+                    controller: _priceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                    ],
+                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                    decoration: InputDecoration(
+                      labelText: '₱ Price',
+                      labelStyle: ThemeHelper.getBodyTextStyle(
+                        isDark: isDarkMode,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               Container(
                 width: 48,
                 height: 48,
@@ -577,7 +849,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
   Widget _buildFilterAndSortSection() {
     final deliveredCount = _orders
-        .where((order) => order['delivered'] == true)
+        .where((order) => (order['status'] as String?) == 'Delivered')
         .length;
     final sortOptions = [
       'Date (Newest First)',
@@ -586,7 +858,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       'Product Name (Z-A)',
       'Quantity (High to Low)',
       'Quantity (Low to High)',
-      'Delivery Status',
+      'Price (High to Low)',
+      'Price (Low to High)',
+      'Status',
     ];
 
     return Container(
@@ -738,37 +1012,63 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildOrdersHeader() {
+    final deliveredCount = _filteredOrders.where((order) => (order['status'] as String?) == 'Delivered').length;
+    final processingCount = _filteredOrders.where((order) => (order['status'] as String?) == 'Processing').length;
+    final shippedCount = _filteredOrders.where((order) => (order['status'] as String?) == 'Shipped').length;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: ThemeHelper.getHeaderColor(isDarkMode),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: Column(
         children: [
-          const Icon(Icons.receipt_long, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            "Total Orders: ${_filteredOrders.length}",
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontSize: 16,
-            ),
-          ),
-          const Spacer(),
-          if (_filteredOrders.isNotEmpty)
-            Text(
-              "${_filteredOrders.where((order) => order['delivered']).length} delivered",
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 12,
+          Row(
+            children: [
+              const Icon(Icons.receipt_long, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                "Total Orders: ${_filteredOrders.length}",
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
               ),
+            ],
+          ),
+          if (_filteredOrders.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatusCount('Delivered', deliveredCount, Icons.check_circle),
+                _buildStatusCount('Processing', processingCount, Icons.autorenew),
+                _buildStatusCount('Shipped', shippedCount, Icons.local_shipping),
+              ],
             ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusCount(String status, int count, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 12),
+        const SizedBox(width: 4),
+        Text(
+          "$count $status",
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
   }
 
@@ -787,7 +1087,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       padding: const EdgeInsets.only(bottom: 20),
       itemBuilder: (context, index) {
         final order = _filteredOrders[index];
-        final date = DateTime.parse(order['date']);
+        final date = DateTime.parse(order['orderDate'] ?? order['date']);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -799,41 +1099,84 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: order['delivered']
-                    ? ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.1)
-                    : (isDarkMode
-                              ? const Color(0xFF4CAF50)
-                              : const Color(0xFF00E676))
-                          .withOpacity(0.1),
+                color: _getStatusColor(order['status'] ?? 'Pending').withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                order['delivered'] ? Icons.check_circle : Icons.pending,
-                color: order['delivered']
-                    ? ThemeHelper.getHeaderColor(isDarkMode)
-                    : (isDarkMode
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFF00E676)),
+                _getStatusIcon(order['status'] ?? 'Pending'),
+                color: _getStatusColor(order['status'] ?? 'Pending'),
                 size: 24,
               ),
             ),
-            title: Text(
-              "${order['product']} - Qty: ${order['quantity']}",
-              style: ThemeHelper.getBodyTextStyle(
-                isDark: isDarkMode,
-              ).copyWith(fontWeight: FontWeight.w600, fontSize: 16),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "${order['product']} - Qty: ${order['quantity']}",
+                    style: ThemeHelper.getBodyTextStyle(
+                      isDark: isDarkMode,
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
+                ),
+                Text(
+                  "₱${order['total']?.toStringAsFixed(2) ?? '0.00'}",
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF4CAF50),
+                    fontSize: 16,
+                  ),
+                ),
+              ],
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                Text(
-                  "Ordered on ${date.day}/${date.month}/${date.year}",
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Order #${order['id'] ?? 'N/A'}",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                      ),
+                    ),
+                    Text(
+                      "₱${order['price']?.toStringAsFixed(2) ?? '0.00'} each",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Ordered on ${date.day}/${date.month}/${date.year}",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                      ),
+                    ),
+                    if (order['estimatedDelivery'] != null)
+                      Text(
+                        "Est. ${DateTime.parse(order['estimatedDelivery']).day}/${DateTime.parse(order['estimatedDelivery']).month}",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Container(
@@ -842,22 +1185,16 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: order['delivered']
-                        ? ThemeHelper.getHeaderColor(
-                            isDarkMode,
-                          ).withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
+                    color: _getStatusColor(order['status'] ?? 'Pending').withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    order['delivered'] ? 'Delivered' : 'Pending',
+                    order['status'] ?? 'Pending',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: order['delivered']
-                          ? ThemeHelper.getHeaderColor(isDarkMode)
-                          : Colors.orange[700],
+                      color: _getStatusColor(order['status'] ?? 'Pending'),
                     ),
                   ),
                 ),
@@ -868,26 +1205,16 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: order['delivered']
-                        ? ThemeHelper.getHeaderColor(
-                            isDarkMode,
-                          ).withOpacity(0.1)
-                        : (isDarkMode
-                              ? Colors.white24
-                              : Colors.grey.withOpacity(0.1)),
+                    color: _getStatusColor(order['status'] ?? 'Pending').withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
                     icon: Icon(
-                      order['delivered']
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
-                      color: order['delivered']
-                          ? ThemeHelper.getHeaderColor(isDarkMode)
-                          : (isDarkMode ? Colors.white60 : Colors.grey[600]),
+                      _getStatusIcon(order['status'] ?? 'Pending'),
+                      color: _getStatusColor(order['status'] ?? 'Pending'),
                       size: 20,
                     ),
-                    onPressed: () => _toggleDelivery(_orders.indexOf(order)),
+                    onPressed: () => _showStatusUpdateDialog(_orders.indexOf(order)),
                   ),
                 ),
                 const SizedBox(width: 4),
