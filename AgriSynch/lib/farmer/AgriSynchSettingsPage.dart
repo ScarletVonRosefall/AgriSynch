@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
@@ -119,9 +120,69 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   }
 
   Future<void> loadUserInfo() async {
-    userName = await storage.read(key: 'name') ?? '';
-    userEmail = await storage.read(key: 'user_email') ?? '';
-    userRole = await storage.read(key: 'account_type') ?? '';
+    try {
+      // Get current Firebase user
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user != null) {
+        // Try to get user data from Firestore
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          
+          if (doc.exists) {
+            final data = doc.data();
+            userName = data?['name'] ?? '';
+            userEmail = data?['email'] ?? user.email ?? '';
+            userRole = data?['accountType'] ?? '';
+          } else {
+            // Fallback to Firebase Auth user data if Firestore doc doesn't exist
+            userName = user.displayName ?? '';
+            userEmail = user.email ?? '';
+            userRole = 'Farmer'; // Default role
+          }
+        } catch (firestoreError) {
+          print('Error fetching from Firestore: $firestoreError');
+          // Fallback to Firebase Auth user data
+          userName = user.displayName ?? '';
+          userEmail = user.email ?? '';
+          userRole = 'Farmer'; // Default role
+        }
+        
+        // Also try to get name from local storage as backup
+        if (userName.isEmpty) {
+          String localName = await storage.read(key: 'user_name') ?? '';
+          if (localName.isEmpty) {
+            localName = await storage.read(key: 'name') ?? '';
+          }
+          userName = localName;
+        }
+        
+        // Get role from local storage if not found in Firestore
+        if (userRole.isEmpty) {
+          userRole = await storage.read(key: 'account_type') ?? 'Farmer';
+        }
+      } else {
+        // No user logged in, try local storage only
+        String name = await storage.read(key: 'user_name') ?? '';
+        if (name.isEmpty) {
+          name = await storage.read(key: 'name') ?? '';
+        }
+        
+        userName = name;
+        userEmail = await storage.read(key: 'user_email') ?? '';
+        userRole = await storage.read(key: 'account_type') ?? '';
+      }
+    } catch (e) {
+      print('Error loading user info: $e');
+      // Fallback to empty strings if everything fails
+      userName = '';
+      userEmail = '';
+      userRole = '';
+    }
+    
     setState(() {});
   }
 

@@ -35,9 +35,22 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
     _loadUserData();
   }
 
+  // Public method to refresh profile data
+  Future<void> refreshProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await _loadUserData();
+  }
+
   Future<void> _loadUserData() async {
     try {
-      final name = await _storage.read(key: 'user_name') ?? 'User';
+      // Try to get name from profile first, then fallback to signup data
+      String name = await _storage.read(key: 'user_name') ?? '';
+      if (name.isEmpty) {
+        name = await _storage.read(key: 'name') ?? 'User';
+      }
+      
       final nickname = await _storage.read(key: 'user_nickname') ?? '';
       final email = await _storage.read(key: 'user_email') ?? '';
       final location = await _storage.read(key: 'user_location') ?? '';

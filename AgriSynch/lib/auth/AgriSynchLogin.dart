@@ -248,6 +248,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
 
                                                         final data = doc.data();
                                                         final accountType = data?['accountType'] ?? 'Farmer';
+                                                        final userName = data?['name'] ?? '';
 
                                                         // Store data in parallel
                                                         await Future.wait([
@@ -258,6 +259,18 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                           storage.write(
                                                             key: 'account_type',
                                                             value: accountType,
+                                                          ),
+                                                          storage.write(
+                                                            key: 'name',
+                                                            value: userName,
+                                                          ),
+                                                          storage.write(
+                                                            key: 'user_name',
+                                                            value: userName,
+                                                          ),
+                                                          storage.write(
+                                                            key: 'user_email',
+                                                            value: user.email ?? '',
                                                           ),
                                                         ]);
 

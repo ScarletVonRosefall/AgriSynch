@@ -376,6 +376,14 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     value: name,
                                                   );
                                                   await storage.write(
+                                                    key: 'user_name',
+                                                    value: name,
+                                                  );
+                                                  await storage.write(
+                                                    key: 'user_email',
+                                                    value: email,
+                                                  );
+                                                  await storage.write(
                                                     key: 'account_type',
                                                     value: _selectedAccountType,
                                                   );
