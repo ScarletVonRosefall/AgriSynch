@@ -204,5 +204,31 @@ service cloud.firestore {
       allow delete: if true; // Allow cleanup
       allow read: if false; // Keep emails private
     }
+    
+    // ==================== FEEDBACK COLLECTION ====================
+    
+    match /feedback/{feedbackId} {
+      // Anyone authenticated can submit feedback
+      allow create: if isSignedIn()
+        && isValidString(request.resource.data.feedback, 500)
+        && request.resource.data.category in ['General', 'Bug Report', 'Feature Request', 
+                                               'Technical Support', 'Account Issues', 
+                                               'General Question/Comment']
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.status == 'submitted';
+      
+      // Users can only read their own feedback
+      allow read: if isSignedIn() 
+        && (resource.data.userId == request.auth.uid 
+            || request.auth.token.email == 'admin@agrisynch.com'); // Admin access
+      
+      // Only admins can update feedback status or add responses
+      allow update: if isSignedIn() 
+        && request.auth.token.email == 'admin@agrisynch.com';
+      
+      // Only admins can delete feedback
+      allow delete: if isSignedIn() 
+        && request.auth.token.email == 'admin@agrisynch.com';
+    }
   }
 }
