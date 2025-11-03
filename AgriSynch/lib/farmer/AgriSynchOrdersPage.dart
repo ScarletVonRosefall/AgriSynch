@@ -8,6 +8,7 @@ import '../services/finance_service.dart';
 import '../services/order_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
+import '../shared/chat_screen.dart';
 
 class AgriSynchOrdersPage extends StatefulWidget {
   const AgriSynchOrdersPage({super.key});
@@ -585,6 +586,22 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             ],
           ),
           actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      otherUserId: order.buyerId,
+                      otherUserName: order.buyerName,
+                      orderId: orderId,
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Message Buyer'),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),

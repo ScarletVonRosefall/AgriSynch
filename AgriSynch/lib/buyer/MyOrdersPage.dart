@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../services/order_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
+import '../shared/chat_screen.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -423,6 +424,37 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             ),
 
             const SizedBox(height: 16),
+            
+            // Message Farmer Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        otherUserId: order['farmerId'] ?? '',
+                        otherUserName: order['farmerName'] ?? 'Farmer',
+                        orderId: order['id'],
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.message),
+                label: const Text('Message Farmer'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF00C853),
+                  side: const BorderSide(color: Color(0xFF00C853)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 8),
             if (order['status'].toLowerCase() == 'pending')
               SizedBox(
                 width: double.infinity,

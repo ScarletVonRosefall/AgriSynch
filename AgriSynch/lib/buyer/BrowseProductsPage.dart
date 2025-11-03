@@ -10,6 +10,7 @@ import '../services/error_handler.dart';
 import '../shared/theme_helper.dart';
 import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../shared/chat_screen.dart';
 
 class BrowseProductsPage extends StatefulWidget {
   final String? initialCategory;
@@ -761,19 +762,50 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     ],
                                   ),
                                   const Spacer(),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: product.stock > 0 
-                                          ? () => addToCart(product)
-                                          : null,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                  Row(
+                                    children: [
+                                      // Contact Farmer Button
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => ChatScreen(
+                                                  otherUserId: product.farmerId,
+                                                  otherUserName: product.farmerName,
+                                                  productId: product.id,
+                                                  productName: product.name,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.message, size: 16),
+                                          label: const Text('Contact', style: TextStyle(fontSize: 11)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+                                            side: BorderSide(color: ThemeHelper.getHeaderColor(isDarkMode)),
+                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                          ),
+                                        ),
                                       ),
-                                      child: const Text('Add to Cart', style: TextStyle(fontSize: 12)),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      // Add to Cart Button
+                                      Expanded(
+                                        flex: 2,
+                                        child: ElevatedButton(
+                                          onPressed: product.stock > 0 
+                                              ? () => addToCart(product)
+                                              : null,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                          ),
+                                          child: const Text('Add to Cart', style: TextStyle(fontSize: 12)),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

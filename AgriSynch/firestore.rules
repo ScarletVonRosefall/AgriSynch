@@ -108,8 +108,11 @@ service cloud.firestore {
     // ==================== USERS COLLECTION ====================
     
     match /users/{userId} {
-      // Users can read and write their own profile
-      allow read, write: if isOwner(userId);
+      // Allow all authenticated users to read all user profiles (for messaging/browsing)
+      allow read: if isSignedIn();
+      
+      // Users can only write their own profile
+      allow write: if isOwner(userId);
       
       // Prevent users from changing their email to another user's email
       allow update: if isOwner(userId) 
@@ -230,5 +233,21 @@ service cloud.firestore {
       allow delete: if isSignedIn() 
         && request.auth.token.email == 'admin@agrisynch.com';
     }
+    
+    // ==================== CHAT COLLECTIONS ====================
+    
+    // Messages collection - Simplified rules
+    match /messages/{messageId} {
+      // Any authenticated user can create, read, update messages
+      allow read, write: if isSignedIn();
+    }
+    
+    // Conversations collection - Simplified rules
+    match /conversations/{conversationId} {
+      // Any authenticated user can create, read, update, delete conversations
+      allow read, write: if isSignedIn();
+    }
   }
 }
+
+//placeholder
