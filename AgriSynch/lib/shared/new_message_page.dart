@@ -87,61 +87,72 @@ class _NewMessagePageState extends State<NewMessagePage> {
     
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      appBar: AppBar(
-        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-        foregroundColor: Colors.white,
-        title: const Text('New Message'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(120),
-          child: Column(
-            children: [
-              // Search bar
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontSize: 15,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Search by name, email, or location...',
-                    hintStyle: TextStyle(
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+      body: Column(
+        children: [
+          // --- Fixed Top Green Header ---
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            width: double.infinity,
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-                    prefixIcon: Icon(
-                      Icons.search, 
-                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                    const SizedBox(width: 8),
+                    Text(
+                      'New Message',
+                      style: ThemeHelper.getHeaderTextStyle(
+                        isDark: isDarkMode,
+                      ),
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear, 
-                              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: isDarkMode ? const Color(0xFF2E2E2E) : const Color(0xFFF5F5F5),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value);
-                  },
+                  ],
                 ),
-              ),
-              
-              // Role filter chips
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                child: Row(
+                const SizedBox(height: 16),
+                // Search bar
+                Container(
+                  height: 42,
+                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search by name, email, or location...',
+                            border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                          ),
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        IconButton(
+                          icon: Icon(Icons.clear, color: ThemeHelper.getIconColor(isDarkMode)),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Role filter chips
+                Row(
                   children: [
                     Text(
                       'Show: ', 
@@ -176,12 +187,13 @@ class _NewMessagePageState extends State<NewMessagePage> {
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
+
+          // --- Scrollable User List ---
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _getUsersStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -335,6 +347,9 @@ class _NewMessagePageState extends State<NewMessagePage> {
             },
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }

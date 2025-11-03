@@ -114,21 +114,33 @@ class _ChatScreenState extends State<ChatScreen> {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: EdgeInsets.only(
+          top: 6,
+          bottom: 6,
+          left: isMe ? 60 : 12,
+          right: isMe ? 12 : 60,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
           color: isMe 
-              ? (isDarkMode ? const Color(0xFF2E7D32) : Colors.green[100])
-              : ThemeHelper.getSecondaryCardColor(isDarkMode),
+              ? (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50))
+              : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey[200]),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(12),
-            topRight: const Radius.circular(12),
-            bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
-            bottomRight: isMe ? Radius.zero : const Radius.circular(12),
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: isMe ? const Radius.circular(18) : const Radius.circular(4),
+            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(18),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment:
@@ -136,7 +148,11 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Text(
               message.message,
-              style: const TextStyle(fontSize: 16),
+              style: TextStyle(
+                fontSize: 16,
+                color: isMe ? Colors.white : (isDarkMode ? Colors.white : Colors.black87),
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 4),
             Row(
@@ -145,16 +161,20 @@ class _ChatScreenState extends State<ChatScreen> {
                 Text(
                   _formatMessageTime(message.timestamp),
                   style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[700],
+                    fontSize: 11,
+                    color: isMe 
+                        ? Colors.white.withOpacity(0.8)
+                        : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                   ),
                 ),
                 if (isMe) ...[
                   const SizedBox(width: 4),
                   Icon(
                     message.isRead ? Icons.done_all : Icons.done,
-                    size: 14,
-                    color: message.isRead ? Colors.blue : Colors.grey,
+                    size: 16,
+                    color: message.isRead 
+                        ? Colors.white.withOpacity(0.9)
+                        : Colors.white.withOpacity(0.7),
                   ),
                 ],
               ],
@@ -206,54 +226,78 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      appBar: AppBar(
-        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.otherUserName),
-            if (widget.productName != null)
-              Text(
-                'About: ${widget.productName}',
-                style: const TextStyle(fontSize: 12),
-              ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Conversation Info'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('With: ${widget.otherUserName}'),
-                      if (widget.productName != null)
-                        Text('Product: ${widget.productName}'),
-                      if (widget.orderId != null)
-                        Text('Order ID: ${widget.orderId}'),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
+      body: Column(
+        children: [
+          // --- Fixed Top Green Header ---
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            width: double.infinity,
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.otherUserName,
+                            style: ThemeHelper.getHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
+                          ),
+                          if (widget.productName != null)
+                            Text(
+                              'About: ${widget.productName}',
+                              style: ThemeHelper.getSubHeaderTextStyle(
+                                isDark: isDarkMode,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.info_outline, color: Colors.white),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Conversation Info'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('With: ${widget.otherUserName}'),
+                                if (widget.productName != null)
+                                  Text('Product: ${widget.productName}'),
+                                if (widget.orderId != null)
+                                  Text('Order ID: ${widget.orderId}'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Close'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
-              );
-            },
+              ],
+            ),
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Messages list
+
+          // --- Messages List ---
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
               stream: ChatService.getMessagesStream(widget.otherUserId),

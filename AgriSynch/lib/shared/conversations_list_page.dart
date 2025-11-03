@@ -78,56 +78,79 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      appBar: AppBar(
-        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-        foregroundColor: Colors.white,
-        title: const Text('Messages'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black87,
-                fontSize: 15,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Search conversations...',
-                hintStyle: TextStyle(
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+      body: Column(
+        children: [
+          // --- Fixed Top Green Header ---
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            width: double.infinity,
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Messages',
+                            style: ThemeHelper.getHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                prefixIcon: Icon(
-                  Icons.search, 
-                  color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear, 
-                          color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                const SizedBox(height: 16),
+                // Search box
+                Container(
+                  height: 42,
+                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search conversations...',
+                            border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                          ),
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            fontSize: 15,
+                          ),
                         ),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: isDarkMode ? const Color(0xFF2E2E2E) : const Color(0xFFF5F5F5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        IconButton(
+                          icon: Icon(Icons.clear, color: ThemeHelper.getIconColor(isDarkMode)),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-              },
+              ],
             ),
           ),
-        ),
-      ),
-      body: StreamBuilder<List<Conversation>>(
+
+          // --- Scrollable Conversations ---
+          Expanded(
+            child: StreamBuilder<List<Conversation>>(
         stream: ChatService.getConversationsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -199,6 +222,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
             itemCount: filteredConversations.length,
             itemBuilder: (context, index) {
               final conversation = filteredConversations[index];
@@ -247,8 +271,22 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                     const SnackBar(content: Text('Conversation deleted')),
                   );
                 },
-                child: ListTile(
-                  leading: CircleAvatar(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: ThemeHelper.getCardColor(isDarkMode),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: CircleAvatar(
                     backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                     child: Text(
                       otherUserName.isNotEmpty
@@ -335,10 +373,14 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                     );
                   },
                 ),
-              );
+              ),
+            );
             },
           );
         },
+      ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
