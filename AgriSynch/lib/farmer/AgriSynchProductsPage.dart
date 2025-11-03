@@ -20,7 +20,7 @@ class AgriSynchProductsPage extends StatefulWidget {
 class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   final ProductService _productService = ProductService();
   final ImageUploadService _imageUploadService = ImageUploadService();
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   String _searchQuery = '';
   String _categoryFilter = 'All';
@@ -39,13 +39,18 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadUnreadNotifications();
   }
 
-  Future<void> _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   Future<void> _loadUnreadNotifications() async {
@@ -689,6 +694,8 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(

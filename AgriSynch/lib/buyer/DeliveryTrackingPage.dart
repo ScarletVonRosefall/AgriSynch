@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import '../shared/theme_helper.dart';
 
 class DeliveryTrackingPage extends StatefulWidget {
   final String? orderId;
@@ -13,7 +14,7 @@ class DeliveryTrackingPage extends StatefulWidget {
 }
 
 class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   List<Map<String, dynamic>> deliveries = [];
   Map<String, dynamic>? currentOrder;
 
@@ -48,15 +49,18 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
   @override
   void initState() {
     super.initState();
-    loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     loadDeliveries();
   }
 
-  Future<void> loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      isDarkMode = prefs.getBool('dark_mode') ?? false;
-    });
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   Future<void> loadDeliveries() async {
@@ -132,6 +136,8 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
   }
 
   Widget buildTrackingTimeline() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     if (currentOrder == null) return const SizedBox();
 
     final currentStep = getCurrentStepIndex(currentOrder!['status']);
@@ -313,6 +319,8 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
   }
 
   Widget buildDeliveryInfo() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     if (currentOrder == null) return const SizedBox();
 
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
@@ -444,6 +452,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = isDarkMode
         ? const Color(0xFF121212)
         : const Color(0xFFF2FBE0);

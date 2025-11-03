@@ -1,30 +1,85 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Global theme notifier - single source of truth for dark mode state
+/// All pages listen to this instead of loading individually
+class ThemeNotifier {
+  static final ThemeNotifier _instance = ThemeNotifier._internal();
+  factory ThemeNotifier() => _instance;
+  
+  ThemeNotifier._internal() {
+    _loadTheme();
+  }
+
+  final ValueNotifier<bool> _darkModeNotifier = ValueNotifier<bool>(false);
+  
+  ValueNotifier<bool> get darkModeNotifier => _darkModeNotifier;
+  bool get isDarkMode => _darkModeNotifier.value;
+
+  Future<void> _loadTheme() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _darkModeNotifier.value = prefs.getBool('dark_mode') ?? false;
+    } catch (e) {
+      print('Error loading theme: $e');
+    }
+  }
+
+  Future<void> toggleTheme() async {
+    _darkModeNotifier.value = !_darkModeNotifier.value;
+    await _saveTheme();
+  }
+
+  Future<void> setDarkMode(bool value) async {
+    if (_darkModeNotifier.value == value) return;
+    _darkModeNotifier.value = value;
+    await _saveTheme();
+  }
+
+  Future<void> _saveTheme() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('dark_mode', _darkModeNotifier.value);
+    } catch (e) {
+      print('Error saving theme: $e');
+    }
+  }
+}
+
 class ThemeHelper {
   static Future<bool> isDarkModeEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('dark_mode') ?? false;
   }
 
+  // Alias for consistency
+  static Future<bool> isDarkMode() async {
+    return isDarkModeEnabled();
+  }
+
   static Future<void> setDarkMode(bool isDark) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dark_mode', isDark);
+    // Also update the notifier
+    ThemeNotifier().setDarkMode(isDark);
   }
 
-  // Light theme colors
+  // Light theme colors - improved contrast
   static const Color lightBackground = Color(0xFFF2FBE0);
   static const Color lightHeader = Color(0xFF00C853);
   static const Color lightCard = Colors.white;
-  static const Color lightText = Colors.black87;
+  static const Color lightText = Color(0xFF212121); // Darker for better readability
   static const Color lightSecondaryCard = Color(0xFFC5E1A5);
+  static const Color lightSecondaryText = Color(0xFF616161);
 
-  // Dark theme colors
+  // Dark theme colors - improved contrast and readability
   static const Color darkBackground = Color(0xFF121212);
   static const Color darkHeader = Color(0xFF2E7D32);
   static const Color darkCard = Color(0xFF1E1E1E);
-  static const Color darkText = Colors.white;
+  static const Color darkText = Color(0xFFE0E0E0); // Lighter for better readability
   static const Color darkSecondaryCard = Color(0xFF2A2A2A);
+  static const Color darkSecondaryText = Color(0xFFB0B0B0);
+  static const Color darkDivider = Color(0xFF424242);
 
   // Get colors based on theme
   static Color getBackgroundColor(bool isDark) =>
@@ -35,9 +90,15 @@ class ThemeHelper {
   static Color getCardColor(bool isDark) => isDark ? darkCard : lightCard;
 
   static Color getTextColor(bool isDark) => isDark ? darkText : lightText;
+  
+  static Color getSecondaryTextColor(bool isDark) => isDark ? darkSecondaryText : lightSecondaryText;
 
   static Color getSecondaryCardColor(bool isDark) =>
       isDark ? darkSecondaryCard : lightSecondaryCard;
+  
+  static Color getDividerColor(bool isDark) => isDark ? darkDivider : const Color(0xFFE0E0E0);
+  
+  static Color getInputFillColor(bool isDark) => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFD9F2E6);
 
   // Common text styles with Poppins font
   static TextStyle getTextStyle({
@@ -55,7 +116,7 @@ class ThemeHelper {
   }
 
   static TextStyle getHeaderTextStyle({required bool isDark}) {
-    return TextStyle(
+    return const TextStyle(
       fontFamily: 'Poppins',
       fontSize: 24,
       fontWeight: FontWeight.bold,
@@ -67,7 +128,7 @@ class ThemeHelper {
     return TextStyle(
       fontFamily: 'Poppins',
       fontSize: 14,
-      color: Colors.white.withValues(alpha: 0.8),
+      color: Colors.white.withOpacity(0.9),
     );
   }
 
@@ -83,8 +144,8 @@ class ThemeHelper {
       boxShadow: withShadow
           ? [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                blurRadius: 8,
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+                blurRadius: isDark ? 12 : 8,
                 offset: const Offset(0, 2),
               ),
             ]
@@ -117,16 +178,16 @@ class ThemeHelper {
   static ButtonStyle getSecondaryButtonStyle({required bool isDark}) {
     return ElevatedButton.styleFrom(
       backgroundColor: isDark
-          ? const Color(0xFF4CAF50)
+          ? const Color(0xFF388E3C)
           : const Color(0xFFDCE775),
-      foregroundColor: isDark ? Colors.white : Colors.black,
+      foregroundColor: isDark ? Colors.white : const Color(0xFF212121),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
   // Additional utility methods for common UI elements
   static Color getIconColor(bool isDark) =>
-      isDark ? Colors.white70 : Colors.grey;
+      isDark ? Colors.white70 : const Color(0xFF757575);
 
   static TextStyle getBodyTextStyle({required bool isDark}) {
     return TextStyle(
@@ -140,7 +201,7 @@ class ThemeHelper {
     return TextStyle(
       fontFamily: 'Poppins',
       fontSize: 14,
-      color: isDark ? Colors.white60 : Colors.grey,
+      color: isDark ? const Color(0xFF9E9E9E) : const Color(0xFF757575),
     );
   }
 
@@ -149,13 +210,32 @@ class ThemeHelper {
     required String hintText,
     required IconData prefixIcon,
     required bool isDark,
+    Widget? suffixIcon,
   }) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: getHintTextStyle(isDark: isDark),
       prefixIcon: Icon(prefixIcon, color: getIconColor(isDark)),
+      suffixIcon: suffixIcon,
       border: InputBorder.none,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
+  
+  // Dialog theme
+  static Color getDialogBackground(bool isDark) =>
+      isDark ? const Color(0xFF2A2A2A) : Colors.white;
+  
+  // Status colors that work in both themes
+  static Color getSuccessColor(bool isDark) =>
+      isDark ? const Color(0xFF66BB6A) : const Color(0xFF4CAF50);
+  
+  static Color getErrorColor(bool isDark) =>
+      isDark ? const Color(0xFFEF5350) : const Color(0xFFF44336);
+  
+  static Color getWarningColor(bool isDark) =>
+      isDark ? const Color(0xFFFFB74D) : const Color(0xFFFF9800);
+  
+  static Color getInfoColor(bool isDark) =>
+      isDark ? const Color(0xFF42A5F5) : const Color(0xFF2196F3);
 }

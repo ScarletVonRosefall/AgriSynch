@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import '../services/error_handler.dart';
+import '../shared/theme_helper.dart';
 
 class AgriSynchLoginPage extends StatefulWidget {
   const AgriSynchLoginPage({super.key});
@@ -19,10 +20,12 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final _themeNotifier = ThemeNotifier();
 
   @override
   void initState() {
     super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
 
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -49,8 +52,13 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     });
   }
 
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
@@ -64,12 +72,14 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final emailController = TextEditingController();
     final passController = TextEditingController();
     final ValueNotifier<bool> isLoading = ValueNotifier(false);
     final ValueNotifier<bool> showPassword = ValueNotifier(false);
 
     return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -92,11 +102,12 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                             Center(
                               child: Column(
                                 children: [
-                                  const Text(
+                                  Text(
                                     "Log in to continue",
                                     style: TextStyle(
                                       fontFamily: 'Poppins',
                                       fontSize: 16,
+                                      color: ThemeHelper.getTextColor(isDarkMode),
                                     ),
                                   ),
                                   const Text(

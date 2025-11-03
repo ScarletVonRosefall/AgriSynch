@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_screen.dart';
+import 'theme_helper.dart';
 
 class NewMessagePage extends StatefulWidget {
   const NewMessagePage({super.key});
@@ -14,10 +15,25 @@ class _NewMessagePageState extends State<NewMessagePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedRole = 'All'; // All, Farmer, Buyer
+  final _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to theme changes
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -67,8 +83,13 @@ class _NewMessagePageState extends State<NewMessagePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       appBar: AppBar(
+        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+        foregroundColor: Colors.white,
         title: const Text('New Message'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(120),
@@ -79,12 +100,25 @@ class _NewMessagePageState extends State<NewMessagePage> {
                 padding: const EdgeInsets.all(8.0),
                 child: TextField(
                   controller: _searchController,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                    fontSize: 15,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search by name, email, or location...',
-                    prefixIcon: const Icon(Icons.search),
+                    hintStyle: TextStyle(
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search, 
+                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                    ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: Icon(
+                              Icons.clear, 
+                              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
@@ -92,7 +126,7 @@ class _NewMessagePageState extends State<NewMessagePage> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: isDarkMode ? const Color(0xFF2E2E2E) : const Color(0xFFF5F5F5),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -109,7 +143,13 @@ class _NewMessagePageState extends State<NewMessagePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 child: Row(
                   children: [
-                    const Text('Show: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Show: ', 
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     ChoiceChip(
                       label: const Text('All'),
@@ -172,14 +212,14 @@ class _NewMessagePageState extends State<NewMessagePage> {
                   Icon(
                     Icons.people_outline,
                     size: 80,
-                    color: Colors.grey[400],
+                    color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                   ),
                   const SizedBox(height: 16),
                   Text(
                     allUsers.isEmpty ? 'No users found' : 'No matching users',
                     style: TextStyle(
                       fontSize: 18,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                     ),
                   ),
                   if (_searchQuery.isNotEmpty) ...[
@@ -188,7 +228,7 @@ class _NewMessagePageState extends State<NewMessagePage> {
                       'Try a different search term',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[500],
+                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -221,7 +261,10 @@ class _NewMessagePageState extends State<NewMessagePage> {
                     Expanded(
                       child: Text(
                         user['name'],
-                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ),
                     Container(
@@ -250,18 +293,28 @@ class _NewMessagePageState extends State<NewMessagePage> {
                     if (user['location'].toString().isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          Icon(
+                            Icons.location_on, 
+                            size: 14, 
+                            color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             user['location'],
-                            style: const TextStyle(fontSize: 12),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                            ),
                           ),
                         ],
                       ),
                     if (user['email'].toString().isNotEmpty)
                       Text(
                         user['email'],
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 11, 
+                          color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                        ),
                       ),
                   ],
                 ),

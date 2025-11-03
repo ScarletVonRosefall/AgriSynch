@@ -17,8 +17,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
 
-  bool _isDark = false;
-  bool _themeLoaded = false;
+  final _themeNotifier = ThemeNotifier();
   bool _mounted = false;
   bool _isInitialized = false;
   String _filterType = 'All'; // All, Today, This Week, This Month
@@ -28,12 +27,18 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   void initState() {
     super.initState();
     _mounted = true;
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _initializeData();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _mounted = false;
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _productController.dispose();
     _kgController.dispose();
     _dateController.dispose();
@@ -48,7 +53,6 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
       _isInitialized = true;
       return;
     }
-    _safeLoadTheme();
   }
 
   Future<void> _loadEntries() async {
@@ -160,49 +164,19 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     if (!_mounted) return;
     
     try {
-      // Load theme and entries in parallel
-      final results = await Future.wait([
-        ThemeHelper.isDarkModeEnabled(),
-        _loadEntriesFromStorage(),
-      ]).timeout(const Duration(seconds: 5));
+      // Load entries
+      final loadedEntries = await _loadEntriesFromStorage().timeout(const Duration(seconds: 5));
 
       if (!_mounted) return;
 
       setState(() {
-        _isDark = results[0] as bool;
-        _themeLoaded = true;
-        
-        final loadedEntries = results[1] as List<Map<String, dynamic>>;
         _logEntries.clear();
         _logEntries.addAll(loadedEntries);
         _applyFilters();
       });
     } catch (e) {
       if (!_mounted) return;
-      setState(() {
-        _isDark = false;
-        _themeLoaded = true;
-      });
       _showError('Failed to load data');
-    }
-  }
-
-  Future<void> _safeLoadTheme() async {
-    if (!_mounted) return;
-    
-    try {
-      final newDarkMode = await ThemeHelper.isDarkModeEnabled()
-          .timeout(const Duration(seconds: 5));
-          
-      if (!_mounted) return;
-      
-      if (newDarkMode != _isDark) {
-        setState(() {
-          _isDark = newDarkMode;
-        });
-      }
-    } catch (e) {
-      // Silently fail theme loading
     }
   }
 
@@ -245,6 +219,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   void _showAddLogModal() {
+    final _isDark = _themeNotifier.isDarkMode;
     showModalBottomSheet(
       context: context,
       backgroundColor: ThemeHelper.getCardColor(_isDark),
@@ -308,6 +283,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   Future<void> _pickDate() async {
+    final _isDark = _themeNotifier.isDarkMode;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -405,6 +381,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   void _editEntry(Map<String, dynamic> entry) {
+    final _isDark = _themeNotifier.isDarkMode;
     if (!_mounted) return;
     
     _productController.text = entry['product'];
@@ -423,6 +400,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   Widget _buildEditModal(Map<String, dynamic> entry) {
+    final _isDark = _themeNotifier.isDarkMode;
     return Padding(
       padding: EdgeInsets.only(
         top: 20,
@@ -556,10 +534,8 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_themeLoaded) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
+    final _isDark = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(_isDark),
       appBar: AppBar(
@@ -671,6 +647,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   Widget _buildAnalyticsDashboard() {
+    final _isDark = _themeNotifier.isDarkMode;
     if (_logEntries.isEmpty) return const SizedBox.shrink();
 
     final totalEntries = _logEntries.length;
@@ -748,6 +725,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon) {
+    final _isDark = _themeNotifier.isDarkMode;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -777,6 +755,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   Widget _buildEmptyState() {
+    final _isDark = _themeNotifier.isDarkMode;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -802,6 +781,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
   }
 
   Widget _buildEntryCard(Map<String, dynamic> entry) {
+    final _isDark = _themeNotifier.isDarkMode;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Container(

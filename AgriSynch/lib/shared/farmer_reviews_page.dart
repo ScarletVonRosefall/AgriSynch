@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/review.dart';
 import '../services/review_service.dart';
+import 'theme_helper.dart';
 
 class FarmerReviewsPage extends StatefulWidget {
   final String farmerId;
@@ -17,13 +18,33 @@ class FarmerReviewsPage extends StatefulWidget {
 }
 
 class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
+  final _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF2FDE0),
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       appBar: AppBar(
         title: Text('${widget.farmerName}\'s Reviews'),
-        backgroundColor: const Color(0xFF4CAF50),
+        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<List<Review>>(
@@ -60,11 +81,11 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: ThemeHelper.getCardColor(isDarkMode),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.black.withOpacity(isDarkMode ? 0.4 : 0.08),
                       spreadRadius: 1,
                       blurRadius: 5,
                       offset: const Offset(0, 3),
@@ -75,10 +96,10 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
                   children: [
                     Text(
                       averageRating.toStringAsFixed(1),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4CAF50),
+                        color: ThemeHelper.getHeaderColor(isDarkMode),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -88,7 +109,7 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
                       '$reviewCount ${reviewCount == 1 ? 'Review' : 'Reviews'}',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: ThemeHelper.getSecondaryTextColor(isDarkMode),
                       ),
                     ),
                   ],
@@ -105,14 +126,14 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
                             Icon(
                               Icons.rate_review_outlined,
                               size: 64,
-                              color: Colors.grey[400],
+                              color: ThemeHelper.getSecondaryTextColor(isDarkMode),
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'No reviews yet',
                               style: TextStyle(
                                 fontSize: 18,
-                                color: Colors.grey[600],
+                                color: ThemeHelper.getTextColor(isDarkMode),
                               ),
                             ),
                           ],
@@ -134,8 +155,11 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
   }
 
   Widget _buildReviewCard(Review review) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: ThemeHelper.getCardColor(isDarkMode),
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -148,7 +172,7 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                   child: Text(
                     review.buyerName[0].toUpperCase(),
                     style: const TextStyle(
@@ -164,16 +188,17 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
                     children: [
                       Text(
                         review.buyerName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: ThemeHelper.getTextColor(isDarkMode),
                         ),
                       ),
                       Text(
                         _formatDate(review.createdAt),
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: ThemeHelper.getSecondaryTextColor(isDarkMode),
                         ),
                       ),
                     ],
@@ -186,7 +211,10 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
               const SizedBox(height: 12),
               Text(
                 review.comment!,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: ThemeHelper.getTextColor(isDarkMode),
+                ),
               ),
             ],
           ],

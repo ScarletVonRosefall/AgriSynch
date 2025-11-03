@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../auth/auth_service.dart';
 import '../services/validation_service.dart';
+import 'theme_helper.dart';
 import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
@@ -23,11 +24,17 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _profileImageBase64;
   bool _isEditing = false;
   bool _isLoading = true;
+  final _themeNotifier = ThemeNotifier();
 
   @override
   void initState() {
     super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadProfileData();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -37,6 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _emailController.dispose();
     _bioController.dispose();
     _locationController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 

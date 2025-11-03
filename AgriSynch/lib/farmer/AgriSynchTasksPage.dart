@@ -23,7 +23,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   Timer? alarmTimer;
   Timer? alarmDismissTimer;
   bool isAlarmShowing = false;
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   BuildContext? alarmContext;
 
@@ -71,12 +71,17 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   void initState() {
     super.initState();
     _taskService = TaskService();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     // Add a slight delay to ensure Firebase Auth is initialized
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         _initializeData();
       }
     });
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   StreamSubscription? _tasksSubscription;
@@ -194,16 +199,12 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         },
       );
       
-      print('Loading theme and notifications...');
-      // Load other data in parallel
-      await Future.wait([
-        _loadTheme(),
-        _loadUnreadNotifications(),
-      ]).timeout(
+      print('Loading notifications...');
+      // Load notifications
+      await _loadUnreadNotifications().timeout(
         const Duration(seconds: 5),
         onTimeout: () {
-          print('Warning: Theme or notifications load timed out');
-          return [];
+          print('Warning: Notifications load timed out');
         },
       );
       
@@ -248,6 +249,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     _debounceTimer?.cancel();
     _loadingTimeoutTimer?.cancel();
     cleanupAlarm();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -331,11 +333,6 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         tasks = [];
       });
     }
-  }
-
-  Future<void> _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
   }
 
   // Load count of unread notifications
@@ -742,6 +739,8 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     if (_isLoading) {
       return Scaffold(
         backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),

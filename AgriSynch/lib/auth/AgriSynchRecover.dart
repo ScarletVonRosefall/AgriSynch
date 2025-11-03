@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../firebase_options.dart';
+import '../shared/theme_helper.dart';
 
 class AgriSynchRecoverPage extends StatefulWidget {
   const AgriSynchRecoverPage({super.key});
@@ -13,8 +14,25 @@ class AgriSynchRecoverPage extends StatefulWidget {
 class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
   final emailController = TextEditingController();
   bool isLoading = false;
-
   bool _isSending = false;
+  final _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    emailController.dispose();
+    super.dispose();
+  }
 
   Future<void> _sendRecoveryEmail() async {
     if (_isSending) return;
@@ -95,12 +113,6 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
         setState(() => isLoading = false);
       }
     }
-  }
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    super.dispose();
   }
 
   @override

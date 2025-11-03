@@ -25,7 +25,7 @@ class BrowseProductsPage extends StatefulWidget {
 
 class _BrowseProductsPageState extends State<BrowseProductsPage> {
   final ProductService _productService = ProductService();
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   String searchQuery = '';
   late String selectedCategory;
   List<String> favoriteProducts = [];
@@ -67,16 +67,21 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   void initState() {
     super.initState();
     selectedCategory = widget.initialCategory ?? 'All';
-    loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     loadFavorites();
     loadCart();
     _loadInitialProducts();
     _scrollController.addListener(_onScroll);
   }
 
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -180,11 +185,6 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         ErrorHandler.showErrorSnackBar(context, e);
       }
     }
-  }
-
-  Future<void> loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
   }
 
   Future<void> loadFavorites() async {
@@ -389,6 +389,8 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -574,6 +576,8 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   }
 
   Widget _buildProductGrid() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     // Apply all filters and sorting
     List<Product> filteredProducts = filterAndSortProducts(_allProducts);
 

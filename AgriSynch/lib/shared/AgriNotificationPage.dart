@@ -12,7 +12,7 @@ class AgriNotificationPage extends StatefulWidget {
 
 class _AgriNotificationPageState extends State<AgriNotificationPage> {
   List<Map<String, dynamic>> notifications = [];
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   bool isLoading = true;
 
   bool _mounted = false;
@@ -22,12 +22,18 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
   void initState() {
     super.initState();
     _mounted = true;
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _initializeData();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _mounted = false;
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -38,8 +44,6 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
       _isInitialized = true;
       return;
     }
-    // Only reload theme when returning to this page
-    _safeLoadTheme();
   }
 
   Future<void> _initializeData() async {
@@ -48,17 +52,13 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     setState(() => isLoading = true);
     
     try {
-      // Load theme and notifications in parallel
-      final results = await Future.wait([
-        ThemeHelper.isDarkModeEnabled(),
-        NotificationHelper.getNotifications(),
-      ]);
+      // Load notifications
+      final newNotifications = await NotificationHelper.getNotifications();
 
       if (!_mounted) return;
 
       setState(() {
-        isDarkMode = results[0] as bool;
-        notifications = results[1] as List<Map<String, dynamic>>;
+        notifications = newNotifications;
         isLoading = false;
       });
     } catch (e) {
@@ -67,21 +67,6 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         notifications = [];
         isLoading = false;
       });
-    }
-  }
-
-  Future<void> _safeLoadTheme() async {
-    if (!_mounted) return;
-    try {
-      final newDarkMode = await ThemeHelper.isDarkModeEnabled();
-      if (!_mounted) return;
-      if (newDarkMode != isDarkMode) {
-        setState(() {
-          isDarkMode = newDarkMode;
-        });
-      }
-    } catch (e) {
-      // Silently fail theme loading
     }
   }
 
@@ -253,6 +238,8 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -388,6 +375,7 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> notification) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final timestamp = DateTime.parse(notification['timestamp']);
     final isRead = notification['isRead'] ?? false;
     final type = notification['type'] ?? 'system';

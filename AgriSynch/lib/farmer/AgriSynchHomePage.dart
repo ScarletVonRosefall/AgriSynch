@@ -24,7 +24,7 @@ class AgriSynchHomePage extends StatefulWidget {
 
 class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   final storage = FlutterSecureStorage();
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
 
   // Data for summary
   List<Map<String, dynamic>> tasks = [];
@@ -41,7 +41,12 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   @override
   void initState() {
     super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _initializeData();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -49,6 +54,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     _debounceTimer?.cancel();
     _refreshTimer?.cancel();
     _reloadTimer?.cancel();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -101,7 +107,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     setState(() {
       tasks = [];
       orders = [];
-      isDarkMode = false;
+      // Theme is now handled by ThemeNotifier
     });
   }
 
@@ -137,21 +143,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   // Load the current theme setting (dark/light mode)
   Future<void> loadTheme() async {
     if (!mounted) return;
-    try {
-      final darkMode = await ThemeHelper.isDarkModeEnabled()
-          .timeout(const Duration(seconds: 5));
-      if (!mounted) return;
-      setState(() {
-        isDarkMode = darkMode;
-      });
-    } catch (e) {
-      // Handle error silently
-      if (mounted) {
-        setState(() {
-          isDarkMode = false;
-        });
-      }
-    }
+    // Theme is now handled by ThemeNotifier, no need to load manually
   }
 
   // Load tasks and orders data for dashboard statistics
@@ -254,6 +246,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
   // Build the weather card widget for homepage
   Widget _buildWeatherCard() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -399,6 +393,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     IconData icon,
     Color color,
   ) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -443,6 +439,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   // Build the homepage UI with fixed header and scrollable content
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     if (_isLoading) {
       return Scaffold(
         backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
@@ -790,6 +788,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     required String title,
     VoidCallback? onTap,
   }) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -835,6 +835,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   }
 
   Widget _buildProfileAvatar() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return FutureBuilder<Map<String, String?>>(
       future: _loadUserProfileData(),
       builder: (context, snapshot) {
@@ -875,6 +877,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   }
 
   Widget _buildGreetingText() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return FutureBuilder<Map<String, String?>>(
       future: _loadUserProfileData(),
       builder: (context, snapshot) {

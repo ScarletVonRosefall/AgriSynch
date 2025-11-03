@@ -31,17 +31,26 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
   String recurringType = TaskCreationDialog.recurringTypes.first; // 'None'
   String priority = TaskCreationDialog.priorities[1]; // 'Medium'
   bool weatherDependent = false;
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
 
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
   }
 
-  void _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
+  void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    titleController.dispose();
+    descriptionController.dispose();
+    locationController.dispose();
+    durationController.dispose();
+    super.dispose();
   }
 
   String formatDateTime(DateTime? dateTime) {
@@ -53,6 +62,8 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return AlertDialog(
       backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
       title: Text(

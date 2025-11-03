@@ -20,7 +20,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
   DateTime? _selectedDay;
   final CalendarService _calendarService = CalendarService();
   List<CalendarEvent> _currentEvents = [];
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   Stream<List<CalendarEvent>>? _eventsStream;
 
@@ -78,11 +78,21 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _initializeCalendar();
   }
 
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
   Future<void> _initializeCalendar() async {
-    await _loadTheme();
     await _loadUnreadNotifications();
     _initializeEventsStream();
   }
@@ -93,13 +103,6 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
         _eventsStream = _calendarService.getEventsForDate(_selectedDay!);
       });
     }
-  }
-
-  Future<void> _loadTheme() async {
-    final darkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {
-      isDarkMode = darkMode;
-    });
   }
 
   Future<void> _loadUnreadNotifications() async {
@@ -340,6 +343,8 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(

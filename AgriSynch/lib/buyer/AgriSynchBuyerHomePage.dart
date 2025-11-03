@@ -31,9 +31,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final storage = FlutterSecureStorage();
   final ProductService _productService = ProductService();
   final OrderService _orderService = OrderService();
+  final _themeNotifier = ThemeNotifier();
   
   String userName = '';
-  bool isDarkMode = false;
   final int _selectedIndex = 0;
 
   // Data for buyer dashboard
@@ -45,12 +45,22 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   @override
   void initState() {
     super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     loadUserName();
-    loadTheme();
     loadBuyerData();
     loadUnreadNotifications();
     loadWeather();
     checkAndCreateWelcomeNotification();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   // Load user's name from secure storage
@@ -61,7 +71,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Load the current theme setting
   Future<void> loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
+    // Theme is now handled by ThemeNotifier, no need to load manually
     setState(() {});
   }
 
@@ -145,6 +155,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Build weather card
   Widget _buildWeatherCard() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -250,6 +262,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     IconData icon,
     Color color,
   ) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -316,6 +330,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -893,6 +909,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Build featured product card
   Widget _buildFeaturedProductCard(Product product) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     Color categoryColor = _getCategoryColor(product.category);
     
     return Container(
@@ -1023,6 +1040,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Build category chip
   Widget _buildCategoryChip(String category, IconData icon, Color color) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -1068,6 +1087,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Build recent order card
   Widget _buildRecentOrderCard(AppOrder order) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     Color statusColor = _getOrderStatusColor(order.status);
     bool isDelivering = order.status.toLowerCase() == 'delivering';
     

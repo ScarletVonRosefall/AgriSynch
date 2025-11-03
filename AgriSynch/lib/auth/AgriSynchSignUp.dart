@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/error_handler.dart';
 import '../services/validation_service.dart';
+import '../shared/theme_helper.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -28,10 +29,12 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
 
   String _selectedAccountType = 'Farmer'; // Default to Farmer
   bool _isPasswordVisible = false; // Track password visibility
+  final _themeNotifier = ThemeNotifier();
 
   @override
   void initState() {
     super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
 
     // Initialize animation controllers
     _fadeController = AnimationController(
@@ -61,10 +64,18 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
     });
   }
 
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _fadeController.dispose();
     _slideController.dispose();
+    nameController.dispose();
+    emailController.dispose();
+    passController.dispose();
     super.dispose();
   }
 
@@ -76,72 +87,59 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeData.light().copyWith(
-      primaryColor: const Color(0xFF388E3C),
-      scaffoldBackgroundColor: Colors.white,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF388E3C),
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
         foregroundColor: Colors.white,
+        title: const Text('Sign Up', style: TextStyle(fontFamily: 'Poppins')),
       ),
-      inputDecorationTheme: const InputDecorationTheme(
-        filled: true,
-        fillColor: Color(0xFFD9F2E6),
-        hintStyle: TextStyle(fontFamily: 'Poppins'),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-    return Theme(
-      data: theme,
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: const Text('Sign Up', style: TextStyle(fontFamily: 'Poppins')),
-        ),
-        body: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Form(
-                            key: formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 16),
-                                const SizedBox(height: 16),
-                                Center(
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        "Welcome to",
-                                        style: TextStyle(
-                                          fontFamily: 'Poppins',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Form(
+                          key: formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 16),
+                              const SizedBox(height: 16),
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "Welcome to",
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: ThemeHelper.getTextColor(isDarkMode),
                                       ),
-                                      const Text(
-                                        "AgriSynch",
-                                        style: TextStyle(
-                                          fontFamily: 'Poppins',
-                                          fontSize: 28,
-                                          color: Color(0xFF1DBF73),
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                    ),
+                                    const Text(
+                                      "AgriSynch",
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 28,
+                                        color: Color(0xFF1DBF73),
+                                        fontWeight: FontWeight.w700,
                                       ),
+                                    ),
                                       const SizedBox(height: 8),
                                       TweenAnimationBuilder<double>(
                                         duration: const Duration(
@@ -505,7 +503,6 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -517,10 +514,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
       decoration: InputDecoration(
         hintText: "Password",
         filled: true,
-        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-        hintStyle:
-            Theme.of(context).inputDecorationTheme.hintStyle ??
-            const TextStyle(fontFamily: 'Poppins'),
+        fillColor: const Color(0xFFD9F2E6),
+        hintStyle: const TextStyle(fontFamily: 'Poppins'),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,
@@ -556,10 +551,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-        hintStyle:
-            Theme.of(context).inputDecorationTheme.hintStyle ??
-            const TextStyle(fontFamily: 'Poppins'),
+        fillColor: const Color(0xFFD9F2E6),
+        hintStyle: const TextStyle(fontFamily: 'Poppins'),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,

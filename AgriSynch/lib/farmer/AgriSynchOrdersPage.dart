@@ -20,7 +20,7 @@ class AgriSynchOrdersPage extends StatefulWidget {
 class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   final OrderService _orderService = OrderService();
   final TextEditingController _searchController = TextEditingController();
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
 
   final List<String> _statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
@@ -41,17 +41,22 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   @override
   void initState() {
     super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     // Only load from Firestore now, removed legacy _loadOrders()
-    _loadTheme();
     _loadUnreadNotifications();
     _loadInitialOrders();
     _scrollController.addListener(_onScroll);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -171,12 +176,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     setState(() {});
   }
 
-  // Load the current theme setting
-  Future<void> _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
-  }
-
   // Load saved orders from device storage
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
@@ -228,6 +227,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
   // Build combined order list from Firestore and legacy SharedPreferences
   Widget _buildCombinedOrderList(List<AppOrder> firestoreOrders) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     // Convert Firestore orders to map format for unified display
     List<Map<String, dynamic>> combinedOrders = [];
     
@@ -667,6 +668,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   // Build the orders page UI with fixed header and scrollable content
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -792,6 +795,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildSearchSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Container(
       height: 42,
       decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
@@ -835,6 +840,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildFilterAndSortSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     final sortOptions = [
       'Date (Newest First)',
       'Date (Oldest First)',
@@ -981,6 +988,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildOrdersHeader() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     final deliveredCount = _firestoreOrders.where((order) => order.status.toLowerCase() == 'delivered').length;
     final processingCount = _firestoreOrders.where((order) => order.status.toLowerCase() == 'processing' || order.status.toLowerCase() == 'preparing').length;
     final shippedCount = _firestoreOrders.where((order) => order.status.toLowerCase() == 'delivering' || order.status.toLowerCase() == 'shipped').length;

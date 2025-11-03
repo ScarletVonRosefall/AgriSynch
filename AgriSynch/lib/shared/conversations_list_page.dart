@@ -4,6 +4,7 @@ import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import 'chat_screen.dart';
 import 'new_message_page.dart';
+import 'theme_helper.dart';
 
 class ConversationsListPage extends StatefulWidget {
   const ConversationsListPage({super.key});
@@ -15,10 +16,25 @@ class ConversationsListPage extends StatefulWidget {
 class _ConversationsListPageState extends State<ConversationsListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to theme changes
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -58,8 +74,13 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       appBar: AppBar(
+        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+        foregroundColor: Colors.white,
         title: const Text('Messages'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -67,12 +88,25 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               controller: _searchController,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
+                fontSize: 15,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search conversations...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: TextStyle(
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                ),
+                prefixIcon: Icon(
+                  Icons.search, 
+                  color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: Icon(
+                          Icons.clear, 
+                          color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
@@ -80,7 +114,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: isDarkMode ? const Color(0xFF2E2E2E) : const Color(0xFFF5F5F5),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -116,14 +150,14 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                   Icon(
                     Icons.chat_bubble_outline,
                     size: 80,
-                    color: Colors.grey[400],
+                    color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No conversations yet',
                     style: TextStyle(
                       fontSize: 18,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -131,7 +165,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                     'Tap the + button to start a conversation',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                     ),
                   ),
                 ],
@@ -156,7 +190,10 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
             return Center(
               child: Text(
                 'No conversations found',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 16, 
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                ),
               ),
             );
           }
@@ -212,7 +249,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 },
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
+                    backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                     child: Text(
                       otherUserName.isNotEmpty
                           ? otherUserName[0].toUpperCase()
@@ -231,6 +268,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                           style: TextStyle(
                             fontWeight:
                                 hasUnread ? FontWeight.bold : FontWeight.normal,
+                            color: isDarkMode ? Colors.white : Colors.black87,
                           ),
                         ),
                       ),
@@ -238,7 +276,9 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                         _formatTime(conversation.lastMessageTime),
                         style: TextStyle(
                           fontSize: 12,
-                          color: hasUnread ? Colors.green : Colors.grey,
+                          color: hasUnread 
+                              ? Colors.green 
+                              : (isDarkMode ? Colors.grey[500] : Colors.grey[600]),
                           fontWeight:
                               hasUnread ? FontWeight.bold : FontWeight.normal,
                         ),
@@ -253,7 +293,9 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: hasUnread ? Colors.black87 : Colors.grey,
+                            color: hasUnread 
+                                ? (isDarkMode ? Colors.grey[300] : Colors.black87)
+                                : (isDarkMode ? Colors.grey[500] : Colors.grey[600]),
                             fontWeight:
                                 hasUnread ? FontWeight.w500 : FontWeight.normal,
                           ),

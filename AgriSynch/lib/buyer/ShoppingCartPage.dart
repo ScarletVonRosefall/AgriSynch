@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../services/order_service.dart';
 import '../services/product_service.dart';
 import '../models/order.dart';
+import '../shared/theme_helper.dart';
 
 class ShoppingCartPage extends StatefulWidget {
   const ShoppingCartPage({super.key});
@@ -17,23 +18,26 @@ class ShoppingCartPage extends StatefulWidget {
 class _ShoppingCartPageState extends State<ShoppingCartPage> {
   final OrderService _orderService = OrderService();
   final ProductService _productService = ProductService();
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   List<Map<String, dynamic>> cart = [];
   List<Map<String, dynamic>> orders = [];
 
   @override
   void initState() {
     super.initState();
-    loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     loadCart();
     loadOrders();
   }
 
-  Future<void> loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      isDarkMode = prefs.getBool('dark_mode') ?? false;
-    });
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   Future<void> loadCart() async {
@@ -316,6 +320,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = isDarkMode
         ? const Color(0xFF121212)
         : const Color(0xFFF2FBE0);

@@ -84,6 +84,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   bool _darkModeEnabled = false;
   int unreadNotifications = 0;
   String _selectedCurrency = 'PHP';
+  final _themeNotifier = ThemeNotifier();
 
   String userName = '';
   String userEmail = '';
@@ -100,6 +101,19 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   void initState() {
     super.initState();
     _initializeSettings();
+    // Listen to theme changes
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
   }
 
   Future<void> _initializeSettings() async {
@@ -125,13 +139,9 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
 
   @override
   void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _feedbackController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
   }
 
   Future<void> loadUserInfo() async {
@@ -214,7 +224,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
       if (mounted) {
         setState(() {
           _notificationsEnabled = prefs.getBool('notifications') ?? true;
-          _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
+          _darkModeEnabled = _themeNotifier.isDarkMode; // Use ThemeNotifier instead
           _selectedCurrency = currentCurrency;
         });
       }
@@ -273,7 +283,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _darkModeEnabled;
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = ThemeHelper.getBackgroundColor(isDarkMode);
     final cardColor = ThemeHelper.getCardColor(isDarkMode);
     final textColor = ThemeHelper.getTextColor(isDarkMode);
@@ -646,11 +656,11 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                           ),
                           value: _darkModeEnabled,
                           activeThumbColor: const Color(0xFF00C853),
-                          onChanged: (value) {
+                          onChanged: (value) async {
                             setState(() {
                               _darkModeEnabled = value;
                             });
-                            updatePreference('dark_mode', value);
+                            await _themeNotifier.setDarkMode(value);
                           },
                         ),
                       ],
@@ -989,11 +999,11 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                   "Dark Mode",
                   _darkModeEnabled ? Icons.light_mode : Icons.dark_mode,
                   isDarkMode,
-                  () {
+                  () async {
                     setState(() {
                       _darkModeEnabled = !_darkModeEnabled;
                     });
-                    updatePreference('dark_mode', _darkModeEnabled);
+                    await _themeNotifier.setDarkMode(_darkModeEnabled);
                   },
                 ),
               ),

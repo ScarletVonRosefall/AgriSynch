@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
@@ -17,7 +16,7 @@ class AgriCustomersPage extends StatefulWidget {
 }
 
 class _AgriCustomersPageState extends State<AgriCustomersPage> {
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   String searchQuery = '';
   String sortBy = 'recent'; // recent, name, orders
@@ -37,16 +36,21 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadUnreadNotifications();
     _loadInitialOrders();
     _scrollController.addListener(_onScroll);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -224,13 +228,6 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     return grouped;
   }
 
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      isDarkMode = prefs.getBool('dark_mode') ?? false;
-    });
-  }
-
   void _loadUnreadNotifications() async {
     final count = await NotificationHelper.getUnreadCount();
     setState(() {
@@ -240,6 +237,8 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: CustomScrollView(
@@ -752,6 +751,8 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   }
 
   void _showCustomerDetails(CustomerData customer) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

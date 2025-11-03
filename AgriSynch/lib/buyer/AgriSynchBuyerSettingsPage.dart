@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
+import '../shared/theme_helper.dart';
 import 'AgriSynchBuyerHomePage.dart';
 import '../shared/conversations_list_page.dart';
 import '../services/chat_service.dart';
@@ -27,6 +28,7 @@ class _AgriSynchBuyerSettingsPageState
   int unreadNotifications = 0;
   String _selectedCurrency = 'PHP';
   final int _selectedIndex = 2; // Settings is now index 2
+  final _themeNotifier = ThemeNotifier();
 
   String userName = '';
   String userEmail = '';
@@ -38,19 +40,25 @@ class _AgriSynchBuyerSettingsPageState
     loadUserInfo();
     loadPreferences();
     _loadUnreadNotifications();
+    // Listen to theme changes
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _reloadThemeState();
-  }
-
-  void _reloadThemeState() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
-    });
   }
 
   // Load user information from secure storage
@@ -81,7 +89,7 @@ class _AgriSynchBuyerSettingsPageState
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _darkModeEnabled = prefs.getBool('dark_mode') ?? false;
+      _darkModeEnabled = _themeNotifier.isDarkMode; // Use ThemeNotifier
       _selectedCurrency = prefs.getString('currency') ?? 'PHP';
     });
   }
@@ -122,7 +130,7 @@ class _AgriSynchBuyerSettingsPageState
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _darkModeEnabled;
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = isDarkMode
         ? const Color(0xFF121212)
         : const Color(0xFFF2FBE0);
@@ -418,11 +426,11 @@ class _AgriSynchBuyerSettingsPageState
                           ),
                           value: _darkModeEnabled,
                           activeThumbColor: const Color(0xFF00C853),
-                          onChanged: (value) {
+                          onChanged: (value) async {
                             setState(() {
                               _darkModeEnabled = value;
                             });
-                            updatePreference('dark_mode', value);
+                            await _themeNotifier.setDarkMode(value);
                           },
                         ),
                       ],
@@ -734,11 +742,11 @@ class _AgriSynchBuyerSettingsPageState
                   "Dark Mode",
                   _darkModeEnabled ? Icons.light_mode : Icons.dark_mode,
                   isDarkMode,
-                  () {
+                  () async {
                     setState(() {
                       _darkModeEnabled = !_darkModeEnabled;
                     });
-                    updatePreference('dark_mode', _darkModeEnabled);
+                    await _themeNotifier.setDarkMode(_darkModeEnabled);
                   },
                 ),
               ),

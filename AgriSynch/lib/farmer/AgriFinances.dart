@@ -19,7 +19,7 @@ class AgriFinances extends StatefulWidget {
 }
 
 class _AgriFinancesState extends State<AgriFinances> {
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   String currencySymbol = '₱';
 
@@ -54,10 +54,20 @@ class _AgriFinancesState extends State<AgriFinances> {
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadTransactions();
     _loadUnreadNotifications();
     _loadCurrency();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   @override
@@ -65,11 +75,6 @@ class _AgriFinancesState extends State<AgriFinances> {
     super.didChangeDependencies();
     // Reload currency when returning to this page
     _loadCurrency();
-  }
-
-  void _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
   }
 
   void _loadCurrency() async {
@@ -411,6 +416,7 @@ class _AgriFinancesState extends State<AgriFinances> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = ThemeHelper.getBackgroundColor(isDarkMode);
 
     return Scaffold(
@@ -1004,6 +1010,8 @@ class _AgriFinancesState extends State<AgriFinances> {
     IconData icon,
     Color color,
   ) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1046,6 +1054,7 @@ class _AgriFinancesState extends State<AgriFinances> {
   }
 
   Widget _buildTransactionCard(Map<String, dynamic> transaction) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final isIncome = transaction['type'] == 'income';
     final date = DateTime.parse(transaction['date']);
 
@@ -1104,6 +1113,8 @@ class _AgriFinancesState extends State<AgriFinances> {
   }
 
   Widget _buildLegendItem(String label, double value, Color color) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Row(
       children: [
         Container(
@@ -1155,7 +1166,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
   String selectedType = 'income';
   String selectedCategory = 'Sales';
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
 
   final Map<String, List<String>> categoryMap = {
     'income': ['Sales', 'Subsidies', 'Other Income'],
@@ -1173,16 +1184,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
   }
 
-  void _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _amountController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -1190,6 +1201,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.8,

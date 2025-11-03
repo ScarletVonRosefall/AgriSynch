@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
+import 'theme_helper.dart';
 
 class ChatScreen extends StatefulWidget {
   final String otherUserId;
@@ -27,18 +28,28 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSending = false;
+  final _themeNotifier = ThemeNotifier();
 
   @override
   void initState() {
     super.initState();
+    // Listen to theme changes
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     // Mark messages as read when opening chat
     ChatService.markMessagesAsRead(widget.otherUserId);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -47,6 +58,9 @@ class _ChatScreenState extends State<ChatScreen> {
     if (message.isEmpty || _isSending) return;
 
     setState(() => _isSending = true);
+    
+    // Clear the text field immediately to prevent double-send
+    _messageController.clear();
 
     final success = await ChatService.sendMessage(
       receiverId: widget.otherUserId,
@@ -60,7 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _isSending = false);
 
     if (success) {
-      _messageController.clear();
       // Scroll to bottom
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -70,6 +83,8 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     } else {
+      // Restore message if send failed
+      _messageController.text = message;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to send message')),
@@ -94,6 +109,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(ChatMessage message, bool isMe) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -103,7 +120,9 @@ class _ChatScreenState extends State<ChatScreen> {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isMe ? Colors.green[100] : Colors.grey[300],
+          color: isMe 
+              ? (isDarkMode ? const Color(0xFF2E7D32) : Colors.green[100])
+              : ThemeHelper.getSecondaryCardColor(isDarkMode),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(12),
             topRight: const Radius.circular(12),
@@ -183,9 +202,13 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isDarkMode = _themeNotifier.isDarkMode;
 
     return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       appBar: AppBar(
+        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+        foregroundColor: Colors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -357,7 +380,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     maxLines: null,
                     textInputAction: TextInputAction.send,
-                    onSubmitted: _isSending ? null : (_) => _sendMessage(),
+                    onSubmitted: (_) {
+                      if (!_isSending) {
+                        _sendMessage();
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),

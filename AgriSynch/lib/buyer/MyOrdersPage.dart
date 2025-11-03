@@ -9,6 +9,7 @@ import '../services/error_handler.dart';
 import '../models/order.dart';
 import '../shared/chat_screen.dart';
 import '../shared/submit_review_dialog.dart';
+import '../shared/theme_helper.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -19,7 +20,7 @@ class MyOrdersPage extends StatefulWidget {
 
 class _MyOrdersPageState extends State<MyOrdersPage> {
   final OrderService _orderService = OrderService();
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   List<Map<String, dynamic>> legacyOrders = []; // Legacy orders from SharedPreferences
   String selectedFilter = 'All';
 
@@ -44,15 +45,20 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   @override
   void initState() {
     super.initState();
-    loadTheme();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadLegacyOrders();
     _loadInitialOrders();
     _scrollController.addListener(_onScroll);
   }
 
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -154,13 +160,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         );
       }
     }
-  }
-
-  Future<void> loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      isDarkMode = prefs.getBool('dark_mode') ?? false;
-    });
   }
 
   Future<void> _loadLegacyOrders() async {
@@ -285,6 +284,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   }
 
   void showOrderDetails(Map<String, dynamic> order) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
@@ -543,6 +543,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final backgroundColor = isDarkMode
         ? const Color(0xFF121212)
         : const Color(0xFFF2FBE0);

@@ -14,7 +14,7 @@ class AgriWeatherPage extends StatefulWidget {
 }
 
 class _AgriWeatherPageState extends State<AgriWeatherPage> {
-  bool isDarkMode = false;
+  final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   WeatherData? currentWeather;
   bool isLoading = true;
@@ -27,6 +27,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   void initState() {
     super.initState();
     _mounted = true;
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _initializeData();
     
     // Set up periodic weather refresh every 15 minutes
@@ -36,9 +37,14 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
     );
   }
 
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _mounted = false;
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -50,7 +56,6 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
       _isInitialized = true;
       return;
     }
-    _safeLoadTheme();
   }
 
   Future<void> _initializeData() async {
@@ -61,7 +66,6 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
     try {
       // Load all data in parallel
       final results = await Future.wait([
-        ThemeHelper.isDarkModeEnabled(),
         NotificationHelper.getUnreadCount(),
         WeatherHelper.getCurrentWeather().timeout(
           const Duration(seconds: 10),
@@ -72,9 +76,8 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
       if (!_mounted) return;
 
       setState(() {
-        isDarkMode = results[0] as bool;
-        unreadNotifications = results[1] as int;
-        currentWeather = results[2] as WeatherData;
+        unreadNotifications = results[0] as int;
+        currentWeather = results[1] as WeatherData;
         isLoading = false;
       });
     } catch (e) {
@@ -84,24 +87,6 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
         currentWeather = null;
       });
       _showError('Failed to load initial data');
-    }
-  }
-
-  Future<void> _safeLoadTheme() async {
-    if (!_mounted) return;
-    try {
-      final newDarkMode = await ThemeHelper.isDarkModeEnabled()
-          .timeout(const Duration(seconds: 5));
-          
-      if (!_mounted) return;
-      
-      if (newDarkMode != isDarkMode) {
-        setState(() {
-          isDarkMode = newDarkMode;
-        });
-      }
-    } catch (e) {
-      // Silently fail theme loading
     }
   }
 
@@ -169,6 +154,8 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: Column(
@@ -343,6 +330,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   }
 
   Widget _buildCurrentWeatherCard() {
+    final isDarkMode = _themeNotifier.isDarkMode;
     if (currentWeather == null) return Container();
 
     return Container(
@@ -454,6 +442,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   }
 
   Widget _buildWeatherDetails() {
+    final isDarkMode = _themeNotifier.isDarkMode;
     if (currentWeather == null) return Container();
 
     return Container(
@@ -525,6 +514,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   }
 
   Widget _buildDetailItem(String label, String value, IconData icon) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     return Column(
       children: [
         Icon(
@@ -555,6 +545,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   }
 
   Widget _buildFarmingAdvice() {
+    final isDarkMode = _themeNotifier.isDarkMode;
     if (currentWeather == null) return Container();
 
     final advice = WeatherHelper.getWeatherAdvice(
