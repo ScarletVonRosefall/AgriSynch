@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/error_handler.dart';
+import '../services/validation_service.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -64,16 +66,6 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
-  }
-
-  bool isValidEmail(String email) {
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    return emailRegex.hasMatch(email);
-  }
-
-  bool isValidPassword(String password) {
-    final passRegex = RegExp(r'^(?=.*[A-Za-z])(?=.*\d).{6,}$');
-    return passRegex.hasMatch(password);
   }
 
   void showError(String message) {
@@ -298,16 +290,23 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 );
                                                 return;
                                               }
-                                              if (!isValidEmail(email)) {
-                                                showError(
-                                                  "Please enter a valid email address.",
-                                                );
+
+                                              // Validate inputs using ValidationService
+                                              final nameValidation = ValidationService.validateName(name);
+                                              if (nameValidation != null) {
+                                                showError(nameValidation);
                                                 return;
                                               }
-                                              if (!isValidPassword(pass)) {
-                                                showError(
-                                                  "Password must be at least 6 characters and include a letter and a number.",
-                                                );
+
+                                              final emailValidation = ValidationService.validateEmail(email);
+                                              if (emailValidation != null) {
+                                                showError(emailValidation);
+                                                return;
+                                              }
+
+                                              final passwordValidation = ValidationService.validatePassword(pass);
+                                              if (passwordValidation != null) {
+                                                showError(passwordValidation);
                                                 return;
                                               }
 
@@ -320,8 +319,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 // 1) Save the collected data to Firestore BEFORE creating the Auth account.
                                                 //    We mark it as 'pending_auth' so backend/admins can track pending signups if needed.
                                                 final preUserData = {
-                                                  'name': name,
-                                                  'email': email,
+                                                  'name': ValidationService.sanitizeInput(name),
+                                                  'email': ValidationService.sanitizeInput(email),
                                                   'accountType': _selectedAccountType,
                                                   'status': 'pending_auth',
                                                   'createdAt': FieldValue.serverTimestamp(),
@@ -387,6 +386,14 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     key: 'account_type',
                                                     value: _selectedAccountType,
                                                   );
+
+                                                  // Set user identifier for Crashlytics tracking
+                                                  await ErrorHandler.setUserIdentifier(
+                                                    user.uid,
+                                                    email: user.email,
+                                                  );
+                                                  await ErrorHandler.setCustomKey('account_type', _selectedAccountType);
+                                                  await ErrorHandler.setCustomKey('user_name', name);
 
                                                   if (mounted) {
                                                     ScaffoldMessenger.of(

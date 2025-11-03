@@ -554,15 +554,6 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: ThemeHelper.getHeaderColor(_isDark),
-        content: Text(message),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_themeLoaded) {

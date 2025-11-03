@@ -6,7 +6,6 @@ import '../shared/AgriNotificationPage.dart';
 import '../services/calendar_service.dart';
 import '../models/calendar_event.dart';
 import '../models/agricultural_data.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AgriSynchCalendarPage extends StatefulWidget {

@@ -9,6 +9,7 @@ import '../services/product_service.dart';
 import '../services/error_handler.dart';
 import '../shared/theme_helper.dart';
 import 'ShoppingCartPage.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class BrowseProductsPage extends StatefulWidget {
   final String? initialCategory;
@@ -648,7 +649,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                   ),
                                   image: product.images.isNotEmpty
                                       ? DecorationImage(
-                                          image: NetworkImage(product.images.first),
+                                          image: CachedNetworkImageProvider(product.images.first),
                                           fit: BoxFit.cover,
                                         )
                                       : null,

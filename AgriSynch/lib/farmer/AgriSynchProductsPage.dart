@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/image_upload_service.dart';
+import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class AgriSynchProductsPage extends StatefulWidget {
   const AgriSynchProductsPage({super.key});
@@ -53,6 +54,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   }
 
   void _showAddProductDialog() {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     final priceController = TextEditingController();
@@ -69,41 +71,46 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Add New Product'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Name',
-                    hintText: 'e.g., Fresh Chicken Eggs',
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product Name*',
+                      hintText: 'e.g., Fresh Chicken Eggs',
+                    ),
+                    validator: ValidationService.validateProductName,
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Describe your product...',
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description*',
+                      hintText: 'Describe your product...',
+                    ),
+                    validator: ValidationService.validateDescription,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                        ],
-                        decoration: const InputDecoration(
-                          labelText: 'Price (₱)',
-                          hintText: '0.00',
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: priceController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Price (₱)*',
+                            hintText: '0.00',
+                          ),
+                          validator: ValidationService.validatePrice,
                         ),
                       ),
-                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
@@ -137,9 +144,10 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(
-                    labelText: 'Stock Quantity',
+                    labelText: 'Stock Quantity*',
                     hintText: '0',
                   ),
+                  validator: ValidationService.validateStock,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -148,8 +156,10 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                     labelText: 'Location',
                     hintText: 'e.g., Bataan, Philippines',
                   ),
+                  validator: ValidationService.validateOptionalDescription,
                 ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
@@ -159,24 +169,22 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.isEmpty || priceController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please fill required fields')),
-                  );
+                // Validate form
+                if (!formKey.currentState!.validate()) {
                   return;
                 }
 
                 try {
                   final product = Product(
                     id: '',
-                    name: nameController.text.trim(),
-                    description: descriptionController.text.trim(),
+                    name: ValidationService.sanitizeInput(nameController.text),
+                    description: ValidationService.sanitizeInput(descriptionController.text),
                     price: double.parse(priceController.text),
                     unit: selectedUnit,
                     category: selectedCategory,
                     farmerId: _productService.currentUserId!,
                     farmerName: _productService.currentUserName ?? 'Farmer',
-                    location: locationController.text.trim(),
+                    location: ValidationService.sanitizeInput(locationController.text),
                     stock: int.parse(stockController.text.isNotEmpty ? stockController.text : '0'),
                     createdAt: DateTime.now(),
                     updatedAt: DateTime.now(),
@@ -215,6 +223,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   }
 
   void _showEditProductDialog(Product product) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: product.name);
     final descriptionController = TextEditingController(text: product.description);
     final priceController = TextEditingController(text: product.price.toString());
@@ -232,29 +241,34 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Edit Product'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Product Name'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'Price (₱)'),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Product Name*'),
+                    validator: ValidationService.validateProductName,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(labelText: 'Description*'),
+                    validator: ValidationService.validateDescription,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: priceController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(labelText: 'Price (₱)*'),
+                          validator: ValidationService.validatePrice,
+                        ),
                       ),
-                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
@@ -287,12 +301,14 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   controller: stockController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'Stock Quantity'),
+                  decoration: const InputDecoration(labelText: 'Stock Quantity*'),
+                  validator: ValidationService.validateStock,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: locationController,
                   decoration: const InputDecoration(labelText: 'Location'),
+                  validator: ValidationService.validateOptionalDescription,
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile(
@@ -302,7 +318,8 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                     setDialogState(() => isAvailable = value);
                   },
                 ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
@@ -312,15 +329,20 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
             ),
             ElevatedButton(
               onPressed: () async {
+                // Validate form
+                if (!formKey.currentState!.validate()) {
+                  return;
+                }
+
                 try {
                   await _productService.updateProduct(product.id, {
-                    'name': nameController.text.trim(),
-                    'description': descriptionController.text.trim(),
+                    'name': ValidationService.sanitizeInput(nameController.text),
+                    'description': ValidationService.sanitizeInput(descriptionController.text),
                     'price': double.parse(priceController.text),
                     'unit': selectedUnit,
                     'category': selectedCategory,
                     'stock': int.parse(stockController.text),
-                    'location': locationController.text.trim(),
+                    'location': ValidationService.sanitizeInput(locationController.text),
                     'isAvailable': isAvailable,
                   });
 
@@ -409,11 +431,21 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                       padding: const EdgeInsets.only(right: 8),
                       child: Stack(
                         children: [
-                          Image.network(
-                            product.images[index],
+                          CachedNetworkImage(
+                            imageUrl: product.images[index],
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                            ),
                           ),
                           Positioned(
                             top: 0,

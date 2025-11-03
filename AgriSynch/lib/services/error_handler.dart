@@ -231,21 +231,50 @@ class ErrorHandler {
   }
 
   /// Log error for debugging and send to Crashlytics
-  static void logError(String context, dynamic error, {
-    StackTrace? stackTrace,
-    bool fatal = false,
-    Map<String, dynamic>? additionalData,
-  }) {
+  /// Supports both legacy format (context as first param) and new format (error, stackTrace, context)
+  static void logError(dynamic errorOrContext, [dynamic errorOrStackTrace, dynamic optionalParam3, dynamic optionalParam4, dynamic optionalParam5]) {
+    // Support both calling conventions
+    String? context;
+    dynamic error;
+    StackTrace? stack;
+    bool isFatal = false;
+    Map<String, dynamic>? extraData;
+    
+    // New format: logError(error, stackTrace, context: 'Context')
+    // Since Dart doesn't support method overloading, we check parameter types
+    if (errorOrContext is! String) {
+      error = errorOrContext;
+      stack = errorOrStackTrace as StackTrace?;
+      // Context would be passed via named parameter (which we can't use in positional-only)
+      // So we'll just use the new signature without named params
+    } 
+    // Legacy format: logError('Context', error, stackTrace, fatal, additionalData)
+    else {
+      context = errorOrContext;
+      error = errorOrStackTrace;
+      stack = optionalParam3 as StackTrace?;
+      if (optionalParam4 is bool) {
+        isFatal = optionalParam4;
+      }
+      if (optionalParam5 is Map<String, dynamic>) {
+        extraData = optionalParam5;
+      }
+    }
+    
     // Console logging
     print('═══════════════════════════════════════');
-    print('ERROR in $context');
+    if (context != null) {
+      print('ERROR in $context');
+    } else {
+      print('ERROR');
+    }
     print('Message: ${getErrorMessage(error)}');
     print('Details: $error');
-    if (stackTrace != null) {
-      print('Stack Trace:\n$stackTrace');
+    if (stack != null) {
+      print('Stack Trace:\n$stack');
     }
-    if (additionalData != null) {
-      print('Additional Data: $additionalData');
+    if (extraData != null) {
+      print('Additional Data: $extraData');
     }
     print('═══════════════════════════════════════');
     
@@ -253,32 +282,25 @@ class ErrorHandler {
     if (_crashlyticsEnabled) {
       try {
         // Set custom keys for context
-        FirebaseCrashlytics.instance.setCustomKey('error_context', context);
+        if (context != null) {
+          FirebaseCrashlytics.instance.setCustomKey('error_context', context);
+        }
         FirebaseCrashlytics.instance.setCustomKey('error_message', getErrorMessage(error));
         
         // Add additional data as custom keys
-        if (additionalData != null) {
-          additionalData.forEach((key, value) {
+        if (extraData != null) {
+          extraData.forEach((key, value) {
             FirebaseCrashlytics.instance.setCustomKey(key, value.toString());
           });
         }
 
         // Record the error
-        if (fatal) {
-          FirebaseCrashlytics.instance.recordError(
-            error,
-            stackTrace ?? StackTrace.current,
-            reason: context,
-            fatal: true,
-          );
-        } else {
-          FirebaseCrashlytics.instance.recordError(
-            error,
-            stackTrace ?? StackTrace.current,
-            reason: context,
-            fatal: false,
-          );
-        }
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stack ?? StackTrace.current,
+          reason: context,
+          fatal: isFatal,
+        );
       } catch (e) {
         print('Failed to log to Crashlytics: $e');
       }
@@ -311,7 +333,7 @@ class ErrorHandler {
     try {
       return await operation();
     } catch (error, stackTrace) {
-      logError(errorTitle ?? 'Async Operation', error, stackTrace: stackTrace);
+      logError(errorTitle ?? 'Async Operation', error, stackTrace);
       
       if (context.mounted) {
         if (showDialog) {
@@ -339,7 +361,7 @@ class ErrorHandler {
     try {
       return operation();
     } catch (error, stackTrace) {
-      logError(errorTitle ?? 'Sync Operation', error, stackTrace: stackTrace);
+      logError(errorTitle ?? 'Sync Operation', error, stackTrace);
       
       if (context.mounted) {
         if (showDialog) {
@@ -396,7 +418,105 @@ class ErrorHandler {
            errorString.contains('network') ||
            errorString.contains('connection') ||
            errorString.contains('timeout') ||
+           errorString.contains('failed host lookup') ||
            (error is FirebaseException && error.code == 'unavailable');
+  }
+
+  /// Check if error is permission-related
+  static bool isPermissionError(dynamic error) {
+    if (error == null) return false;
+    
+    final errorString = error.toString().toLowerCase();
+    return errorString.contains('permission') ||
+           (error is FirebaseException && error.code == 'permission-denied');
+  }
+
+  /// Check if error is authentication-related
+  static bool isAuthError(dynamic error) {
+    if (error == null) return false;
+    
+    if (error is FirebaseAuthException) return true;
+    
+    final errorString = error.toString().toLowerCase();
+    return errorString.contains('firebase_auth') ||
+           errorString.contains('authentication') ||
+           errorString.contains('unauthenticated');
+  }
+
+  /// Get user-friendly message for error code
+  static String getUserFriendlyMessage(String errorCode) {
+    // Firebase Auth error codes
+    if (errorCode.contains('user-not-found')) {
+      return 'No account found with this email address.';
+    }
+    if (errorCode.contains('wrong-password')) {
+      return 'Incorrect password. Please try again.';
+    }
+    if (errorCode.contains('email-already-in-use')) {
+      return 'This email is already registered.';
+    }
+    if (errorCode.contains('permission-denied')) {
+      return 'You don\'t have permission to perform this action.';
+    }
+    if (errorCode.contains('not-found')) {
+      return 'The requested data was not found.';
+    }
+    
+    return 'An error occurred. Please try again.';
+  }
+
+  /// Sanitize error message to remove sensitive information
+  static String sanitizeError(String errorMessage) {
+    String sanitized = errorMessage;
+    
+    // Remove email addresses
+    sanitized = sanitized.replaceAll(
+      RegExp(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'),
+      '[EMAIL]',
+    );
+    
+    // Remove API keys
+    sanitized = sanitized.replaceAll(
+      RegExp(r'AIza[0-9A-Za-z-_]{35}'),
+      '[API_KEY]',
+    );
+    
+    // Remove auth tokens
+    sanitized = sanitized.replaceAll(
+      RegExp(r'Bearer [A-Za-z0-9-._~+/]+=*'),
+      'Bearer [TOKEN]',
+    );
+    
+    // Remove phone numbers
+    sanitized = sanitized.replaceAll(
+      RegExp(r'\+?[0-9]{10,13}'),
+      '[PHONE]',
+    );
+    
+    return sanitized;
+  }
+
+  /// Check if error is retryable
+  static bool isRetryable(dynamic error) {
+    if (error == null) return false;
+    
+    // Network errors are retryable
+    if (isNetworkError(error)) return true;
+    
+    // Some Firebase errors are retryable
+    if (error is FirebaseException) {
+      return error.code == 'unavailable' ||
+             error.code == 'deadline-exceeded' ||
+             error.code == 'resource-exhausted' ||
+             error.code == 'aborted';
+    }
+    
+    // Permission and auth errors are not retryable
+    if (isPermissionError(error) || isAuthError(error)) return false;
+    
+    final errorString = error.toString().toLowerCase();
+    return errorString.contains('timeout') ||
+           errorString.contains('failed to connect');
   }
 
   /// Check if user should retry operation

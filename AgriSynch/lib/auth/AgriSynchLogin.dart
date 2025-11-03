@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import '../services/error_handler.dart';
 
 class AgriSynchLoginPage extends StatefulWidget {
   const AgriSynchLoginPage({super.key});
@@ -263,6 +264,14 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                             value: user.email ?? '',
                                                           ),
                                                         ]);
+
+                                                        // Set user identifier for Crashlytics tracking
+                                                        await ErrorHandler.setUserIdentifier(
+                                                          user.uid,
+                                                          email: user.email,
+                                                        );
+                                                        await ErrorHandler.setCustomKey('account_type', accountType);
+                                                        await ErrorHandler.setCustomKey('user_name', userName);
 
                                                         // AuthWrapper will automatically navigate based on auth state
                                                         // No manual navigation needed here

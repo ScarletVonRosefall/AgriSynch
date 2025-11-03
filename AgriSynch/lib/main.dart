@@ -1,10 +1,13 @@
 // lib/main.dart
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'services/error_handler.dart';
+import 'services/notification_service.dart';
 import 'AgriSynch.dart'; // Import for bottom navigation
 import 'auth/AgriSynchLogin.dart';
 import 'buyer/AgriSynchBuyerHomePage.dart'; // Import the Buyer Page
@@ -36,14 +39,22 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
-  // Initialize Crashlytics
-  await ErrorHandler.initializeCrashlytics();
-  
-  // Pass all uncaught asynchronous errors to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+  // Initialize Crashlytics (only on mobile platforms)
+  if (!kIsWeb) {
+    await ErrorHandler.initializeCrashlytics();
+    
+    // Initialize Firebase Cloud Messaging background handler
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    
+    // Pass all uncaught asynchronous errors to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+    
+    // Initialize Notification Service (only on mobile)
+    await NotificationService().initialize();
+  }
   
   runApp(const AgriSynchApp());
 }

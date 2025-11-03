@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
@@ -20,7 +18,6 @@ class AgriSynchOrdersPage extends StatefulWidget {
 
 class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   final OrderService _orderService = OrderService();
-  List<Map<String, dynamic>> _orders = [];
   final TextEditingController _searchController = TextEditingController();
   bool isDarkMode = false;
   int unreadNotifications = 0;
@@ -43,7 +40,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   @override
   void initState() {
     super.initState();
-    _loadOrders();
+    // Only load from Firestore now, removed legacy _loadOrders()
     _loadTheme();
     _loadUnreadNotifications();
     _loadInitialOrders();
@@ -88,6 +85,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
         _isInitialLoading = false;
       });
     } catch (e) {
+      print('DEBUG: Order loading error: $e');
       ErrorHandler.logError('AgriSynchOrdersPage._loadInitialOrders', e);
       
       if (!mounted) return;
@@ -96,12 +94,21 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
         _isInitialLoading = false;
       });
 
+      // Show specific error messages based on error type
+      String errorMessage;
+      if (e.toString().contains('permission-denied') || 
+          e.toString().contains('PERMISSION_DENIED')) {
+        errorMessage = 'Permission denied. Please ensure you are logged in.';
+      } else if (ErrorHandler.isNetworkError(e)) {
+        errorMessage = 'No internet connection. Please check your connection.';
+      } else {
+        errorMessage = 'Unable to load orders. ${e.toString()}';
+      }
+
       ErrorHandler.showErrorSnackBar(
         context,
         e,
-        customMessage: ErrorHandler.isNetworkError(e)
-            ? 'No internet connection. Showing offline orders only.'
-            : null,
+        customMessage: errorMessage,
         action: SnackBarAction(
           label: 'Retry',
           textColor: Colors.white,
@@ -170,53 +177,11 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   // Load saved orders from device storage
-  Future<void> _loadOrders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('orders');
-    if (data != null) {
-      setState(() {
-        _orders = List<Map<String, dynamic>>.from(json.decode(data));
-        
-        // Migration: Ensure all orders have orderId field
-        for (var order in _orders) {
-          if (!order.containsKey('orderId') && order.containsKey('id')) {
-            order['orderId'] = order['id'];
-          }
-        }
-      });
-      
-      // Save migrated data
-      await _saveOrders();
-    }
-  }
-
-  // Save orders to device storage
-  Future<void> _saveOrders() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('orders', json.encode(_orders));
-  }
-
-  int _getStatusPriority(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 0;
-      case 'processing':
-        return 1;
-      case 'shipped':
-        return 2;
-      case 'delivered':
-        return 3;
-      case 'cancelled':
-        return 4;
-      default:
-        return 5;
-    }
-  }
-
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
         return Icons.schedule;
+
       case 'processing':
         return Icons.autorenew;
       case 'shipped':
@@ -245,144 +210,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       default:
         return Colors.grey;
     }
-  }
-
-  void _deleteOrder(String orderId) {
-    final index = _orders.indexWhere((order) => order['orderId'] == orderId);
-    if (index == -1) return; // Order not found
-    
-    setState(() {
-      _orders.removeAt(index);
-    });
-    _saveOrders();
-
-    // Show delete confirmation snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Order Deleted!'),
-        duration: Duration(seconds: 2),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  void _deleteAllDelivered() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete All Delivered Orders'),
-        content: const Text(
-          'Are you sure you want to delete all delivered orders? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _orders.removeWhere((order) => (order['status'] as String?) == 'Delivered');
-              });
-              _saveOrders();
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text(
-              'Delete All',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Map<String, dynamic>> get _filteredOrders {
-    List<Map<String, dynamic>> filtered = _orders;
-
-    // Filter by status
-    if (_selectedStatusFilter != 'All') {
-      filtered = filtered
-          .where((order) => order['status'] == _selectedStatusFilter)
-          .toList();
-    }
-
-    // Filter by search term
-    if (_searchTerm.isNotEmpty) {
-      filtered = filtered.where((order) {
-        final productName = order['product'].toString().toLowerCase();
-        final quantity = order['quantity'].toString().toLowerCase();
-        final orderId = order['id'].toString().toLowerCase();
-        final searchLower = _searchTerm.toLowerCase();
-        return productName.contains(searchLower) ||
-            quantity.contains(searchLower) ||
-            orderId.contains(searchLower);
-      }).toList();
-    }
-
-    // Sort the filtered list
-    switch (_sortOption) {
-      case 'Date (Newest First)':
-        filtered.sort(
-          (a, b) =>
-              DateTime.parse(b['orderDate']).compareTo(DateTime.parse(a['orderDate'])),
-        );
-        break;
-      case 'Date (Oldest First)':
-        filtered.sort(
-          (a, b) =>
-              DateTime.parse(a['orderDate']).compareTo(DateTime.parse(b['orderDate'])),
-        );
-        break;
-      case 'Product Name (A-Z)':
-        filtered.sort(
-          (a, b) => a['product'].toString().compareTo(b['product'].toString()),
-        );
-        break;
-      case 'Product Name (Z-A)':
-        filtered.sort(
-          (a, b) => b['product'].toString().compareTo(a['product'].toString()),
-        );
-        break;
-      case 'Quantity (High to Low)':
-        filtered.sort(
-          (a, b) => int.parse(
-            b['quantity'].toString(),
-          ).compareTo(int.parse(a['quantity'].toString())),
-        );
-        break;
-      case 'Quantity (Low to High)':
-        filtered.sort(
-          (a, b) => int.parse(
-            a['quantity'].toString(),
-          ).compareTo(int.parse(b['quantity'].toString())),
-        );
-        break;
-      case 'Price (High to Low)':
-        filtered.sort(
-          (a, b) => (b['total'] as num).compareTo(a['total'] as num),
-        );
-        break;
-      case 'Price (Low to High)':
-        filtered.sort(
-          (a, b) => (a['total'] as num).compareTo(b['total'] as num),
-        );
-        break;
-      case 'Status':
-        filtered.sort((a, b) {
-          final statusA = a['status']?.toString().toLowerCase() ?? '';
-          final statusB = b['status']?.toString().toLowerCase() ?? '';
-          if (statusA == statusB) {
-            return DateTime.parse(b['orderDate'])
-                .compareTo(DateTime.parse(a['orderDate']));
-          }
-          return _getStatusPriority(statusA).compareTo(_getStatusPriority(statusB));
-        });
-        break;
-    }
-
-    return filtered;
   }
 
   Widget _buildPaginatedOrderList() {
@@ -419,13 +246,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       });
     }
     
-    // Add legacy SharedPreferences orders
-    for (var order in _orders) {
-      combinedOrders.add({
-        ...order,
-        'isFirestore': false, // Mark as legacy order
-      });
-    }
+    // Legacy SharedPreferences orders are no longer loaded automatically
+    // Users should rely on Firestore orders from the marketplace
     
     // Apply filters
     List<Map<String, dynamic>> filtered = combinedOrders;
@@ -533,7 +355,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
-            onLongPress: isFirestoreOrder ? null : () => _editOrder(order['orderId']),
+            // All orders are now from Firestore - no long press edit for legacy orders
             leading: Container(
               width: 48,
               height: 48,
@@ -641,59 +463,26 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ],
               ],
             ),
-            trailing: isFirestoreOrder
-                ? PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'update_status',
-                        child: Row(
-                          children: [
-                            Icon(Icons.update, size: 20),
-                            SizedBox(width: 8),
-                            Text('Update Status'),
-                          ],
-                        ),
-                      ),
+            trailing: PopupMenuButton(
+              icon: const Icon(Icons.more_vert),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'update_status',
+                  child: Row(
+                    children: [
+                      Icon(Icons.update, size: 20),
+                      SizedBox(width: 8),
+                      Text('Update Status'),
                     ],
-                    onSelected: (value) {
-                      if (value == 'update_status') {
-                        _showUpdateStatusDialog(order['orderId']);
-                      }
-                    },
-                  )
-                : PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red, size: 20),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _editOrder(order['orderId']);
-                      } else if (value == 'delete') {
-                        _deleteOrder(order['orderId']);
-                      }
-                    },
                   ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'update_status') {
+                  _showUpdateStatusDialog(order['orderId']);
+                }
+              },
+            ),
           ),
         );
       },
@@ -1029,9 +818,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildFilterAndSortSection() {
-    final deliveredCount = _orders
-        .where((order) => (order['status'] as String?) == 'Delivered')
-        .length;
     final sortOptions = [
       'Date (Newest First)',
       'Date (Oldest First)',
@@ -1113,38 +899,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   ),
                 ),
               ),
-              if (deliveredCount > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextButton.icon(
-                    onPressed: _deleteAllDelivered,
-                    icon: const Icon(
-                      Icons.delete_sweep,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    label: Text(
-                      'Clear ($deliveredCount)',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      minimumSize: const Size(0, 32),
-                    ),
-                  ),
-                ),
-              ],
+              // Removed "Delete All Delivered" button - Firestore orders managed through status updates
             ],
           ),
           const SizedBox(height: 12),
@@ -1209,9 +964,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
   Widget _buildOrdersHeader() {
-    final deliveredCount = _filteredOrders.where((order) => (order['status'] as String?) == 'Delivered').length;
-    final processingCount = _filteredOrders.where((order) => (order['status'] as String?) == 'Processing').length;
-    final shippedCount = _filteredOrders.where((order) => (order['status'] as String?) == 'Shipped').length;
+    final deliveredCount = _firestoreOrders.where((order) => order.status.toLowerCase() == 'delivered').length;
+    final processingCount = _firestoreOrders.where((order) => order.status.toLowerCase() == 'processing' || order.status.toLowerCase() == 'preparing').length;
+    final shippedCount = _firestoreOrders.where((order) => order.status.toLowerCase() == 'delivering' || order.status.toLowerCase() == 'shipped').length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1226,7 +981,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               const Icon(Icons.receipt_long, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text(
-                "Total Orders: ${_filteredOrders.length}",
+                "Total Orders: ${_firestoreOrders.length}",
                 style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.bold,
@@ -1236,7 +991,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               ),
             ],
           ),
-          if (_filteredOrders.isNotEmpty) ...[
+          if (_firestoreOrders.isNotEmpty) ...[
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1266,91 +1021,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           ),
         ),
       ],
-    );
-  }
-
-  void _editOrder(String orderId) async {
-    final index = _orders.indexWhere((order) => order['orderId'] == orderId);
-    if (index == -1) return; // Order not found
-    
-    final order = _orders[index];
-    String editedProduct = order['product'];
-    String editedQuantity = order['quantity'];
-
-    // Build a list of all unique products from existing orders
-    final allProducts = <String>{};
-    for (var o in _orders) {
-      final productName = o['product'] as String?;
-      if (productName != null && productName.isNotEmpty) {
-        allProducts.add(productName);
-      }
-    }
-    final productList = allProducts.toList()..sort();
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        TextEditingController quantityController = TextEditingController(
-          text: editedQuantity,
-        );
-
-        return AlertDialog(
-          title: const Text('Edit Order'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: editedProduct,
-                items: productList
-                    .map(
-                      (product) => DropdownMenuItem(
-                        value: product,
-                        child: Text(product),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) editedProduct = value;
-                },
-                decoration: const InputDecoration(labelText: 'Product'),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'Quantity'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _orders[index]['product'] = editedProduct;
-                  _orders[index]['quantity'] = quantityController.text;
-                });
-                _saveOrders();
-                Navigator.pop(context);
-
-                // Show edit confirmation snackbar
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Order Updated!'),
-                    duration: Duration(seconds: 2),
-                    backgroundColor: Color(0xFF00C853),
-                  ),
-                );
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

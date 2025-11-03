@@ -14,6 +14,7 @@ import '../models/order.dart';
 import 'AgriSynchBuyerSettingsPage.dart';
 import 'BrowseProductsPage.dart';
 import 'MyOrdersPage.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'DeliveryTrackingPage.dart';
 import 'dart:convert';
 
@@ -882,7 +883,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                   ),
                   image: product.images.isNotEmpty
                       ? DecorationImage(
-                          image: NetworkImage(product.images.first),
+                          image: CachedNetworkImageProvider(product.images.first),
                           fit: BoxFit.cover,
                         )
                       : null,

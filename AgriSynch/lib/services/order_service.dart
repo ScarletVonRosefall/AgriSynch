@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart' show AppOrder;
+import 'notification_service.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
@@ -13,6 +15,23 @@ class OrderService {
   // Create a new order (buyer creates order)
   Future<void> createOrder(AppOrder order) async {
     await _firestore.collection('orders').doc(order.id).set(order.toFirestore());
+    
+    // Notify farmer about new order
+    try {
+      // Get first product name from order items
+      final productName = order.items.isNotEmpty ? order.items.first.name : 'Product(s)';
+      
+      await _notificationService.notifyFarmerNewOrder(
+        farmerId: order.farmerId,
+        orderId: order.id,
+        productName: productName,
+        buyerName: order.buyerName,
+        totalAmount: order.totalAmount,
+      );
+    } catch (e) {
+      // Don't fail order creation if notification fails
+      print('Failed to send new order notification: $e');
+    }
   }
 
   // Get orders for the current buyer
@@ -53,6 +72,29 @@ class OrderService {
       'status': status,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    
+    // Send notification to buyer about status change
+    try {
+      final orderDoc = await _firestore.collection('orders').doc(orderId).get();
+      if (orderDoc.exists) {
+        final orderData = orderDoc.data()!;
+        final buyerId = orderData['buyerId'] as String;
+        final items = (orderData['items'] as List<dynamic>?) ?? [];
+        final productName = items.isNotEmpty 
+            ? (items.first as Map<String, dynamic>)['name'] ?? 'Product(s)'
+            : 'Product(s)';
+        
+        await _notificationService.notifyBuyerOrderStatusChange(
+          buyerId: buyerId,
+          orderId: orderId,
+          productName: productName,
+          newStatus: status,
+        );
+      }
+    } catch (e) {
+      // Don't fail status update if notification fails
+      print('Failed to send status update notification: $e');
+    }
   }
 
   // Update delivery date
@@ -207,15 +249,12 @@ class OrderService {
         };
       }
 
+      // Build query - ONLY filter by farmerId to avoid composite index requirement
+      // We'll sort and filter in-memory
       Query<Map<String, dynamic>> query = _firestore
           .collection('orders')
           .where('farmerId', isEqualTo: currentUserId)
-          .orderBy('orderDate', descending: true)
-          .limit(limit);
-
-      if (statusFilter != null && statusFilter != 'All') {
-        query = query.where('status', isEqualTo: statusFilter.toLowerCase());
-      }
+          .limit(100); // Get more documents since we'll filter/sort in-memory
 
       final snapshot = await query.get().timeout(
         const Duration(seconds: 15),
@@ -224,7 +263,7 @@ class OrderService {
         },
       );
       
-      final orders = snapshot.docs
+      var orders = snapshot.docs
           .map((doc) {
             try {
               return AppOrder.fromFirestore(doc);
@@ -236,10 +275,23 @@ class OrderService {
           .whereType<AppOrder>()
           .toList();
 
+      // Filter by status in-memory if needed
+      if (statusFilter != null && statusFilter != 'All') {
+        orders = orders.where((order) => 
+          order.status.toLowerCase() == statusFilter.toLowerCase()
+        ).toList();
+      }
+
+      // Sort by date in-memory (newest first)
+      orders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
+
+      // Take only the limit we need after filtering and sorting
+      final limitedOrders = orders.take(limit).toList();
+
       return {
-        'orders': orders,
-        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-        'hasMore': snapshot.docs.length == limit,
+        'orders': limitedOrders,
+        'lastDocument': null, // Disable pagination for now since we're loading all
+        'hasMore': false,
       };
     } catch (e) {
       print('Error in getFarmerOrdersPaginated: $e');
@@ -253,53 +305,12 @@ class OrderService {
     int limit = 20,
     String? statusFilter,
   }) async {
-    try {
-      if (currentUserId == null) {
-        return {
-          'orders': <AppOrder>[],
-          'lastDocument': null,
-          'hasMore': false,
-        };
-      }
-
-      Query<Map<String, dynamic>> query = _firestore
-          .collection('orders')
-          .where('farmerId', isEqualTo: currentUserId)
-          .orderBy('orderDate', descending: true)
-          .startAfterDocument(lastDocument)
-          .limit(limit);
-
-      if (statusFilter != null && statusFilter != 'All') {
-        query = query.where('status', isEqualTo: statusFilter.toLowerCase());
-      }
-
-      final snapshot = await query.get().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('Failed to load more orders. Please check your connection.');
-        },
-      );
-      
-      final orders = snapshot.docs
-          .map((doc) {
-            try {
-              return AppOrder.fromFirestore(doc);
-            } catch (e) {
-              print('Error parsing order ${doc.id}: $e');
-              return null;
-            }
-          })
-          .whereType<AppOrder>()
-          .toList();
-
-      return {
-        'orders': orders,
-        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-        'hasMore': snapshot.docs.length == limit,
-      };
-    } catch (e) {
-      print('Error in getMoreFarmerOrders: $e');
-      rethrow;
-    }
+    // Pagination disabled for now - return empty result
+    // Since we load all orders in getFarmerOrdersPaginated
+    return {
+      'orders': <AppOrder>[],
+      'lastDocument': null,
+      'hasMore': false,
+    };
   }
 }

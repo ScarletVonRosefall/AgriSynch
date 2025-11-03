@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../auth/auth_service.dart';
+import '../services/validation_service.dart';
 import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
@@ -87,27 +88,52 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _saveProfileData() async {
+    // Validate inputs before saving
+    final nameValidation = ValidationService.validateName(_nameController.text);
+    if (nameValidation != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(nameValidation), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final bioValidation = ValidationService.validateOptionalDescription(_bioController.text);
+    if (bioValidation != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(bioValidation), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final locationValidation = ValidationService.validateOptionalDescription(_locationController.text);
+    if (locationValidation != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(locationValidation), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     try {
       // Save to Firebase first
       await AuthService.updateUserProfile(
-        name: _nameController.text,
-        nickname: _nicknameController.text,
-        bio: _bioController.text,
-        location: _locationController.text,
+        name: ValidationService.sanitizeInput(_nameController.text),
+        nickname: ValidationService.sanitizeInput(_nicknameController.text),
+        bio: ValidationService.sanitizeInput(_bioController.text),
+        location: ValidationService.sanitizeInput(_locationController.text),
         profileImage: _profileImageBase64,
       );
 
       // Also save locally for offline capability
-      await _storage.write(key: 'user_name', value: _nameController.text);
+      await _storage.write(key: 'user_name', value: ValidationService.sanitizeInput(_nameController.text));
       await _storage.write(
         key: 'user_nickname',
-        value: _nicknameController.text,
+        value: ValidationService.sanitizeInput(_nicknameController.text),
       );
       await _storage.write(key: 'user_email', value: _emailController.text);
-      await _storage.write(key: 'user_bio', value: _bioController.text);
+      await _storage.write(key: 'user_bio', value: ValidationService.sanitizeInput(_bioController.text));
       await _storage.write(
         key: 'user_location',
-        value: _locationController.text,
+        value: ValidationService.sanitizeInput(_locationController.text),
       );
 
       if (_profileImageBase64 != null) {

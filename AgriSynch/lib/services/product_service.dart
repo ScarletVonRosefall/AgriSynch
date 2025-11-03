@@ -188,14 +188,11 @@ class ProductService {
     String? category,
   }) async {
     try {
+      // Build query - ONLY filter by isAvailable to avoid composite index requirement
+      // We'll sort and filter in-memory
       Query<Map<String, dynamic>> query = _productsCollection
           .where('isAvailable', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
-          .limit(limit);
-
-      if (category != null && category != 'All') {
-        query = query.where('category', isEqualTo: category);
-      }
+          .limit(100); // Get more documents since we'll filter/sort in-memory
 
       final snapshot = await query.get().timeout(
         const Duration(seconds: 15),
@@ -204,7 +201,7 @@ class ProductService {
         },
       );
       
-      final products = snapshot.docs
+      var products = snapshot.docs
           .map((doc) {
             try {
               return Product.fromFirestore(doc);
@@ -217,10 +214,23 @@ class ProductService {
           .where((product) => product.stock > 0)
           .toList();
 
+      // Filter by category in-memory if needed
+      if (category != null && category != 'All') {
+        products = products.where((product) => 
+          product.category.toLowerCase() == category.toLowerCase()
+        ).toList();
+      }
+
+      // Sort by date in-memory (newest first)
+      products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      // Take only the limit we need after filtering and sorting
+      final limitedProducts = products.take(limit).toList();
+
       return {
-        'products': products,
-        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-        'hasMore': snapshot.docs.length == limit,
+        'products': limitedProducts,
+        'lastDocument': null, // Disable pagination for now since we're loading all
+        'hasMore': false,
       };
     } catch (e) {
       print('Error in getProductsPaginated: $e');
@@ -234,45 +244,12 @@ class ProductService {
     int limit = 20,
     String? category,
   }) async {
-    try {
-      Query<Map<String, dynamic>> query = _productsCollection
-          .where('isAvailable', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
-          .startAfterDocument(lastDocument)
-          .limit(limit);
-
-      if (category != null && category != 'All') {
-        query = query.where('category', isEqualTo: category);
-      }
-
-      final snapshot = await query.get().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('Failed to load more products. Please check your connection.');
-        },
-      );
-      
-      final products = snapshot.docs
-          .map((doc) {
-            try {
-              return Product.fromFirestore(doc);
-            } catch (e) {
-              print('Error parsing product ${doc.id}: $e');
-              return null;
-            }
-          })
-          .whereType<Product>()
-          .where((product) => product.stock > 0)
-          .toList();
-
-      return {
-        'products': products,
-        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-        'hasMore': snapshot.docs.length == limit,
-      };
-    } catch (e) {
-      print('Error in getMoreProducts: $e');
-      rethrow;
-    }
+    // Pagination disabled for now - return empty result
+    // Since we load all products in getProductsPaginated
+    return {
+      'products': <Product>[],
+      'lastDocument': null,
+      'hasMore': false,
+    };
   }
 }
