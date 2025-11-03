@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../services/order_service.dart';
+import '../services/product_service.dart';
+import '../models/order.dart';
 
 class ShoppingCartPage extends StatefulWidget {
   const ShoppingCartPage({super.key});
@@ -10,6 +13,8 @@ class ShoppingCartPage extends StatefulWidget {
 }
 
 class _ShoppingCartPageState extends State<ShoppingCartPage> {
+  final OrderService _orderService = OrderService();
+  final ProductService _productService = ProductService();
   bool isDarkMode = false;
   List<Map<String, dynamic>> cart = [];
   List<Map<String, dynamic>> orders = [];
@@ -107,45 +112,133 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       return;
     }
 
-    // Create order
-    final order = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'items': List.from(cart),
-      'total': getTotalPrice(),
-      'status': 'pending',
-      'orderDate': DateTime.now().toIso8601String(),
-      'estimatedDelivery': DateTime.now()
-          .add(const Duration(days: 3))
-          .toIso8601String(),
-    };
-
-    // Add to orders
-    orders.add(order);
+    // Get current user details
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('buyer_orders', json.encode(orders));
+    final String? userName = prefs.getString('user_name');
+    final String? userId = prefs.getString('user_id');
 
-    // Clear cart
-    await clearCart();
-
-    // Show success dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Order Placed!'),
-        content: Text(
-          'Order #${order['id']} has been placed successfully.\nEstimated delivery: 3 days',
+    if (userId == null || userName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User authentication error'),
+          backgroundColor: Colors.red,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context); // Go back to home
-            },
-            child: const Text('OK'),
+      );
+      return;
+    }
+
+    // Group cart items by farmer
+    Map<String, List<Map<String, dynamic>>> ordersByFarmer = {};
+    for (var item in cart) {
+      String farmerId = item['farmerId'] ?? '';
+      if (ordersByFarmer.containsKey(farmerId)) {
+        ordersByFarmer[farmerId]!.add(item);
+      } else {
+        ordersByFarmer[farmerId] = [item];
+      }
+    }
+
+    try {
+      // Create separate orders for each farmer
+      for (var entry in ordersByFarmer.entries) {
+        String farmerId = entry.key;
+        List<Map<String, dynamic>> farmerItems = entry.value;
+        
+        // Get farmer name from first item
+        String farmerName = farmerItems.first['farmer'] ?? 'Unknown Farmer';
+        
+        // Calculate total for this farmer's products
+        double totalAmount = farmerItems.fold(
+          0.0,
+          (sum, item) => sum + (item['price'] * item['quantity']),
+        );
+
+        // Create order items
+        List<OrderItem> orderItems = farmerItems.map((item) {
+          return OrderItem(
+            productId: item['id'] ?? '',
+            name: item['name'] ?? '',
+            price: (item['price'] ?? 0).toDouble(),
+            unit: item['unit'] ?? '',
+            quantity: item['quantity'] ?? 1,
+            category: item['category'] ?? '',
+          );
+        }).toList();
+
+        // Create order
+        final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+        final order = AppOrder(
+          id: orderId,
+          buyerId: userId,
+          buyerName: userName,
+          farmerId: farmerId,
+          farmerName: farmerName,
+          items: orderItems,
+          totalAmount: totalAmount,
+          status: 'pending',
+          orderDate: DateTime.now(),
+          estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
+        );
+
+        // Save to Firestore
+        await _orderService.createOrder(order);
+
+        // Decrease product stock for each item
+        for (var item in farmerItems) {
+          String productId = item['id'];
+          int quantity = item['quantity'];
+          try {
+            await _productService.decreaseStock(productId, quantity);
+          } catch (e) {
+            print('Error updating stock for $productId: $e');
+          }
+        }
+      }
+
+      // Clear cart
+      await clearCart();
+
+      // Show success dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 32),
+                SizedBox(width: 12),
+                Text('Order Placed!'),
+              ],
+            ),
+            content: Text(
+              '${ordersByFarmer.length} order(s) have been placed successfully.\nEstimated delivery: 3 days',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context); // Go back to home
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error placing order: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   double getTotalPrice() {

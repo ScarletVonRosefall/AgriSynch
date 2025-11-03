@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Products collection - farmers can write, everyone can read available products
+    match /products/{productId} {
+      allow read: if isSignedIn(); // All authenticated users can browse products
+      allow create: if isSignedIn() && request.resource.data.farmerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.farmerId == request.auth.uid;
+    }
+    
+    // Orders collection - buyers create, both buyer and farmer can read their orders
+    match /orders/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow read: if isSignedIn() && 
+                     (resource.data.buyerId == request.auth.uid || 
+                      resource.data.farmerId == request.auth.uid);
+      allow update: if isSignedIn() && resource.data.farmerId == request.auth.uid; // Only farmers can update order status
+      allow delete: if isSignedIn() && resource.data.buyerId == request.auth.uid && 
+                       resource.data.status == 'pending'; // Only buyers can cancel pending orders
+    }
+    
+    // Users collection and subcollections (from your old rules)
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      
+      // Tasks subcollection rules
+      match /tasks/{taskId} {
+        allow create: if isSignedIn() 
+          && request.auth.uid == userId
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.title is string
+          && request.resource.data.description is string
+          && request.resource.data.dueDate is timestamp
+          && request.resource.data.priority is string
+          && request.resource.data.completed is bool;
+        
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        
+        allow update: if isSignedIn() 
+          && request.auth.uid == userId
+          && request.resource.data.updatedAt is timestamp;
+          
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+    
+    // Calendar events collection
+    match /calendar_events/{eventId} {
+      allow create: if isSignedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt is timestamp;
+      allow read, update, delete: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // Events collection (alternative calendar location)
+    match /events/{eventId} {
+      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Transactions collection (finances)
+    match /transactions/{transactionId} {
+      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Pre-registration collection
+    match /pre_users/{docId} {
+      allow create: if true;
+      allow delete: if true;
+      allow read: if false;
+    }
+  }
+}

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import '../services/order_service.dart';
+import '../models/order.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -11,8 +13,9 @@ class MyOrdersPage extends StatefulWidget {
 }
 
 class _MyOrdersPageState extends State<MyOrdersPage> {
+  final OrderService _orderService = OrderService();
   bool isDarkMode = false;
-  List<Map<String, dynamic>> orders = [];
+  List<Map<String, dynamic>> legacyOrders = []; // Legacy orders from SharedPreferences
   String selectedFilter = 'All';
 
   final List<String> orderFilters = [
@@ -28,7 +31,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   void initState() {
     super.initState();
     loadTheme();
-    loadOrders();
+    _loadLegacyOrders();
   }
 
   Future<void> loadTheme() async {
@@ -38,32 +41,69 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
   }
 
-  Future<void> loadOrders() async {
+  Future<void> _loadLegacyOrders() async {
     final prefs = await SharedPreferences.getInstance();
     final ordersString = prefs.getString('buyer_orders');
     if (ordersString != null) {
       setState(() {
-        orders = List<Map<String, dynamic>>.from(json.decode(ordersString));
-        // Sort by date (newest first)
-        orders.sort(
-          (a, b) => DateTime.parse(
-            b['orderDate'],
-          ).compareTo(DateTime.parse(a['orderDate'])),
-        );
+        legacyOrders = List<Map<String, dynamic>>.from(json.decode(ordersString));
       });
     }
   }
 
-  Future<void> cancelOrder(String orderId) async {
-    final orderIndex = orders.indexWhere((order) => order['id'] == orderId);
-    if (orderIndex >= 0) {
-      setState(() {
-        orders[orderIndex]['status'] = 'cancelled';
-      });
+  List<Map<String, dynamic>> _buildCombinedOrderList(List<AppOrder> firestoreOrders) {
+    // Convert Firestore orders to maps
+    final firestoreOrderMaps = firestoreOrders.map((order) {
+      return {
+        'id': order.id,
+        'buyerId': order.buyerId,
+        'farmerId': order.farmerId,
+        'items': order.items.map((item) => {
+          'productId': item.productId,
+          'name': item.name,
+          'price': item.price,
+          'quantity': item.quantity,
+          'category': item.category,
+        }).toList(),
+        'total': order.totalAmount,
+        'status': order.status,
+        'orderDate': order.orderDate.toIso8601String(),
+        'estimatedDelivery': order.estimatedDelivery?.toIso8601String(),
+        'isFirestore': true,
+      };
+    }).toList();
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('buyer_orders', json.encode(orders));
+    // Combine Firestore and legacy orders
+    final combined = [...firestoreOrderMaps, ...legacyOrders];
+    
+    // Sort by date (newest first)
+    combined.sort((a, b) {
+      final aDate = DateTime.parse(a['orderDate']);
+      final bDate = DateTime.parse(b['orderDate']);
+      return bDate.compareTo(aDate);
+    });
 
+    return combined;
+  }
+
+  Future<void> cancelOrder(String orderId, bool isFirestore) async {
+    if (isFirestore) {
+      // Cancel in Firestore
+      await _orderService.updateOrderStatus(orderId, 'cancelled');
+    } else {
+      // Cancel in legacy SharedPreferences
+      final orderIndex = legacyOrders.indexWhere((order) => order['id'] == orderId);
+      if (orderIndex >= 0) {
+        setState(() {
+          legacyOrders[orderIndex]['status'] = 'cancelled';
+        });
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('buyer_orders', json.encode(legacyOrders));
+      }
+    }
+
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Order cancelled successfully'),
@@ -73,9 +113,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     }
   }
 
-  List<Map<String, dynamic>> getFilteredOrders() {
-    if (selectedFilter == 'All') return orders;
-    return orders
+  List<Map<String, dynamic>> getFilteredOrders(List<Map<String, dynamic>> allOrders) {
+    if (selectedFilter == 'All') return allOrders;
+    return allOrders
         .where(
           (order) =>
               order['status'].toLowerCase() == selectedFilter.toLowerCase(),
@@ -284,7 +324,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           TextButton(
                             onPressed: () {
                               Navigator.pop(context);
-                              cancelOrder(order['id']);
+                              cancelOrder(order['id'], order['isFirestore'] == true);
                             },
                             child: const Text(
                               'Yes',
@@ -330,79 +370,87 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: headerColor,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
+      body: StreamBuilder<List<AppOrder>>(
+        stream: _orderService.getMyBuyerOrders(),
+        builder: (context, snapshot) {
+          // Combine Firestore and legacy orders
+          final firestoreOrders = snapshot.data ?? [];
+          final allOrders = _buildCombinedOrderList(firestoreOrders);
+          final filteredOrders = getFilteredOrders(allOrders);
+
+          return Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: headerColor,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(28),
+                    bottomRight: Radius.circular(28),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'My Orders',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 24,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+
+              // Filter Tabs
+              Container(
+                height: 60,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: orderFilters.length,
+                  itemBuilder: (context, index) {
+                    final filter = orderFilters[index];
+                    final isSelected = selectedFilter == filter;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(filter),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            selectedFilter = filter;
+                          });
+                        },
+                        backgroundColor: cardColor,
+                        selectedColor: const Color(0xFF4CAF50),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : textColor,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const Expanded(
-                  child: Text(
-                    'My Orders',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(width: 48),
-              ],
-            ),
-          ),
+              ),
 
-          // Filter Tabs
-          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: orderFilters.length,
-              itemBuilder: (context, index) {
-                final filter = orderFilters[index];
-                final isSelected = selectedFilter == filter;
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(filter),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        selectedFilter = filter;
-                      });
-                    },
-                    backgroundColor: cardColor,
-                    selectedColor: const Color(0xFF4CAF50),
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : textColor,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Orders List
-          Expanded(
-            child: getFilteredOrders().isEmpty
+              // Orders List
+              Expanded(
+                child: filteredOrders.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -437,10 +485,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: getFilteredOrders().length,
+                    itemCount: filteredOrders.length,
                     itemBuilder: (context, index) {
-                      final order = getFilteredOrders()[index];
+                      final order = filteredOrders[index];
                       final itemCount = order['items'].length;
+                      final isFirestore = order['isFirestore'] == true;
 
                       return Card(
                         color: cardColor,
@@ -460,13 +509,41 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      'Order #${order['id']}',
-                                      style: TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.bold,
-                                        color: textColor,
-                                        fontSize: 16,
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            'Order #${order['id']}',
+                                            style: TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontWeight: FontWeight.bold,
+                                              color: textColor,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          if (isFirestore) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF4CAF50),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Text(
+                                                'MARKETPLACE',
+                                                style: TextStyle(
+                                                  fontFamily: 'Poppins',
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                     Container(
@@ -564,8 +641,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                       );
                     },
                   ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

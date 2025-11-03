@@ -481,11 +481,12 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                               try {
                                 await _calendarService.deleteEvent(event.id);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Event deleted')),
+                                  SnackBar(content: Text('${event.type == 'task' ? 'Task' : 'Event'} deleted')),
                                 );
                               } catch (e) {
+                                print('Error deleting event: $e');
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to delete event: $e')),
+                                  SnackBar(content: Text('Failed to delete ${event.type}: $e')),
                                 );
                               }
                             },
@@ -535,8 +536,10 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                                           showDialog(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: const Text('Delete Event?'),
-                                              content: const Text('This action cannot be undone.'),
+                                              title: Text('Delete ${event.type == 'task' ? 'Task' : 'Event'}?'),
+                                              content: Text(event.type == 'task' 
+                                                  ? 'This will delete the task from your task list.'
+                                                  : 'This action cannot be undone.'),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () => Navigator.pop(context),
@@ -549,12 +552,13 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                                                       await _calendarService.deleteEvent(event.id);
                                                       if (!context.mounted) return;
                                                       ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(content: Text('Event deleted successfully')),
+                                                        SnackBar(content: Text('${event.type == 'task' ? 'Task' : 'Event'} deleted successfully')),
                                                       );
                                                     } catch (e) {
+                                                      print('Error deleting: $e');
                                                       if (!context.mounted) return;
                                                       ScaffoldMessenger.of(context).showSnackBar(
-                                                        SnackBar(content: Text('Failed to delete event: $e')),
+                                                        SnackBar(content: Text('Failed to delete ${event.type}: $e')),
                                                       );
                                                     }
                                                   },

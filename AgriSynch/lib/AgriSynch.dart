@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'farmer/AgriSynchHomePage.dart';
 import 'farmer/AgriSynchTasksPage.dart';
 import 'farmer/AgriSynchOrdersPage.dart';
+import 'farmer/AgriSynchProductsPage.dart';
 import 'farmer/AgriSynchSettingsPage.dart';
 import 'auth/AgriSynchSignUp.dart';
 import 'auth/AgriSynchLogin.dart';
@@ -57,6 +58,7 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
   final List<Widget> pages = const [
     AgriSynchHomePage(),
     AgriSynchTasksPage(),
+    AgriSynchProductsPage(),
     AgriSynchOrdersPage(),
     AgriSynchSettingsPage(),
   ];
@@ -79,6 +81,7 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.task), label: "Tasks"),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: "Products"),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
             label: "Orders",

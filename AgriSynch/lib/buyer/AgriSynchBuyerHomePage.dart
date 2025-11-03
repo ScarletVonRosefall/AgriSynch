@@ -7,9 +7,12 @@ import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../services/product_service.dart';
+import '../services/order_service.dart';
+import '../models/product.dart';
+import '../models/order.dart';
 import 'AgriSynchBuyerSettingsPage.dart';
 import 'BrowseProductsPage.dart';
-import 'ShoppingCartPage.dart';
 import 'MyOrdersPage.dart';
 import 'DeliveryTrackingPage.dart';
 import 'dart:convert';
@@ -23,6 +26,9 @@ class AgriSynchBuyerHomePage extends StatefulWidget {
 
 class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final storage = FlutterSecureStorage();
+  final ProductService _productService = ProductService();
+  final OrderService _orderService = OrderService();
+  
   String userName = '';
   bool isDarkMode = false;
   final int _selectedIndex = 0;
@@ -535,6 +541,251 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
                   const SizedBox(height: 20),
 
+                  // Featured Products Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "✨ Featured Products",
+                          style: ThemeHelper.getTextStyle(
+                            isDark: isDarkMode,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const BrowseProductsPage(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "See All",
+                            style: TextStyle(
+                              color: ThemeHelper.getHeaderColor(isDarkMode),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Featured Products Horizontal List
+                  StreamBuilder<List<Product>>(
+                    stream: _productService.getAllProducts(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            'Error loading products',
+                            style: TextStyle(color: Colors.grey[600]),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }
+
+                      List<Product> products = snapshot.data ?? [];
+                      List<Product> featuredProducts =
+                          products.take(5).toList();
+
+                      if (featuredProducts.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Column(
+                            children: [
+                              Icon(Icons.inventory_2_outlined,
+                                  size: 60, color: Colors.grey[400]),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No products available yet',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return SizedBox(
+                        height: 220,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: featuredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = featuredProducts[index];
+                            return _buildFeaturedProductCard(product);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Product Categories
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "🏷️ Shop by Category",
+                      style: ThemeHelper.getTextStyle(
+                        isDark: isDarkMode,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Category Grid
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 4,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.85,
+                      children: [
+                        _buildCategoryChip(
+                            'Poultry', Icons.egg_outlined, Colors.orange),
+                        _buildCategoryChip(
+                            'Livestock', Icons.pets, Colors.red),
+                        _buildCategoryChip(
+                            'Crops', Icons.grass, Colors.green),
+                        _buildCategoryChip(
+                            'Vegetables', Icons.spa, Colors.lightGreen),
+                        _buildCategoryChip(
+                            'Fruits', Icons.apple, Colors.pink),
+                        _buildCategoryChip(
+                            'Dairy', Icons.water_drop, Colors.blue),
+                        _buildCategoryChip(
+                            'Other', Icons.shopping_basket, Colors.grey),
+                        _buildCategoryChip(
+                            'All', Icons.grid_view, Colors.purple),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Recent Orders Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "📦 Recent Orders",
+                          style: ThemeHelper.getTextStyle(
+                            isDark: isDarkMode,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MyOrdersPage(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "View All",
+                            style: TextStyle(
+                              color: ThemeHelper.getHeaderColor(isDarkMode),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Recent Orders List
+                  StreamBuilder<List<AppOrder>>(
+                    stream: _orderService.getMyBuyerOrders(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      List<AppOrder> recentOrders =
+                          (snapshot.data ?? []).take(3).toList();
+
+                      if (recentOrders.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Column(
+                            children: [
+                              Icon(Icons.shopping_bag_outlined,
+                                  size: 60, color: Colors.grey[400]),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No orders yet',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const BrowseProductsPage(),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Start Shopping'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: recentOrders
+                              .map((order) => _buildRecentOrderCard(order))
+                              .toList(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
@@ -547,71 +798,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-
-                  // Buyer Action Tiles
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      children: [
-                        _buyerTile(
-                          icon: Icons.storefront,
-                          title: "Browse Products",
-                          subtitle: "Discover fresh produce",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const BrowseProductsPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buyerTile(
-                          icon: Icons.receipt_long,
-                          title: "My Orders",
-                          subtitle: "Track your purchases",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MyOrdersPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buyerTile(
-                          icon: Icons.shopping_cart,
-                          title: "Shopping Cart",
-                          subtitle: "Review items to buy",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ShoppingCartPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buyerTile(
-                          icon: Icons.local_shipping,
-                          title: "Delivery Tracking",
-                          subtitle: "Track your deliveries",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const DeliveryTrackingPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -637,45 +824,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     );
   }
 
-  Widget _buyerTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    VoidCallback? onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
-      color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.white),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            color: Colors.white70,
-            fontSize: 12,
-          ),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 18,
-          color: Colors.white,
-        ),
-        onTap: onTap,
-      ),
-    );
-  }
-
   IconData _getWeatherIconData(String description) {
     final desc = description.toLowerCase();
     if (desc.contains('sunny') || desc.contains('clear')) {
@@ -692,6 +840,417 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
       return Icons.air;
     } else {
       return Icons.wb_sunny;
+    }
+  }
+
+  // Build featured product card
+  Widget _buildFeaturedProductCard(Product product) {
+    Color categoryColor = _getCategoryColor(product.category);
+    
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 12),
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: ThemeHelper.getCardColor(isDarkMode),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BrowseProductsPage(
+                  initialCategory: product.category,
+                ),
+              ),
+            ).then((_) {
+              // Reload data when returning from browse
+              loadBuyerData();
+            });
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: categoryColor.withOpacity(0.2),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  image: product.images.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(product.images.first),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: Stack(
+                  children: [
+                    if (product.images.isEmpty)
+                      Center(
+                        child: Icon(
+                          _getCategoryIcon(product.category),
+                          size: 50,
+                          color: categoryColor,
+                        ),
+                      ),
+                    if (product.stock < 10)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product.stock > 0 ? Colors.orange : Colors.red,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            product.stock > 0 ? 'Low Stock' : 'Out',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₱${product.price.toStringAsFixed(2)} ${product.unit}',
+                        style: const TextStyle(
+                          color: Color(0xFF4CAF50),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 12, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              product.location,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build category chip
+  Widget _buildCategoryChip(String category, IconData icon, Color color) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BrowseProductsPage(
+              initialCategory: category,
+            ),
+          ),
+        ).then((_) {
+          // Reload data when returning from browse
+          loadBuyerData();
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            category,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build recent order card
+  Widget _buildRecentOrderCard(AppOrder order) {
+    Color statusColor = _getOrderStatusColor(order.status);
+    bool isDelivering = order.status.toLowerCase() == 'delivering';
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      color: ThemeHelper.getCardColor(isDarkMode),
+      child: InkWell(
+        onTap: () {
+          // Navigate to delivery tracking if order is in delivery, otherwise go to orders page
+          if (isDelivering) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DeliveryTrackingPage()),
+            ).then((_) {
+              loadBuyerData();
+            });
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyOrdersPage()),
+            ).then((_) {
+              loadBuyerData();
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Order #${order.id.substring(0, 8)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: statusColor),
+                    ),
+                    child: Text(
+                      order.status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'From: ${order.farmerName}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${order.items.length} item(s) • ₱${order.totalAmount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4CAF50),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Delivery status indicator
+              if (isDelivering) ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.teal.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.local_shipping, size: 16, color: Colors.teal),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Out for delivery',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.teal,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Track →',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              
+              // Order progress tracker for all orders
+              _buildOrderProgressTracker(order.status),
+              const SizedBox(height: 8),
+              
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${order.orderDate.day}/${order.orderDate.month}/${order.orderDate.year}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    isDelivering ? Icons.navigation : Icons.arrow_forward_ios, 
+                    size: 14, 
+                    color: isDelivering ? Colors.teal : Colors.grey[400],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build order progress tracker
+  Widget _buildOrderProgressTracker(String status) {
+    final steps = ['pending', 'confirmed', 'preparing', 'delivering', 'delivered'];
+    int currentStep = steps.indexOf(status.toLowerCase());
+    if (currentStep == -1) currentStep = 0; // Default to first step if status not found
+    
+    return Row(
+      children: List.generate(steps.length, (index) {
+        bool isCompleted = index <= currentStep;
+        
+        return Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: isCompleted 
+                      ? _getOrderStatusColor(steps[index])
+                      : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              if (index < steps.length - 1) const SizedBox(width: 2),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Color _getOrderStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+        return Colors.blue;
+      case 'preparing':
+        return Colors.purple;
+      case 'delivering':
+        return Colors.teal;
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'poultry':
+        return const Color(0xFFFFA726);
+      case 'livestock':
+        return const Color(0xFFEF5350);
+      case 'crops':
+        return const Color(0xFF66BB6A);
+      case 'vegetables':
+        return const Color(0xFF4CAF50);
+      case 'fruits':
+        return const Color(0xFFEC407A);
+      case 'dairy':
+        return const Color(0xFF42A5F5);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'poultry':
+        return Icons.egg_outlined;
+      case 'livestock':
+        return Icons.pets;
+      case 'crops':
+        return Icons.grass;
+      case 'vegetables':
+        return Icons.spa;
+      case 'fruits':
+        return Icons.apple;
+      case 'dairy':
+        return Icons.water_drop;
+      default:
+        return Icons.shopping_basket;
     }
   }
 }

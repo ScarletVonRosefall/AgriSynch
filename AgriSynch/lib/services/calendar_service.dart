@@ -113,7 +113,28 @@ class CalendarService {
   }
 
   Future<void> deleteEvent(String eventId) async {
-    await _eventsCollection.doc(eventId).delete();
+    // Check if this is a task by trying to find it in the tasks collection first
+    final taskDoc = await _firestore
+        .collection('users')
+        .doc(_userId)
+        .collection('tasks')
+        .doc(eventId)
+        .get();
+    
+    if (taskDoc.exists) {
+      // It's a task, delete from tasks collection
+      await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('tasks')
+          .doc(eventId)
+          .delete();
+      print('Deleted task: $eventId');
+    } else {
+      // It's a calendar event, delete from calendar_events collection
+      await _eventsCollection.doc(eventId).delete();
+      print('Deleted calendar event: $eventId');
+    }
   }
 
   Stream<List<CalendarEvent>> getEventsByCategory(String category) {
