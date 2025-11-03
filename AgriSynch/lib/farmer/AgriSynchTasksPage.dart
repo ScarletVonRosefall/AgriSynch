@@ -81,24 +81,59 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
   StreamSubscription? _tasksSubscription;
   bool _isFirstLoad = true;
   Timer? _debounceTimer;
+  Timer? _loadingTimeoutTimer;
   
   Future<void> _initializeData() async {
     if (!mounted) return;
     
     try {
+      print('=== Initializing Tasks Page ===');
       setState(() {
         _isLoading = true;
       });
+
+      // Set up a safety timeout to prevent stuck loading state
+      _loadingTimeoutTimer?.cancel();
+      _loadingTimeoutTimer = Timer(const Duration(seconds: 30), () {
+        if (mounted && _isLoading) {
+          print('WARNING: Loading timeout reached, forcing loading to stop');
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
+
+      // Check authentication first
+      final currentUser = _taskService.currentUserId;
+      print('Current user ID: $currentUser');
+      
+      if (currentUser == null) {
+        print('ERROR: No authenticated user found');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please sign in to view tasks'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
 
       // Cancel any existing subscriptions and timers
       await _tasksSubscription?.cancel();
       _debounceTimer?.cancel();
       
+      print('Setting up tasks subscription...');
       // Set up subscription for updates with debouncing
       _tasksSubscription = _taskService.getTasks(limit: 50)
           .distinct() // Only emit if the data has changed
           .listen(
         (snapshot) {
+          print('Tasks snapshot received: ${snapshot.docs.length} documents');
           if (!mounted) return;
           
           // Cancel any pending debounce
@@ -116,6 +151,8 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                 return data;
               }).toList();
 
+              print('Processed ${newTasks.length} tasks');
+              
               // Only update state if data has actually changed
               if (!_areTaskListsEqual(tasks, newTasks)) {
                 setState(() {
@@ -123,17 +160,32 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                   _isFirstLoad = false;
                   if (_isLoading) _isLoading = false;
                 });
+                _loadingTimeoutTimer?.cancel(); // Cancel timeout since we loaded successfully
+                print('Tasks state updated successfully');
+              } else {
+                print('Tasks data unchanged, skipping update');
+                // Still need to turn off loading if this is first load
+                if (_isLoading) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                  _loadingTimeoutTimer?.cancel();
+                }
               }
             }
           );
         },
         onError: (error, stackTrace) {
-          print('Error in tasks subscription: $error');
+          print('ERROR in tasks subscription: $error');
           print('Stack trace: $stackTrace');
           if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            _loadingTimeoutTimer?.cancel();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error updating tasks: ${error.toString()}'),
+                content: Text('Error loading tasks: ${error.toString()}'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -141,6 +193,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         },
       );
       
+      print('Loading theme and notifications...');
       // Load other data in parallel
       await Future.wait([
         _loadTheme(),
@@ -155,6 +208,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
       
       if (!mounted) return;
       
+      print('Setting up alarm timer...');
       // Set up alarm timer
       alarmTimer?.cancel(); // Cancel any existing timer
       alarmTimer = Timer.periodic(
@@ -162,17 +216,24 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         (_) => checkAlarms(),
       );
       
-    } catch (e) {
-      print('Error initializing data: $e');
+      print('=== Tasks initialization completed ===');
+      
+    } catch (e, stackTrace) {
+      print('ERROR initializing data: $e');
+      print('Stack trace: $stackTrace');
       if (!mounted) return;
       setState(() {
         tasks = [];
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error initializing. Please try again.'),
+        SnackBar(
+          content: Text('Error initializing: ${e.toString()}'),
           backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _initializeData(),
+          ),
         ),
       );
     }
@@ -183,6 +244,8 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     alarmTimer?.cancel();
     alarmDismissTimer?.cancel();
     _tasksSubscription?.cancel();
+    _debounceTimer?.cancel();
+    _loadingTimeoutTimer?.cancel();
     cleanupAlarm();
     super.dispose();
   }
@@ -792,6 +855,39 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                 ],
               ),
             ),
+            // Debug section for loading issues
+            if (_isLoading) 
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Tasks are taking a while to load...',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        print('=== MANUAL DEBUG REFRESH ===');
+                        setState(() {
+                          _isLoading = false;
+                        });
+                        _initializeData();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                      ),
+                      child: const Text('Force Refresh'),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             // Search field with improved styling
             Padding(
@@ -1061,6 +1157,58 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                                   icon: const Icon(Icons.edit),
                                   onPressed: () => editTask(originalIndex),
                                   color: const Color(0xFF00C853),
+                                  tooltip: 'Edit task',
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () async {
+                                    // Show confirmation dialog
+                                    final confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Delete Task'),
+                                        content: Text('Are you sure you want to delete "${task['title']}"?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(true),
+                                            child: const Text(
+                                              'Delete',
+                                              style: TextStyle(color: Colors.red),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirmed == true) {
+                                      try {
+                                        await _taskService.deleteTask(task['id']);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Task "${task['title']}" deleted'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error deleting task: ${e.toString()}'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
+                                  color: Colors.red,
+                                  tooltip: 'Delete task',
                                 ),
                                 Transform.scale(
                                   scale: 1.2,
@@ -1088,6 +1236,3 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     );
   }
 }
-
-
-

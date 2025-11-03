@@ -67,15 +67,30 @@ class TaskService {
   // Get all tasks stream
   Stream<QuerySnapshot<Map<String, dynamic>>> getTasks({int limit = 20}) {
     if (currentUserId == null) {
-      throw Exception('Please sign in to view tasks.');
+      print('ERROR: No authenticated user in getTasks()');
+      // Return an empty stream instead of throwing
+      return Stream.fromIterable([]).cast<QuerySnapshot<Map<String, dynamic>>>();
     }
     
-    // TODO: Restore second orderBy after creating composite index
-    // Temporary fix until index is created
-    return _tasksCollection
-        .orderBy('dueDate')
-        .limit(limit)
-        .snapshots();
+    print('Getting tasks for user: $currentUserId');
+    
+    try {
+      // TODO: Restore second orderBy after creating composite index
+      // Temporary fix until index is created
+      return _tasksCollection
+          .orderBy('dueDate')
+          .limit(limit)
+          .snapshots()
+          .handleError((error) {
+            print('ERROR in tasks stream: $error');
+            // Don't let the stream fail completely
+            return Stream.empty();
+          });
+    } catch (e) {
+      print('ERROR setting up tasks stream: $e');
+      // Return empty stream on setup failure
+      return Stream.fromIterable([]).cast<QuerySnapshot<Map<String, dynamic>>>();
+    }
   }
 
   // Get pending tasks stream

@@ -18,16 +18,18 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _customProductController = TextEditingController();
   bool isDarkMode = false;
   int unreadNotifications = 0;
 
-  final List<String> _products = ['Quail Eggs', 'Chicken Egg', 'Pigs'];
+  final List<String> _products = ['Quail Eggs', 'Chicken Egg', 'Pigs', 'Custom'];
   final List<String> _statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
   String? _selectedProduct;
   String _selectedCategory = 'All';
+  String _selectedStatusFilter = 'All'; // Filter for viewing orders by status
   String _searchTerm = '';
   String _sortOption = 'Date (Newest First)';
-  String _selectedStatus = 'Pending';
+  String _selectedStatus = 'Pending'; // Default status for new orders
 
   // Initialize the orders page when widget is first created
   @override
@@ -57,7 +59,17 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     if (data != null) {
       setState(() {
         _orders = List<Map<String, dynamic>>.from(json.decode(data));
+        
+        // Migration: Ensure all orders have orderId field
+        for (var order in _orders) {
+          if (!order.containsKey('orderId') && order.containsKey('id')) {
+            order['orderId'] = order['id'];
+          }
+        }
       });
+      
+      // Save migrated data
+      await _saveOrders();
     }
   }
 
@@ -111,12 +123,25 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   void _addOrder() {
     final quantity = _quantityController.text.trim();
     final price = _priceController.text.trim();
+    final customProductName = _customProductController.text.trim();
 
     // Form validation
     if (_selectedProduct == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a product'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Validate custom product name if Custom is selected
+    if (_selectedProduct == 'Custom' && customProductName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a custom product name'),
           duration: Duration(seconds: 2),
           backgroundColor: Colors.orange,
         ),
@@ -160,10 +185,15 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     final priceValue = double.parse(price);
     final quantityValue = int.parse(quantity);
     final total = priceValue * quantityValue;
+    final orderId = _generateOrderId();
+    
+    // Use custom product name if Custom is selected, otherwise use selected product
+    final productName = _selectedProduct == 'Custom' ? customProductName : _selectedProduct;
     
     final newOrder = {
-      'id': _generateOrderId(),
-      'product': _selectedProduct,
+      'id': orderId,
+      'orderId': orderId, // Add orderId field for status updates
+      'product': productName,
       'quantity': quantity,
       'price': priceValue,
       'total': total,
@@ -185,7 +215,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     // Create order notification
     NotificationHelper.addOrderNotification(
       title: 'New Order Added',
-      message: 'Order for $_selectedProduct (Qty: $quantity) has been created',
+      message: 'Order for $productName (Qty: $quantity) has been created',
       orderId: newOrder.toString(),
     );
 
@@ -193,6 +223,8 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       _selectedProduct = null;
     });
     _quantityController.clear();
+    _priceController.clear();
+    _customProductController.clear();
     _saveOrders();
 
     // Show success snackbar
@@ -239,7 +271,24 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     }
   }
 
-  Future<void> _showStatusUpdateDialog(int index) async {
+  Future<void> _showStatusUpdateDialog(String orderId) async {
+    print('🔍 Looking for order with ID: $orderId');
+    final index = _orders.indexWhere((order) => order['orderId'] == orderId);
+    if (index == -1) {
+      print('❌ Order not found! Available orders:');
+      for (var order in _orders) {
+        print('   - ID: ${order['id']}, orderId: ${order['orderId']}');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Order not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return; // Order not found
+    }
+    
+    print('✅ Found order at index $index');
     final order = _orders[index];
     final currentStatus = order['status'] as String? ?? 'Pending';
     final validTransitions = _getValidTransitions(currentStatus);
@@ -390,7 +439,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   }
 
 
-  void _deleteOrder(int index) {
+  void _deleteOrder(String orderId) {
+    final index = _orders.indexWhere((order) => order['orderId'] == orderId);
+    if (index == -1) return; // Order not found
+    
     setState(() {
       _orders.removeAt(index);
     });
@@ -441,7 +493,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   List<Map<String, dynamic>> get _filteredOrders {
     List<Map<String, dynamic>> filtered = _orders;
 
-    // Filter by category
+    // Filter by category (product type)
     if (_selectedCategory != 'All') {
       filtered = filtered
           .where((order) => order['product'] == _selectedCategory)
@@ -449,9 +501,9 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     }
 
     // Filter by status
-    if (_selectedStatus != 'All') {
+    if (_selectedStatusFilter != 'All') {
       filtered = filtered
-          .where((order) => order['status'] == _selectedStatus)
+          .where((order) => order['status'] == _selectedStatusFilter)
           .toList();
     }
 
@@ -678,6 +730,39 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             ),
           ),
           const SizedBox(height: 16),
+          // Custom Product Name Field (only shows when Custom is selected)
+          if (_selectedProduct == 'Custom') ...[
+            Container(
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextFormField(
+                controller: _customProductController,
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                decoration: InputDecoration(
+                  labelText: 'Custom Product Name',
+                  hintText: 'Enter product name (e.g., Tomatoes, Rice)',
+                  labelStyle: ThemeHelper.getBodyTextStyle(
+                    isDark: isDarkMode,
+                  ),
+                  hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.edit,
+                    color: ThemeHelper.getIconColor(isDarkMode),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Expanded(
@@ -709,9 +794,20 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                         .map(
                           (product) => DropdownMenuItem(
                             value: product,
-                            child: Text(
-                              product,
-                              overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                if (product == 'Custom')
+                                  Icon(
+                                    Icons.add_circle,
+                                    size: 16,
+                                    color: ThemeHelper.getHeaderColor(isDarkMode),
+                                  ),
+                                if (product == 'Custom') const SizedBox(width: 8),
+                                Text(
+                                  product,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
                         )
@@ -719,6 +815,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     onChanged: (value) {
                       setState(() {
                         _selectedProduct = value;
+                        // Clear custom product name when switching away from Custom
+                        if (value != 'Custom') {
+                          _customProductController.clear();
+                        }
                       });
                     },
                   ),
@@ -884,6 +984,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ).copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 12),
+              // Product Category Filter
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -900,6 +1001,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     value: _selectedCategory,
                     isExpanded: true,
                     underline: const SizedBox(),
+                    hint: Text('Product', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode)),
                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                     dropdownColor: ThemeHelper.getCardColor(isDarkMode),
                     items: ['All', ..._products]
@@ -911,6 +1013,54 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     onChanged: (value) {
                       setState(() {
                         _selectedCategory = value!;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Status Filter
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _selectedStatusFilter,
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    hint: Text('Status', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode)),
+                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                    dropdownColor: ThemeHelper.getCardColor(isDarkMode),
+                    items: ['All', ..._statuses]
+                        .map(
+                          (status) =>
+                              DropdownMenuItem(
+                                value: status, 
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.circle,
+                                      size: 8,
+                                      color: _getStatusColor(status),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(status),
+                                  ],
+                                ),
+                              ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStatusFilter = value!;
                       });
                     },
                   ),
@@ -1094,7 +1244,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
-            onLongPress: () => _editOrder(_orders.indexOf(order)),
+            onLongPress: () => _editOrder(order['orderId']),
             leading: Container(
               width: 48,
               height: 48,
@@ -1214,7 +1364,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       color: _getStatusColor(order['status'] ?? 'Pending'),
                       size: 20,
                     ),
-                    onPressed: () => _showStatusUpdateDialog(_orders.indexOf(order)),
+                    onPressed: () => _showStatusUpdateDialog(order['orderId']),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -1229,7 +1379,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       color: Colors.red,
                       size: 20,
                     ),
-                    onPressed: () => _deleteOrder(_orders.indexOf(order)),
+                    onPressed: () => _deleteOrder(order['orderId']),
                   ),
                 ),
               ],
@@ -1240,7 +1390,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     );
   }
 
-  void _editOrder(int index) async {
+  void _editOrder(String orderId) async {
+    final index = _orders.indexWhere((order) => order['orderId'] == orderId);
+    if (index == -1) return; // Order not found
+    
     final order = _orders[index];
     String editedProduct = order['product'];
     String editedQuantity = order['quantity'];
