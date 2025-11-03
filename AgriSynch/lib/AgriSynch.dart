@@ -1,3 +1,8 @@
+// If you're reading this we dont know how we made this functional but please
+// Don't change anything unless you really know what you're doing.
+// And sorry for our poor coding practices and any confusion it may have caused.
+// You're on your own now, ADIOS!
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
