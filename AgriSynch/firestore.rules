@@ -111,13 +111,16 @@ service cloud.firestore {
       // Allow all authenticated users to read all user profiles (for messaging/browsing)
       allow read: if isSignedIn();
       
-      // Users can only write their own profile
-      allow write: if isOwner(userId);
+      // Users can create their own profile
+      allow create: if isOwner(userId);
       
-      // Prevent users from changing their email to another user's email
+      // Users can update their own profile, OR anyone can update rating fields
       allow update: if isOwner(userId) 
-        && (!request.resource.data.keys().hasAny(['email']) 
-            || request.resource.data.email == request.auth.token.email);
+        || (isSignedIn() 
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'reviewCount']));
+      
+      // Users can only delete their own profile
+      allow delete: if isOwner(userId);
       
       // ========== TASKS SUBCOLLECTION ==========
       match /tasks/{taskId} {
@@ -247,7 +250,36 @@ service cloud.firestore {
       // Any authenticated user can create, read, update, delete conversations
       allow read, write: if isSignedIn();
     }
+    
+    // ==================== REVIEWS COLLECTION ====================
+    
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if isSignedIn();
+      
+      // Only buyers can create reviews
+      allow create: if isSignedIn()
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && isValidString(request.resource.data.farmerId, 50)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      
+      // Only the buyer who wrote the review can update it
+      allow update: if isSignedIn()
+        && resource.data.buyerId == request.auth.uid
+        && request.resource.data.buyerId == resource.data.buyerId
+        && request.resource.data.farmerId == resource.data.farmerId
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.updatedAt is timestamp;
+      
+      // Only the buyer who wrote the review can delete it
+      allow delete: if isSignedIn()
+        && resource.data.buyerId == request.auth.uid;
+    }
   }
 }
-
-//placeholder

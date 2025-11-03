@@ -8,6 +8,7 @@ import '../services/order_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
 import '../shared/chat_screen.dart';
+import '../shared/submit_review_dialog.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -424,6 +425,37 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             ),
 
             const SizedBox(height: 16),
+            
+            // Rate Farmer Button (for delivered orders)
+            if (order['status'].toLowerCase() == 'delivered')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (_) => SubmitReviewDialog(
+                        farmerId: order['farmerId'] ?? '',
+                        farmerName: order['farmerName'] ?? 'Farmer',
+                        orderId: order['id'],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.star),
+                  label: const Text('Rate Farmer'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFA726),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            
+            if (order['status'].toLowerCase() == 'delivered')
+              const SizedBox(height: 8),
             
             // Message Farmer Button
             SizedBox(

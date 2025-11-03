@@ -11,6 +11,8 @@ import '../shared/theme_helper.dart';
 import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../shared/chat_screen.dart';
+import '../shared/farmer_reviews_page.dart';
+import '../services/review_service.dart';
 
 class BrowseProductsPage extends StatefulWidget {
   final String? initialCategory;
@@ -730,15 +732,58 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       const Icon(Icons.person, size: 12, color: Colors.grey),
                                       const SizedBox(width: 4),
                                       Expanded(
-                                        child: Text(
-                                          product.farmerName,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w500,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => FarmerReviewsPage(
+                                                  farmerId: product.farmerId,
+                                                  farmerName: product.farmerName,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Row(
+                                            children: [
+                                              Text(
+                                                product.farmerName,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey,
+                                                  fontWeight: FontWeight.w500,
+                                                  decoration: TextDecoration.underline,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              // Farmer Rating
+                                              FutureBuilder<Map<String, dynamic>>(
+                                                future: ReviewService.getFarmerRatingStats(product.farmerId),
+                                                builder: (context, snapshot) {
+                                                  if (!snapshot.hasData) return const SizedBox.shrink();
+                                                  final rating = snapshot.data?['averageRating'] ?? 0.0;
+                                                  if (rating == 0.0) return const SizedBox.shrink();
+                                                  return Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.star, size: 12, color: Colors.amber),
+                                                      const SizedBox(width: 2),
+                                                      Text(
+                                                        rating.toStringAsFixed(1),
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          color: Colors.grey,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              ),
+                                            ],
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],

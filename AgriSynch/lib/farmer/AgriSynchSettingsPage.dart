@@ -8,6 +8,8 @@ import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
 import '../shared/theme_helper.dart';
 import '../shared/feedback_service.dart';
+import '../services/review_service.dart';
+import '../shared/farmer_reviews_page.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -450,6 +452,105 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                         _infoRow("Name:", userName, textColor),
                         _infoRow("Email:", userEmail, textColor),
                         _infoRow("Role:", userRole, textColor),
+                        const SizedBox(height: 12),
+                        // Farmer Rating Display - Real-time from reviews
+                        StreamBuilder(
+                          stream: ReviewService.getFarmerReviewsStream(
+                            FirebaseAuth.instance.currentUser?.uid ?? ''
+                          ),
+                          builder: (context, snapshot) {
+                            // Calculate rating from reviews in real-time
+                            double rating = 0.0;
+                            int reviewCount = 0;
+                            
+                            if (snapshot.hasData && snapshot.data != null) {
+                              final reviews = snapshot.data!;
+                              reviewCount = reviews.length;
+                              
+                              if (reviews.isNotEmpty) {
+                                double totalRating = 0;
+                                for (var review in reviews) {
+                                  totalRating += review.rating;
+                                }
+                                rating = totalRating / reviews.length;
+                              }
+                            }
+                            
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFF4CAF50).withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Your Rating',
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.star, color: Colors.amber, size: 20),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            rating > 0 ? rating.toStringAsFixed(1) : 'No ratings yet',
+                                            style: TextStyle(
+                                              color: textColor,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          if (rating > 0) ...[
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '($reviewCount ${reviewCount == 1 ? 'review' : 'reviews'})',
+                                              style: TextStyle(
+                                                color: textColor.withOpacity(0.7),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => FarmerReviewsPage(
+                                            farmerId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                                            farmerName: userName,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'View Reviews',
+                                      style: TextStyle(
+                                        color: Color(0xFF4CAF50),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 16),
                         Column(
                           children: [
