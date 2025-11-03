@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../services/error_handler.dart';
 import '../models/order.dart';
 
 class AgriCustomersPage extends StatefulWidget {
@@ -21,12 +23,205 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   String sortBy = 'recent'; // recent, name, orders
   
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  // Pagination state
+  final int _pageSize = 50; // Load more orders since we group by customer
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  bool _isInitialLoading = true;
+  List<AppOrder> _allOrders = [];
+  Map<String, List<AppOrder>> _customerOrders = {};
 
   @override
   void initState() {
     super.initState();
     _loadTheme();
     _loadUnreadNotifications();
+    _loadInitialOrders();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData) {
+        _loadMoreOrders();
+      }
+    }
+  }
+
+  Future<void> _loadInitialOrders() async {
+    setState(() {
+      _isInitialLoading = true;
+      _allOrders = [];
+      _customerOrders = {};
+      _lastDocument = null;
+      _hasMoreData = true;
+    });
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (mounted) {
+          setState(() {
+            _isInitialLoading = false;
+          });
+        }
+        return;
+      }
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('farmerId', isEqualTo: currentUser.uid)
+          .orderBy('orderDate', descending: true)
+          .limit(_pageSize)
+          .get()
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw TimeoutException('Failed to load customers. Please check your connection.');
+            },
+          );
+
+      final orders = querySnapshot.docs
+          .map((doc) {
+            try {
+              return AppOrder.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing order ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<AppOrder>()
+          .toList();
+
+      if (!mounted) return;
+      
+      setState(() {
+        _allOrders = orders;
+        _customerOrders = _groupOrdersByCustomer(orders);
+        _lastDocument = querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null;
+        _hasMoreData = querySnapshot.docs.length >= _pageSize;
+        _isInitialLoading = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('AgriCustomersPage._loadInitialOrders', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isInitialLoading = false;
+      });
+
+      ErrorHandler.showErrorSnackBar(
+        context,
+        e,
+        customMessage: ErrorHandler.isNetworkError(e)
+            ? 'No internet connection. Cannot load customer data.'
+            : null,
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: _loadInitialOrders,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadMoreOrders() async {
+    if (_lastDocument == null || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (mounted) {
+          setState(() {
+            _isLoadingMore = false;
+          });
+        }
+        return;
+      }
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('farmerId', isEqualTo: currentUser.uid)
+          .orderBy('orderDate', descending: true)
+          .startAfterDocument(_lastDocument!)
+          .limit(_pageSize)
+          .get()
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw TimeoutException('Failed to load more customers. Please check your connection.');
+            },
+          );
+
+      final newOrders = querySnapshot.docs
+          .map((doc) {
+            try {
+              return AppOrder.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing order ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<AppOrder>()
+          .toList();
+
+      if (!mounted) return;
+      
+      setState(() {
+        _allOrders.addAll(newOrders);
+        _customerOrders = _groupOrdersByCustomer(_allOrders);
+        _lastDocument = querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null;
+        _hasMoreData = querySnapshot.docs.length >= _pageSize;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('AgriCustomersPage._loadMoreOrders', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoadingMore = false;
+      });
+
+      if (ErrorHandler.shouldRetry(e)) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          customMessage: 'Failed to load more customers',
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _loadMoreOrders,
+          ),
+        );
+      }
+    }
+  }
+
+  Map<String, List<AppOrder>> _groupOrdersByCustomer(List<AppOrder> orders) {
+    Map<String, List<AppOrder>> grouped = {};
+    for (var order in orders) {
+      if (!grouped.containsKey(order.buyerId)) {
+        grouped[order.buyerId] = [];
+      }
+      grouped[order.buyerId]!.add(order);
+    }
+    return grouped;
   }
 
   Future<void> _loadTheme() async {
@@ -48,6 +243,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           // Header as SliverAppBar
           SliverAppBar(
@@ -215,140 +411,130 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
           ),
 
           // Customer list
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('orders')
-                .where('farmerId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+          _buildCustomerList(),
+        ],
+      ),
+    );
+  }
 
-              if (snapshot.hasError) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 8),
-                        Text('Error: ${snapshot.error}'),
-                      ],
-                    ),
+  Widget _buildCustomerList() {
+    if (_isInitialLoading) {
+      return const SliverFillRemaining(
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+          ),
+        ),
+      );
+    }
+
+    if (_customerOrders.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.people_outline,
+                size: 80,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No customers yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Customers will appear here after they place orders',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Convert to CustomerData list
+    var customers = _customerOrders.entries.map((entry) {
+      return CustomerData(
+        id: entry.key,
+        name: entry.value.first.buyerName,
+        orders: entry.value,
+      );
+    }).toList();
+
+    // Filter by search
+    if (searchQuery.isNotEmpty) {
+      customers = customers.where((customer) {
+        return customer.name.toLowerCase().contains(searchQuery);
+      }).toList();
+    }
+
+    // Sort customers
+    _sortCustomers(customers);
+
+    if (customers.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 80,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No customers found',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          // Add loading indicator at bottom
+          if (index == customers.length) {
+            if (_isLoadingMore) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
                   ),
-                );
-              }
-
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No customers yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Customers will appear here after they place orders',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              // Group orders by customer
-              final Map<String, CustomerData> customerMap = {};
-              
-              for (var doc in snapshot.data!.docs) {
-                final order = AppOrder.fromFirestore(doc);
-                
-                if (!customerMap.containsKey(order.buyerId)) {
-                  customerMap[order.buyerId] = CustomerData(
-                    id: order.buyerId,
-                    name: order.buyerName,
-                    orders: [],
-                  );
-                }
-                
-                customerMap[order.buyerId]!.orders.add(order);
-              }
-
-              // Convert to list and filter by search
-              var customers = customerMap.values.toList();
-              
-              if (searchQuery.isNotEmpty) {
-                customers = customers.where((customer) {
-                  return customer.name.toLowerCase().contains(searchQuery);
-                }).toList();
-              }
-
-              // Sort customers
-              _sortCustomers(customers);
-
-              if (customers.isEmpty) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No customers found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        index == 0 ? 0 : 0,
-                        16,
-                        index == customers.length - 1 ? 16 : 0,
-                      ),
-                      child: _buildCustomerCard(customers[index]),
-                    );
-                  },
-                  childCount: customers.length,
                 ),
               );
-            },
-          ),
-        ],
+            }
+            return const SizedBox.shrink();
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              index == 0 ? 0 : 0,
+              16,
+              index == customers.length - 1 ? 16 : 0,
+            ),
+            child: _buildCustomerCard(customers[index]),
+          );
+        },
+        childCount: customers.length + (_isLoadingMore ? 1 : 0),
       ),
     );
   }

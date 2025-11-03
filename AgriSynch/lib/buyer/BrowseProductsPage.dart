@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../services/error_handler.dart';
 import '../shared/theme_helper.dart';
 import 'ShoppingCartPage.dart';
 
@@ -25,6 +26,15 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   late String selectedCategory;
   List<String> favoriteProducts = [];
   List<Map<String, dynamic>> cart = [];
+  
+  // Pagination
+  final int _pageSize = 20;
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  bool _isInitialLoading = true;
+  List<Product> _allProducts = [];
+  final ScrollController _scrollController = ScrollController();
   
   // New filter states
   String selectedLocation = 'All';
@@ -56,6 +66,116 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     loadTheme();
     loadFavorites();
     loadCart();
+    _loadInitialProducts();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData) {
+        _loadMoreProducts();
+      }
+    }
+  }
+
+  Future<void> _loadInitialProducts() async {
+    setState(() {
+      _isInitialLoading = true;
+      _allProducts = [];
+      _lastDocument = null;
+      _hasMoreData = true;
+    });
+
+    try {
+      final result = await _productService.getProductsPaginated(
+        limit: _pageSize,
+        category: selectedCategory == 'All' ? null : selectedCategory,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _allProducts = result['products'] as List<Product>;
+        _lastDocument = result['lastDocument'] as DocumentSnapshot?;
+        _hasMoreData = result['hasMore'] as bool;
+        _isInitialLoading = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('BrowseProductsPage._loadInitialProducts', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isInitialLoading = false;
+      });
+
+      ErrorHandler.showErrorSnackBar(
+        context,
+        e,
+        customMessage: ErrorHandler.isNetworkError(e)
+            ? 'No internet connection. Please check your network.'
+            : null,
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: _loadInitialProducts,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_lastDocument == null || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final result = await _productService.getMoreProducts(
+        lastDocument: _lastDocument!,
+        limit: _pageSize,
+        category: selectedCategory == 'All' ? null : selectedCategory,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _allProducts.addAll(result['products'] as List<Product>);
+        _lastDocument = result['lastDocument'] as DocumentSnapshot?;
+        _hasMoreData = result['hasMore'] as bool;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('BrowseProductsPage._loadMoreProducts', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoadingMore = false;
+      });
+
+      if (ErrorHandler.shouldRetry(e)) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          customMessage: 'Failed to load more products',
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _loadMoreProducts,
+          ),
+        );
+      } else {
+        ErrorHandler.showErrorSnackBar(context, e);
+      }
+    }
   }
 
   Future<void> loadTheme() async {
@@ -142,65 +262,83 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   }
 
   Future<void> addToCart(Product product) async {
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    // Check if product already in cart
-    final existingIndex = cart.indexWhere(
-      (item) => item['id'] == product.id,
-    );
-
-    setState(() {
-      if (existingIndex >= 0) {
-        // Increase quantity
-        cart[existingIndex]['quantity'] =
-            (cart[existingIndex]['quantity'] ?? 1) + 1;
-      } else {
-        // Add new item
-        cart.add({
-          'id': product.id,
-          'name': product.name,
-          'price': product.price,
-          'unit': product.unit,
-          'category': product.category,
-          'farmer': product.farmerName,
-          'farmerId': product.farmerId,
-          'location': product.location,
-          'quantity': 1,
-          'dateAdded': DateTime.now().toIso8601String(),
-        });
-      }
-    });
-
-    // Save to SharedPreferences
-    await prefs.setString('buyer_cart', json.encode(cart));
-    
-    // Save to Firestore
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser.uid)
-            .collection('cart')
-            .doc('items')
-            .set({
-              'items': cart,
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-      } catch (e) {
-        print('Error saving cart to Firestore: $e');
-        // Continue anyway - local storage is saved
-      }
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Added to cart!'),
-          backgroundColor: Color(0xFF4CAF50),
-          duration: Duration(seconds: 1),
-        ),
+      // Check if product already in cart
+      final existingIndex = cart.indexWhere(
+        (item) => item['id'] == product.id,
       );
+
+      setState(() {
+        if (existingIndex >= 0) {
+          // Increase quantity
+          cart[existingIndex]['quantity'] =
+              (cart[existingIndex]['quantity'] ?? 1) + 1;
+        } else {
+          // Add new item
+          cart.add({
+            'id': product.id,
+            'name': product.name,
+            'price': product.price,
+            'unit': product.unit,
+            'category': product.category,
+            'farmer': product.farmerName,
+            'farmerId': product.farmerId,
+            'location': product.location,
+            'quantity': 1,
+            'dateAdded': DateTime.now().toIso8601String(),
+          });
+        }
+      });
+
+      // Save to SharedPreferences
+      await prefs.setString('buyer_cart', json.encode(cart));
+      
+      // Save to Firestore
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.uid)
+              .collection('cart')
+              .doc('items')
+              .set({
+                'items': cart,
+                'updatedAt': FieldValue.serverTimestamp(),
+              }).timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  print('Firestore cart sync timed out - local cart saved');
+                },
+              );
+        } catch (e) {
+          ErrorHandler.logError('addToCart - Firestore sync', e);
+          // Continue anyway - local storage is saved
+        }
+      }
+
+      if (mounted) {
+        ErrorHandler.showSuccessSnackBar(context, 'Added to cart!',
+          duration: const Duration(seconds: 1),
+        );
+      }
+    } catch (e) {
+      ErrorHandler.logError('addToCart', e);
+      
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          customMessage: 'Failed to add item to cart',
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: () => addToCart(product),
+          ),
+        );
+      }
     }
   }
 
@@ -360,7 +498,10 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             label: Text(category),
                             selected: isSelected,
                             onSelected: (selected) {
-                              setState(() => selectedCategory = category);
+                              setState(() {
+                                selectedCategory = category;
+                              });
+                              _loadInitialProducts(); // Reload products when category changes
                             },
                             backgroundColor: Colors.white.withOpacity(0.85),
                             selectedColor: Colors.white,
@@ -417,78 +558,75 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
             ),
           ),
 
-          // Products Grid - StreamBuilder for real-time data
+          // Products Grid - Paginated data
           Expanded(
-            child: StreamBuilder<List<Product>>(
-              stream: selectedCategory == 'All'
-                  ? _productService.getAllProducts()
-                  : _productService.getProductsByCategory(selectedCategory),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: _isInitialLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildProductGrid(),
+          ),
+        ],
+      ),
+    );
+  }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text('Error loading products: ${snapshot.error}'),
-                      ],
-                    ),
-                  );
-                }
+  Widget _buildProductGrid() {
+    // Apply all filters and sorting
+    List<Product> filteredProducts = filterAndSortProducts(_allProducts);
 
-                List<Product> products = snapshot.data ?? [];
+    if (filteredProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              searchQuery.isNotEmpty
+                  ? 'No products found for "$searchQuery"'
+                  : 'No products available',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check back later for new products',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-                // Apply all filters and sorting
-                products = filterAndSortProducts(products);
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: filteredProducts.length + (_isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        // Loading indicator at the end
+        if (index == filteredProducts.length) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-                if (products.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          searchQuery.isNotEmpty
-                              ? 'No products found for "$searchQuery"'
-                              : 'No products available',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Check back later for new products',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    final isFavorite = favoriteProducts.contains(product.id);
+        final product = filteredProducts[index];
+        final isFavorite = favoriteProducts.contains(product.id);
 
                     return Card(
                       elevation: 2,
@@ -645,12 +783,6 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     );
                   },
                 );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Color _getCategoryColor(String category) {

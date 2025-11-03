@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart' show AppOrder;
@@ -78,5 +79,227 @@ class OrderService {
   Future<void> updateOrder(String orderId, Map<String, dynamic> updates) async {
     updates['updatedAt'] = FieldValue.serverTimestamp();
     await _firestore.collection('orders').doc(orderId).update(updates);
+  }
+
+  // PAGINATION METHODS FOR ORDERS
+
+  /// Get paginated buyer orders (initial load)
+  Future<Map<String, dynamic>> getBuyerOrdersPaginated({
+    int limit = 20,
+    String? statusFilter,
+  }) async {
+    try {
+      if (currentUserId == null) {
+        return {
+          'orders': <AppOrder>[],
+          'lastDocument': null,
+          'hasMore': false,
+        };
+      }
+
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('orders')
+          .where('buyerId', isEqualTo: currentUserId)
+          .orderBy('orderDate', descending: true)
+          .limit(limit);
+
+      if (statusFilter != null && statusFilter != 'All') {
+        query = query.where('status', isEqualTo: statusFilter.toLowerCase());
+      }
+
+      final snapshot = await query.get().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Failed to load orders. Please check your connection.');
+        },
+      );
+      
+      final orders = snapshot.docs
+          .map((doc) {
+            try {
+              return AppOrder.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing order ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<AppOrder>()
+          .toList();
+
+      return {
+        'orders': orders,
+        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        'hasMore': snapshot.docs.length == limit,
+      };
+    } catch (e) {
+      print('Error in getBuyerOrdersPaginated: $e');
+      rethrow;
+    }
+  }
+
+  /// Get next page of buyer orders
+  Future<Map<String, dynamic>> getMoreBuyerOrders({
+    required DocumentSnapshot lastDocument,
+    int limit = 20,
+    String? statusFilter,
+  }) async {
+    try {
+      if (currentUserId == null) {
+        return {
+          'orders': <AppOrder>[],
+          'lastDocument': null,
+          'hasMore': false,
+        };
+      }
+
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('orders')
+          .where('buyerId', isEqualTo: currentUserId)
+          .orderBy('orderDate', descending: true)
+          .startAfterDocument(lastDocument)
+          .limit(limit);
+
+      if (statusFilter != null && statusFilter != 'All') {
+        query = query.where('status', isEqualTo: statusFilter.toLowerCase());
+      }
+
+      final snapshot = await query.get().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Failed to load more orders. Please check your connection.');
+        },
+      );
+      
+      final orders = snapshot.docs
+          .map((doc) {
+            try {
+              return AppOrder.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing order ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<AppOrder>()
+          .toList();
+
+      return {
+        'orders': orders,
+        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        'hasMore': snapshot.docs.length == limit,
+      };
+    } catch (e) {
+      print('Error in getMoreBuyerOrders: $e');
+      rethrow;
+    }
+  }
+
+  /// Get paginated farmer orders (initial load)
+  Future<Map<String, dynamic>> getFarmerOrdersPaginated({
+    int limit = 20,
+    String? statusFilter,
+  }) async {
+    try {
+      if (currentUserId == null) {
+        return {
+          'orders': <AppOrder>[],
+          'lastDocument': null,
+          'hasMore': false,
+        };
+      }
+
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('orders')
+          .where('farmerId', isEqualTo: currentUserId)
+          .orderBy('orderDate', descending: true)
+          .limit(limit);
+
+      if (statusFilter != null && statusFilter != 'All') {
+        query = query.where('status', isEqualTo: statusFilter.toLowerCase());
+      }
+
+      final snapshot = await query.get().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Failed to load orders. Please check your connection.');
+        },
+      );
+      
+      final orders = snapshot.docs
+          .map((doc) {
+            try {
+              return AppOrder.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing order ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<AppOrder>()
+          .toList();
+
+      return {
+        'orders': orders,
+        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        'hasMore': snapshot.docs.length == limit,
+      };
+    } catch (e) {
+      print('Error in getFarmerOrdersPaginated: $e');
+      rethrow;
+    }
+  }
+
+  /// Get next page of farmer orders
+  Future<Map<String, dynamic>> getMoreFarmerOrders({
+    required DocumentSnapshot lastDocument,
+    int limit = 20,
+    String? statusFilter,
+  }) async {
+    try {
+      if (currentUserId == null) {
+        return {
+          'orders': <AppOrder>[],
+          'lastDocument': null,
+          'hasMore': false,
+        };
+      }
+
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('orders')
+          .where('farmerId', isEqualTo: currentUserId)
+          .orderBy('orderDate', descending: true)
+          .startAfterDocument(lastDocument)
+          .limit(limit);
+
+      if (statusFilter != null && statusFilter != 'All') {
+        query = query.where('status', isEqualTo: statusFilter.toLowerCase());
+      }
+
+      final snapshot = await query.get().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Failed to load more orders. Please check your connection.');
+        },
+      );
+      
+      final orders = snapshot.docs
+          .map((doc) {
+            try {
+              return AppOrder.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing order ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<AppOrder>()
+          .toList();
+
+      return {
+        'orders': orders,
+        'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        'hasMore': snapshot.docs.length == limit,
+      };
+    } catch (e) {
+      print('Error in getMoreFarmerOrders: $e');
+      rethrow;
+    }
   }
 }

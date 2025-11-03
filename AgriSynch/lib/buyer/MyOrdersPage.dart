@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../services/order_service.dart';
+import '../services/error_handler.dart';
 import '../models/order.dart';
 
 class MyOrdersPage extends StatefulWidget {
@@ -19,6 +21,15 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   List<Map<String, dynamic>> legacyOrders = []; // Legacy orders from SharedPreferences
   String selectedFilter = 'All';
 
+  // Pagination
+  final int _pageSize = 20;
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  bool _isInitialLoading = true;
+  List<AppOrder> _firestoreOrders = [];
+  final ScrollController _scrollController = ScrollController();
+
   final List<String> orderFilters = [
     'All',
     'Pending',
@@ -33,6 +44,114 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     super.initState();
     loadTheme();
     _loadLegacyOrders();
+    _loadInitialOrders();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData) {
+        _loadMoreOrders();
+      }
+    }
+  }
+
+  Future<void> _loadInitialOrders() async {
+    setState(() {
+      _isInitialLoading = true;
+      _firestoreOrders = [];
+      _lastDocument = null;
+      _hasMoreData = true;
+    });
+
+    try {
+      final result = await _orderService.getBuyerOrdersPaginated(
+        limit: _pageSize,
+        statusFilter: selectedFilter == 'All' ? null : selectedFilter,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _firestoreOrders = result['orders'] as List<AppOrder>;
+        _lastDocument = result['lastDocument'] as DocumentSnapshot?;
+        _hasMoreData = result['hasMore'] as bool;
+        _isInitialLoading = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('MyOrdersPage._loadInitialOrders', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isInitialLoading = false;
+      });
+
+      ErrorHandler.showErrorSnackBar(
+        context,
+        e,
+        customMessage: ErrorHandler.isNetworkError(e)
+            ? 'No internet connection. Showing offline orders only.'
+            : null,
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: _loadInitialOrders,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadMoreOrders() async {
+    if (_lastDocument == null || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final result = await _orderService.getMoreBuyerOrders(
+        lastDocument: _lastDocument!,
+        limit: _pageSize,
+        statusFilter: selectedFilter == 'All' ? null : selectedFilter,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _firestoreOrders.addAll(result['orders'] as List<AppOrder>);
+        _lastDocument = result['lastDocument'] as DocumentSnapshot?;
+        _hasMoreData = result['hasMore'] as bool;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('MyOrdersPage._loadMoreOrders', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoadingMore = false;
+      });
+
+      if (ErrorHandler.shouldRetry(e)) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          customMessage: 'Failed to load more orders',
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _loadMoreOrders,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> loadTheme() async {
@@ -371,15 +490,63 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: StreamBuilder<List<AppOrder>>(
-        stream: _orderService.getMyBuyerOrders(),
-        builder: (context, snapshot) {
-          // Combine Firestore and legacy orders
-          final firestoreOrders = snapshot.data ?? [];
-          final allOrders = _buildCombinedOrderList(firestoreOrders);
-          final filteredOrders = getFilteredOrders(allOrders);
+      body: _buildOrdersView(backgroundColor, headerColor, cardColor, textColor),
+    );
+  }
 
-          return Column(
+  Widget _buildOrdersView(Color backgroundColor, Color headerColor, Color cardColor, Color textColor) {
+    if (_isInitialLoading) {
+      return Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: headerColor,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
+              ),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                ),
+                const Expanded(
+                  child: Text(
+                    'My Orders',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 24,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(width: 48),
+              ],
+            ),
+          ),
+          const Expanded(
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Combine Firestore and legacy orders
+    final allOrders = _buildCombinedOrderList(_firestoreOrders);
+    final filteredOrders = getFilteredOrders(allOrders);
+
+    return Column(
             children: [
               // Header
               Container(
@@ -443,6 +610,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                             setState(() {
                               selectedFilter = filter;
                             });
+                            _loadInitialOrders(); // Reload with new filter
                           },
                           backgroundColor: cardColor,
                           selectedColor: const Color(0xFF4CAF50),
@@ -493,9 +661,22 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                     ),
                   )
                 : ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: filteredOrders.length,
+                    itemCount: filteredOrders.length + (_isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      // Loading indicator at bottom
+                      if (index == filteredOrders.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                            ),
+                          ),
+                        );
+                      }
+
                       final order = filteredOrders[index];
                       final itemCount = order['items'].length;
                       final isFirestore = order['isFirestore'] == true;
@@ -653,9 +834,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               ),
             ],
           );
-        },
-      ),
-    );
   }
 
   IconData _getProductIcon(String category) {

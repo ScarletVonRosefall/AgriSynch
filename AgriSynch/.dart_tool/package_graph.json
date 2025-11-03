@@ -13,6 +13,7 @@
         "firebase_analytics",
         "firebase_auth",
         "firebase_core",
+        "firebase_crashlytics",
         "firebase_messaging",
         "firebase_storage",
         "fl_chart",
@@ -82,6 +83,17 @@
         "firebase_core",
         "firebase_core_platform_interface",
         "flutter"
+      ]
+    },
+    {
+      "name": "firebase_crashlytics",
+      "version": "4.3.10",
+      "dependencies": [
+        "firebase_core",
+        "firebase_core_platform_interface",
+        "firebase_crashlytics_platform_interface",
+        "flutter",
+        "stack_trace"
       ]
     },
     {
@@ -394,6 +406,18 @@
       "version": "4.4.3",
       "dependencies": [
         "_flutterfire_internals",
+        "firebase_core",
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "firebase_crashlytics_platform_interface",
+      "version": "3.8.10",
+      "dependencies": [
+        "_flutterfire_internals",
+        "collection",
         "firebase_core",
         "flutter",
         "meta",

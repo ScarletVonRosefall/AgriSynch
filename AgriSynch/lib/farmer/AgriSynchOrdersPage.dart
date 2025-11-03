@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import '../services/finance_service.dart';
 import '../services/order_service.dart';
+import '../services/error_handler.dart';
 import '../models/order.dart';
 
 class AgriSynchOrdersPage extends StatefulWidget {
@@ -28,6 +30,15 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   String _searchTerm = '';
   String _sortOption = 'Date (Newest First)';
 
+  // Pagination state
+  final int _pageSize = 20;
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  bool _isInitialLoading = true;
+  List<AppOrder> _firestoreOrders = [];
+  final ScrollController _scrollController = ScrollController();
+
   // Initialize the orders page when widget is first created
   @override
   void initState() {
@@ -35,6 +46,115 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     _loadOrders();
     _loadTheme();
     _loadUnreadNotifications();
+    _loadInitialOrders();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData) {
+        _loadMoreOrders();
+      }
+    }
+  }
+
+  Future<void> _loadInitialOrders() async {
+    setState(() {
+      _isInitialLoading = true;
+      _firestoreOrders = [];
+      _lastDocument = null;
+      _hasMoreData = true;
+    });
+
+    try {
+      final result = await _orderService.getFarmerOrdersPaginated(
+        limit: _pageSize,
+        statusFilter: _selectedStatusFilter == 'All' ? null : _selectedStatusFilter,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _firestoreOrders = result['orders'] as List<AppOrder>;
+        _lastDocument = result['lastDocument'] as DocumentSnapshot?;
+        _hasMoreData = result['hasMore'] as bool;
+        _isInitialLoading = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('AgriSynchOrdersPage._loadInitialOrders', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isInitialLoading = false;
+      });
+
+      ErrorHandler.showErrorSnackBar(
+        context,
+        e,
+        customMessage: ErrorHandler.isNetworkError(e)
+            ? 'No internet connection. Showing offline orders only.'
+            : null,
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: _loadInitialOrders,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadMoreOrders() async {
+    if (_lastDocument == null || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final result = await _orderService.getMoreFarmerOrders(
+        lastDocument: _lastDocument!,
+        limit: _pageSize,
+        statusFilter: _selectedStatusFilter == 'All' ? null : _selectedStatusFilter,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _firestoreOrders.addAll(result['orders'] as List<AppOrder>);
+        _lastDocument = result['lastDocument'] as DocumentSnapshot?;
+        _hasMoreData = result['hasMore'] as bool;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      ErrorHandler.logError('AgriSynchOrdersPage._loadMoreOrders', e);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoadingMore = false;
+      });
+
+      if (ErrorHandler.shouldRetry(e)) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          customMessage: 'Failed to load more orders',
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _loadMoreOrders,
+          ),
+        );
+      }
+    }
   }
 
   // Load count of unread notifications
@@ -265,6 +385,19 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     return filtered;
   }
 
+  Widget _buildPaginatedOrderList() {
+    if (_isInitialLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+        ),
+      );
+    }
+
+    // Use the paginated Firestore orders instead of stream
+    return _buildCombinedOrderList(_firestoreOrders);
+  }
+
   // Build combined order list from Firestore and legacy SharedPreferences
   Widget _buildCombinedOrderList(List<AppOrder> firestoreOrders) {
     // Convert Firestore orders to map format for unified display
@@ -375,9 +508,22 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     }
 
     return ListView.builder(
-      itemCount: filtered.length,
+      controller: _scrollController,
+      itemCount: filtered.length + (_isLoadingMore ? 1 : 0),
       padding: const EdgeInsets.only(bottom: 20),
       itemBuilder: (context, index) {
+        // Loading indicator at bottom
+        if (index == filtered.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+              ),
+            ),
+          );
+        }
+
         final order = filtered[index];
         final date = DateTime.parse(order['orderDate'] ?? order['date']);
         final isFirestoreOrder = order['isFirestore'] == true;
@@ -675,25 +821,27 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   
                   if (mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          selectedStatus == 'delivered'
-                              ? 'Order delivered! ₱${order.totalAmount.toStringAsFixed(2)} added to finances'
-                              : 'Order status updated to ${_capitalizeFirst(selectedStatus)}',
-                        ),
-                        backgroundColor: const Color(0xFF4CAF50),
-                        duration: const Duration(seconds: 3),
-                      ),
+                    ErrorHandler.showSuccessSnackBar(
+                      context,
+                      selectedStatus == 'delivered'
+                          ? 'Order delivered! ₱${order.totalAmount.toStringAsFixed(2)} added to finances'
+                          : 'Order status updated to ${_capitalizeFirst(selectedStatus)}',
+                      duration: const Duration(seconds: 3),
                     );
                   }
                 } catch (e) {
+                  ErrorHandler.logError('updateOrderStatus', e);
+                  
                   if (mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error updating status: $e'),
-                        backgroundColor: Colors.red,
+                    ErrorHandler.showErrorSnackBar(
+                      context,
+                      e,
+                      customMessage: 'Failed to update order status',
+                      action: SnackBarAction(
+                        label: 'Retry',
+                        textColor: Colors.white,
+                        onPressed: () => _showUpdateStatusDialog(orderId),
                       ),
                     );
                   }
@@ -821,36 +969,10 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     const SizedBox(height: 12),
                     _buildOrdersHeader(),
                     const SizedBox(height: 8),
-                    // Orders List - Using StreamBuilder for real-time Firestore orders
+                    // Orders List - Using pagination for performance
                     SizedBox(
                       height: 400, // Fixed height for orders list
-                      child: StreamBuilder<List<AppOrder>>(
-                        stream: _orderService.getMyFarmerOrders(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-
-                          if (snapshot.hasError) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                                  const SizedBox(height: 8),
-                                  Text('Error loading orders: ${snapshot.error}'),
-                                ],
-                              ),
-                            );
-                          }
-
-                          // Get Firestore orders
-                          final firestoreOrders = snapshot.data ?? [];
-                          
-                          // Combine with legacy SharedPreferences orders
-                          return _buildCombinedOrderList(firestoreOrders);
-                        },
-                      ),
+                      child: _buildPaginatedOrderList(),
                     ),
                     const SizedBox(height: 20), // Bottom padding
                   ],
@@ -986,6 +1108,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       setState(() {
                         _selectedStatusFilter = value!;
                       });
+                      _loadInitialOrders(); // Reload with new filter
                     },
                   ),
                 ),

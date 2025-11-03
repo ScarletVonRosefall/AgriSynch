@@ -1,7 +1,10 @@
 // lib/main.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'firebase_options.dart';
+import 'services/error_handler.dart';
 import 'AgriSynch.dart'; // Import for bottom navigation
 import 'auth/AgriSynchLogin.dart';
 import 'buyer/AgriSynchBuyerHomePage.dart'; // Import the Buyer Page
@@ -29,7 +32,19 @@ import 'auth/AgriSynchSignUp.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize Crashlytics
+  await ErrorHandler.initializeCrashlytics();
+  
+  // Pass all uncaught asynchronous errors to Crashlytics
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+  
   runApp(const AgriSynchApp());
 }
 
