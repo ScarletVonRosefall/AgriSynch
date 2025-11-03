@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -418,33 +419,41 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               Container(
                 height: 60,
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: orderFilters.length,
-                  itemBuilder: (context, index) {
-                    final filter = orderFilters[index];
-                    final isSelected = selectedFilter == filter;
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {
+                      PointerDeviceKind.touch,
+                      PointerDeviceKind.mouse,
+                    },
+                  ),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: orderFilters.length,
+                    itemBuilder: (context, index) {
+                      final filter = orderFilters[index];
+                      final isSelected = selectedFilter == filter;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(filter),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedFilter = filter;
-                          });
-                        },
-                        backgroundColor: cardColor,
-                        selectedColor: const Color(0xFF4CAF50),
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : textColor,
-                          fontFamily: 'Poppins',
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(filter),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              selectedFilter = filter;
+                            });
+                          },
+                          backgroundColor: cardColor,
+                          selectedColor: const Color(0xFF4CAF50),
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : textColor,
+                            fontFamily: 'Poppins',
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
 

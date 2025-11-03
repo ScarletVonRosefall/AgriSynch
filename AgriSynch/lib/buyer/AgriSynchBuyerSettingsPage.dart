@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
@@ -770,11 +771,33 @@ class _AgriSynchBuyerSettingsPageState
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil('/login', (route) => false);
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              
+              try {
+                // Sign out from Firebase
+                await FirebaseAuth.instance.signOut();
+                
+                // Clear local data
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+                
+                if (!mounted) return;
+                
+                // Navigate to root (AuthWrapper) and clear all navigation history
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/',
+                  (route) => false,
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error logging out. Please try again.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: const Text("Logout", style: TextStyle(color: Colors.red)),
           ),

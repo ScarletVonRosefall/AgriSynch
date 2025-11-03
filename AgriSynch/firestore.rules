@@ -2,81 +2,207 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user is authenticated
+    // ==================== HELPER FUNCTIONS ====================
+    
+    // Check if user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Products collection - farmers can write, everyone can read available products
+    // Check if user owns the resource
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Validate string field is not empty and within length limit
+    function isValidString(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength;
+    }
+    
+    // Validate number is positive
+    function isPositiveNumber(value) {
+      return value is number && value > 0;
+    }
+    
+    // Validate price (positive and reasonable)
+    function isValidPrice(price) {
+      return price is number && price > 0 && price <= 1000000;
+    }
+    
+    // Validate quantity (positive integer)
+    function isValidQuantity(qty) {
+      return qty is int && qty > 0 && qty <= 100000;
+    }
+    
+    // Validate order status
+    function isValidOrderStatus(status) {
+      return status in ['pending', 'confirmed', 'preparing', 'delivering', 'delivered', 'cancelled'];
+    }
+    
+    // ==================== PRODUCTS COLLECTION ====================
+    
     match /products/{productId} {
-      allow read: if isSignedIn(); // All authenticated users can browse products
-      allow create: if isSignedIn() && request.resource.data.farmerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.farmerId == request.auth.uid;
-    }
-    
-    // Orders collection - buyers create, both buyer and farmer can read their orders
-    match /orders/{orderId} {
-      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
-      allow read: if isSignedIn() && 
-                     (resource.data.buyerId == request.auth.uid || 
-                      resource.data.farmerId == request.auth.uid);
-      allow update: if isSignedIn() && resource.data.farmerId == request.auth.uid; // Only farmers can update order status
-      allow delete: if isSignedIn() && resource.data.buyerId == request.auth.uid && 
-                       resource.data.status == 'pending'; // Only buyers can cancel pending orders
-    }
-    
-    // Users collection and subcollections (from your old rules)
-    match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // Anyone authenticated can browse products
+      allow read: if isSignedIn();
       
-      // Tasks subcollection rules
+      // Only farmers can create products with their own farmerId
+      allow create: if isSignedIn() 
+        && request.resource.data.farmerId == request.auth.uid
+        && isValidString(request.resource.data.name, 100)
+        && isValidString(request.resource.data.category, 50)
+        && isValidPrice(request.resource.data.price)
+        && isValidQuantity(request.resource.data.stockQuantity)
+        && isValidString(request.resource.data.unit, 20)
+        && request.resource.data.available is bool
+        && request.resource.data.createdAt is timestamp;
+      
+      // Only the farmer who created can update their product
+      allow update: if isSignedIn() 
+        && resource.data.farmerId == request.auth.uid
+        && request.resource.data.farmerId == request.auth.uid // Prevent farmerId change
+        && isValidString(request.resource.data.name, 100)
+        && isValidPrice(request.resource.data.price)
+        && isValidQuantity(request.resource.data.stockQuantity)
+        && request.resource.data.available is bool;
+      
+      // Only the farmer who created can delete their product
+      allow delete: if isSignedIn() && resource.data.farmerId == request.auth.uid;
+    }
+    
+    // ==================== ORDERS COLLECTION ====================
+    
+    match /orders/{orderId} {
+      // Buyers create orders
+      allow create: if isSignedIn() 
+        && request.resource.data.buyerId == request.auth.uid
+        && isValidString(request.resource.data.buyerName, 100)
+        && isValidString(request.resource.data.farmerId, 50)
+        && isValidString(request.resource.data.farmerName, 100)
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 50 // Max 50 items per order
+        && isPositiveNumber(request.resource.data.totalAmount)
+        && request.resource.data.totalAmount <= 1000000 // Max order value
+        && isValidOrderStatus(request.resource.data.status)
+        && request.resource.data.orderDate is timestamp;
+      
+      // Both buyer and farmer can read their orders
+      allow read: if isSignedIn() && 
+        (resource.data.buyerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid);
+      
+      // Only farmers can update order status (not buyer or total amount)
+      allow update: if isSignedIn() 
+        && resource.data.farmerId == request.auth.uid
+        && request.resource.data.buyerId == resource.data.buyerId // Prevent buyer change
+        && request.resource.data.farmerId == resource.data.farmerId // Prevent farmer change
+        && request.resource.data.totalAmount == resource.data.totalAmount // Prevent price change
+        && isValidOrderStatus(request.resource.data.status);
+      
+      // Only buyers can cancel pending orders
+      allow delete: if isSignedIn() 
+        && resource.data.buyerId == request.auth.uid 
+        && resource.data.status == 'pending';
+    }
+    
+    // ==================== USERS COLLECTION ====================
+    
+    match /users/{userId} {
+      // Users can read and write their own profile
+      allow read, write: if isOwner(userId);
+      
+      // Prevent users from changing their email to another user's email
+      allow update: if isOwner(userId) 
+        && (!request.resource.data.keys().hasAny(['email']) 
+            || request.resource.data.email == request.auth.token.email);
+      
+      // ========== TASKS SUBCOLLECTION ==========
       match /tasks/{taskId} {
-        allow create: if isSignedIn() 
-          && request.auth.uid == userId
+        allow create: if isOwner(userId)
           && request.resource.data.createdAt is timestamp
           && request.resource.data.updatedAt is timestamp
-          && request.resource.data.title is string
-          && request.resource.data.description is string
+          && isValidString(request.resource.data.title, 200)
+          && isValidString(request.resource.data.description, 1000)
           && request.resource.data.dueDate is timestamp
-          && request.resource.data.priority is string
+          && request.resource.data.priority in ['low', 'medium', 'high']
           && request.resource.data.completed is bool;
         
-        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isOwner(userId);
         
-        allow update: if isSignedIn() 
-          && request.auth.uid == userId
-          && request.resource.data.updatedAt is timestamp;
+        allow update: if isOwner(userId)
+          && request.resource.data.updatedAt is timestamp
+          && isValidString(request.resource.data.title, 200)
+          && request.resource.data.completed is bool;
           
-        allow delete: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isOwner(userId);
+      }
+      
+      // ========== TRANSACTIONS SUBCOLLECTION (FINANCES) ==========
+      match /transactions/{transactionId} {
+        allow create: if isOwner(userId)
+          && request.resource.data.type in ['income', 'expense']
+          && isValidString(request.resource.data.category, 50)
+          && isPositiveNumber(request.resource.data.amount)
+          && request.resource.data.amount <= 10000000 // Max transaction amount
+          && isValidString(request.resource.data.description, 500)
+          && request.resource.data.date is string; // ISO date string
+        
+        allow read: if isOwner(userId);
+        
+        allow update: if isOwner(userId)
+          && request.resource.data.type in ['income', 'expense']
+          && isPositiveNumber(request.resource.data.amount)
+          && request.resource.data.amount <= 10000000;
+        
+        allow delete: if isOwner(userId);
+      }
+      
+      // ========== SHOPPING CART SUBCOLLECTION ==========
+      match /cart/{cartId} {
+        // Users can read and write their own cart
+        allow read, write: if isOwner(userId);
       }
     }
     
-    // Calendar events collection
+    // ==================== CALENDAR EVENTS ====================
+    
     match /calendar_events/{eventId} {
       allow create: if isSignedIn() 
         && request.resource.data.userId == request.auth.uid
+        && isValidString(request.resource.data.title, 200)
         && request.resource.data.createdAt is timestamp;
+      
       allow read, update, delete: if isSignedIn() 
         && resource.data.userId == request.auth.uid;
     }
     
     // Events collection (alternative calendar location)
     match /events/{eventId} {
-      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && isValidString(request.resource.data.title, 200);
+      
+      allow read, update, delete: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
     }
     
-    // Transactions collection (finances)
+    // ==================== LEGACY COLLECTIONS ====================
+    
+    // Top-level transactions collection (legacy - prefer users/{userId}/transactions)
     match /transactions/{transactionId} {
-      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, write: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.userId == request.auth.uid;
     }
     
-    // Pre-registration collection
+    // ==================== PUBLIC COLLECTIONS ====================
+    
+    // Pre-registration collection (public write, no read)
     match /pre_users/{docId} {
-      allow create: if true;
-      allow delete: if true;
-      allow read: if false;
+      allow create: if isValidString(request.resource.data.email, 100);
+      allow delete: if true; // Allow cleanup
+      allow read: if false; // Keep emails private
     }
   }
 }

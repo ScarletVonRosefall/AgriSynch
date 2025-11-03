@@ -4,9 +4,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ImageUploadService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  // Try to use default instance first, will auto-detect bucket
+  late final FirebaseStorage _storage;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ImagePicker _picker = ImagePicker();
+
+  ImageUploadService() {
+    try {
+      // Try default instance first
+      _storage = FirebaseStorage.instance;
+    } catch (e) {
+      print('⚠️ Using default storage failed, trying with explicit bucket...');
+      // Fallback to explicit bucket
+      _storage = FirebaseStorage.instanceFor(
+        bucket: 'gs://agrisynch-a9350.appspot.com',
+      );
+    }
+  }
 
   String? get currentUserId => _auth.currentUser?.uid;
 
@@ -60,19 +74,39 @@ class ImageUploadService {
   /// Upload image to Firebase Storage
   Future<String?> uploadProductImage(XFile imageFile, String productId) async {
     if (currentUserId == null) {
-      print('Error: User not authenticated');
-      return null;
+      print('❌ Error: User not authenticated');
+      throw Exception('User not authenticated. Please login again.');
     }
 
     try {
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
       final String filePath = 'products/$currentUserId/$productId/$fileName';
       
+      print('📤 Starting upload to: $filePath');
+      
       final File file = File(imageFile.path);
+      
+      // Check if file exists
+      if (!await file.exists()) {
+        print('❌ Error: File does not exist at path: ${imageFile.path}');
+        throw Exception('Image file not found');
+      }
+      
       final Reference ref = _storage.ref().child(filePath);
       
-      // Upload file
-      final UploadTask uploadTask = ref.putFile(file);
+      // Upload file with metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'productId': productId},
+      );
+      
+      final UploadTask uploadTask = ref.putFile(file, metadata);
+      
+      // Monitor upload progress
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        print('📊 Upload progress: ${progress.toStringAsFixed(2)}%');
+      });
       
       // Wait for upload to complete
       final TaskSnapshot snapshot = await uploadTask;
@@ -82,9 +116,12 @@ class ImageUploadService {
       
       print('✅ Image uploaded successfully: $downloadUrl');
       return downloadUrl;
+    } on FirebaseException catch (e) {
+      print('❌ Firebase error uploading image: ${e.code} - ${e.message}');
+      throw Exception('Upload failed: ${e.message}');
     } catch (e) {
-      print('Error uploading image: $e');
-      return null;
+      print('❌ Error uploading image: $e');
+      throw Exception('Failed to upload image: $e');
     }
   }
 

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
-import 'dart:convert';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../models/order.dart';
 
 class AgriCustomersPage extends StatefulWidget {
   const AgriCustomersPage({super.key});
@@ -16,37 +17,25 @@ class AgriCustomersPage extends StatefulWidget {
 class _AgriCustomersPageState extends State<AgriCustomersPage> {
   bool isDarkMode = false;
   int unreadNotifications = 0;
-  List<Map<String, dynamic>> customers = [];
   String searchQuery = '';
-
+  String sortBy = 'recent'; // recent, name, orders
+  
   final TextEditingController _searchController = TextEditingController();
 
-  // Initialize the customers page when widget is first created
   @override
   void initState() {
     super.initState();
     _loadTheme();
-    _loadCustomers();
-    _loadUnreadNotifications();
-    // Removed _createSampleCustomers() - start with empty list
-  }
-
-  // Update data when user returns to customers page
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Reload theme and data when returning to this page
-    _loadTheme();
     _loadUnreadNotifications();
   }
 
-  // Load the current theme setting
-  void _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDarkMode = prefs.getBool('dark_mode') ?? false;
+    });
   }
 
-  // Load count of unread notifications
   void _loadUnreadNotifications() async {
     final count = await NotificationHelper.getUnreadCount();
     setState(() {
@@ -54,1027 +43,680 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     });
   }
 
-  // Load saved customers from device storage
-  void _loadCustomers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedCustomers = prefs.getString('customers');
-    if (savedCustomers != null) {
-      customers = List<Map<String, dynamic>>.from(json.decode(savedCustomers));
-    }
-    setState(() {});
-  }
-
-  // Save customers to device storage
-  void _saveCustomers() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('customers', json.encode(customers));
-  }
-
-  // Filter and sort customers based on search criteria
-  List<Map<String, dynamic>> _getFilteredCustomers() {
-    List<Map<String, dynamic>> filtered = customers;
-
-    // Filter by search query
-    if (searchQuery.isNotEmpty) {
-      filtered = filtered.where((customer) {
-        final name = customer['name'].toString().toLowerCase();
-        final email = customer['email'].toString().toLowerCase();
-        final phone = customer['phone'].toString().toLowerCase();
-        final query = searchQuery.toLowerCase();
-        return name.contains(query) ||
-            email.contains(query) ||
-            phone.contains(query);
-      }).toList();
-    }
-
-    // Sort by last order date (most recent first)
-    filtered.sort((a, b) {
-      final dateA = DateTime.parse(a['lastOrderDate']);
-      final dateB = DateTime.parse(b['lastOrderDate']);
-      return dateB.compareTo(dateA);
-    });
-
-    return filtered;
-  }
-
-  // Show dialog to add a new customer
-  void _addCustomer() async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: const AddCustomerDialog(),
-      ),
-      barrierDismissible: true,
-    );
-
-    if (result != null) {
-      customers.add({
-        'id': 'cust_${DateTime.now().millisecondsSinceEpoch}',
-        'name': result['name'],
-        'phone': result['phone'],
-        'email': result['email'],
-        'address': result['address'],
-        'totalOrders': 0,
-        'totalSpent': 0.0,
-        'lastOrderDate': DateTime.now().toIso8601String(),
-        'joinDate': DateTime.now().toIso8601String(),
-        'notes': result['notes'] ?? '',
-      });
-
-      _saveCustomers();
-      setState(() {});
-
-      // Create notification
-      await NotificationHelper.addNotification(
-        title: 'New Customer Added',
-        message: '${result['name']} has been added to your customer list.',
-        type: 'system',
-      );
-      _loadUnreadNotifications();
-    }
-  }
-
-  // Show customer details in a popup dialog
-  void _viewCustomerDetails(Map<String, dynamic> customer) {
-    showDialog(
-      context: context,
-      builder: (context) => CustomerDetailsDialog(customer: customer),
-    );
-  }
-
-  // Remove a customer from the list
-  void _deleteCustomer(String customerId) async {
-    final customer = customers.firstWhere((c) => c['id'] == customerId);
-    customers.removeWhere((c) => c['id'] == customerId);
-    _saveCustomers();
-    setState(() {});
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${customer['name']} removed from customer list'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  // Remove all customers with confirmation
-  void _clearAllCustomers() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Clear All Customers',
-          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Are you sure you want to remove all customers? This action cannot be undone.',
-          style: TextStyle(fontFamily: 'Poppins'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(fontFamily: 'Poppins'),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text(
-              'Clear All',
-              style: TextStyle(fontFamily: 'Poppins'),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final customerCount = customers.length;
-      customers.clear();
-      _saveCustomers();
-      setState(() {});
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$customerCount customers removed'),
-          backgroundColor: Colors.red,
-        ),
-      );
-
-      // Create notification
-      await NotificationHelper.addNotification(
-        title: 'Customers Cleared',
-        message: 'All customer records have been removed.',
-        type: 'system',
-      );
-      _loadUnreadNotifications();
-    }
-  }
-
-  // Build the customers page UI with header and scrollable content
   @override
   Widget build(BuildContext context) {
-    final filteredCustomers = _getFilteredCustomers();
-
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      body: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-            width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      body: CustomScrollView(
+        slivers: [
+          // Header as SliverAppBar
+          SliverAppBar(
+            expandedHeight: 180,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xFF4CAF50),
+            automaticallyImplyLeading: false,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+                decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Customers',
-                            style: ThemeHelper.getHeaderTextStyle(
-                              isDark: isDarkMode,
-                            ),
-                          ),
-                          Text(
-                            '${customers.length} total customers',
-                            style: ThemeHelper.getSubHeaderTextStyle(
-                              isDark: isDarkMode,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Stack(
+                    Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AgriNotificationPage(),
-                                ),
-                              );
-                              _loadUnreadNotifications();
-                            },
-                            icon: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'My Customers',
+                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
                           ),
                         ),
-                        if (unreadNotifications > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
+                        // Notification bell
+                        Stack(
+                          children: [
+                            Container(
                               decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                unreadNotifications > 9
-                                    ? '9+'
-                                    : unreadNotifications.toString(),
-                                style: const TextStyle(
+                              child: IconButton(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const AgriNotificationPage(),
+                                    ),
+                                  );
+                                  _loadUnreadNotifications();
+                                },
+                                icon: const Icon(
+                                  Icons.notifications_outlined,
                                   color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                                  size: 24,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
                             ),
-                          ),
+                            if (unreadNotifications > 0)
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    unreadNotifications > 9
+                                        ? '9+'
+                                        : unreadNotifications.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Search and Filter
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                // Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                    const SizedBox(height: 16),
+                    
+                    // Search bar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                      });
-                    },
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                      fontFamily: 'Poppins',
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Search customers...',
-                      hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.white54 : Colors.grey,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: isDarkMode ? Colors.white54 : Colors.grey,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Add Customer Button
-                Row(
-                  children: [
-                    const Spacer(),
-                    ElevatedButton.icon(
-                      onPressed: _addCustomer,
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text(
-                        'Add',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Poppins',
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Search customers...',
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                          prefixIcon: const Icon(Icons.search, color: Colors.white),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          suffixIcon: searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, color: Colors.white),
+                                  onPressed: () {
+                                    setState(() {
+                                      _searchController.clear();
+                                      searchQuery = '';
+                                    });
+                                  },
+                                )
+                              : null,
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00C853),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: customers.isEmpty ? null : _clearAllCustomers,
-                      icon: const Icon(Icons.clear_all, color: Colors.white),
-                      label: const Text(
-                        'Clear All',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: customers.isEmpty
-                            ? Colors.grey
-                            : Colors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value.toLowerCase();
+                          });
+                        },
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
 
-          const SizedBox(height: 16),
+          // Sort options
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.sort, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Sort by:',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _buildSortChip('Recent Orders', 'recent'),
+                        const SizedBox(width: 8),
+                        _buildSortChip('Name (A-Z)', 'name'),
+                        const SizedBox(width: 8),
+                        _buildSortChip('Most Orders', 'orders'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
-          // Customer List
-          Expanded(
-            child: filteredCustomers.isEmpty
-                ? Center(
+          // Customer list
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('orders')
+                .where('farmerId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 8),
+                        Text('Error: ${snapshot.error}'),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.people_outline,
-                          size: 64,
-                          color: isDarkMode ? Colors.white54 : Colors.grey,
+                          size: 80,
+                          color: Colors.grey[400],
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          searchQuery.isNotEmpty
-                              ? 'No customers found'
-                              : 'No customers yet',
+                          'No customers yet',
                           style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                            color: isDarkMode ? Colors.white54 : Colors.grey,
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          searchQuery.isNotEmpty
-                              ? 'Try adjusting your search criteria'
-                              : 'Add your first customer to get started',
+                          'Customers will appear here after they place orders',
                           style: TextStyle(
-                            fontFamily: 'Poppins',
                             fontSize: 14,
-                            color: isDarkMode
-                                ? Colors.white38
-                                : Colors.grey[600],
+                            color: Colors.grey[500],
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: filteredCustomers.length,
-                    itemBuilder: (context, index) {
-                      final customer = filteredCustomers[index];
-                      return _buildCustomerCard(customer);
-                    },
                   ),
+                );
+              }
+
+              // Group orders by customer
+              final Map<String, CustomerData> customerMap = {};
+              
+              for (var doc in snapshot.data!.docs) {
+                final order = AppOrder.fromFirestore(doc);
+                
+                if (!customerMap.containsKey(order.buyerId)) {
+                  customerMap[order.buyerId] = CustomerData(
+                    id: order.buyerId,
+                    name: order.buyerName,
+                    orders: [],
+                  );
+                }
+                
+                customerMap[order.buyerId]!.orders.add(order);
+              }
+
+              // Convert to list and filter by search
+              var customers = customerMap.values.toList();
+              
+              if (searchQuery.isNotEmpty) {
+                customers = customers.where((customer) {
+                  return customer.name.toLowerCase().contains(searchQuery);
+                }).toList();
+              }
+
+              // Sort customers
+              _sortCustomers(customers);
+
+              if (customers.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No customers found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        index == 0 ? 0 : 0,
+                        16,
+                        index == customers.length - 1 ? 16 : 0,
+                      ),
+                      child: _buildCustomerCard(customers[index]),
+                    );
+                  },
+                  childCount: customers.length,
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  // Build individual customer card widget
-  Widget _buildCustomerCard(Map<String, dynamic> customer) {
-    final lastOrderDate = DateTime.parse(customer['lastOrderDate']);
-    final daysSinceLastOrder = DateTime.now().difference(lastOrderDate).inDays;
+  Widget _buildSortChip(String label, String value) {
+    final isSelected = sortBy == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          sortBy = value;
+        });
+      },
+      selectedColor: const Color(0xFF4CAF50),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : null,
+        fontWeight: isSelected ? FontWeight.bold : null,
+      ),
+    );
+  }
+
+  void _sortCustomers(List<CustomerData> customers) {
+    switch (sortBy) {
+      case 'name':
+        customers.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'orders':
+        customers.sort((a, b) => b.orders.length.compareTo(a.orders.length));
+        break;
+      case 'recent':
+      default:
+        customers.sort((a, b) {
+          final aLatest = a.orders.map((o) => o.orderDate).reduce(
+              (a, b) => a.isAfter(b) ? a : b);
+          final bLatest = b.orders.map((o) => o.orderDate).reduce(
+              (a, b) => a.isAfter(b) ? a : b);
+          return bLatest.compareTo(aLatest);
+        });
+    }
+  }
+
+  Widget _buildCustomerCard(CustomerData customer) {
+    final totalOrders = customer.orders.length;
+    final totalRevenue = customer.orders.fold<double>(
+      0,
+      (sum, order) => sum + order.totalAmount,
+    );
+    final lastOrderDate = customer.orders.map((o) => o.orderDate).reduce(
+        (a, b) => a.isAfter(b) ? a : b);
+    
+    final deliveredCount = customer.orders
+        .where((o) => o.status.toLowerCase() == 'delivered')
+        .length;
+    final pendingCount = customer.orders
+        .where((o) => ['pending', 'confirmed', 'preparing'].contains(o.status.toLowerCase()))
+        .length;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF00C853),
-                  child: Text(
-                    customer['name'][0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _showCustomerDetails(customer),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: const Color(0xFF4CAF50).withOpacity(0.2),
+                    child: Text(
+                      customer.name.substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4CAF50),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        customer['name'],
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                  const SizedBox(width: 16),
+                  
+                  // Customer info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customer.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        customer['email'],
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          color: isDarkMode ? Colors.white70 : Colors.grey[600],
-                          fontSize: 14,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Last order: ${_formatDate(lastOrderDate)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: isDarkMode ? Colors.white54 : Colors.grey,
-                  ),
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'view':
-                        _viewCustomerDetails(customer);
-                        break;
-                      case 'delete':
-                        _deleteCustomer(customer['id']);
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'view',
-                      child: Row(
-                        children: [
-                          Icon(Icons.visibility),
-                          SizedBox(width: 8),
-                          Text('View Details'),
-                        ],
-                      ),
+                      ],
                     ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
+                  ),
+                  
+                  // Stats badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoItem(
-                    'Orders',
-                    '${customer['totalOrders']}',
-                    Icons.shopping_cart,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.shopping_bag,
+                          size: 16,
+                          color: Color(0xFF4CAF50),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$totalOrders',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4CAF50),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: _buildInfoItem(
-                    'Total Spent',
-                    '₱${NumberFormat('#,##0').format(customer['totalSpent'])}',
-                    Icons.monetization_on,
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              
+              // Order statistics
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem(
+                    Icons.check_circle,
+                    'Delivered',
+                    '$deliveredCount',
+                    Colors.green,
                   ),
-                ),
-                Expanded(
-                  child: _buildInfoItem(
-                    'Last Order',
-                    daysSinceLastOrder == 0
-                        ? 'Today'
-                        : '$daysSinceLastOrder days ago',
-                    Icons.schedule,
+                  _buildStatItem(
+                    Icons.pending,
+                    'Pending',
+                    '$pendingCount',
+                    Colors.orange,
                   ),
-                ),
-              ],
-            ),
-
-            if (customer['notes'] != null && customer['notes'].isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  customer['notes'],
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: isDarkMode ? Colors.white70 : Colors.grey[600],
-                    fontStyle: FontStyle.italic,
+                  _buildStatItem(
+                    Icons.attach_money,
+                    'Revenue',
+                    '₱${totalRevenue.toStringAsFixed(0)}',
+                    Colors.blue,
                   ),
-                ),
+                ],
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // Build info item widgets for customer stats
-  Widget _buildInfoItem(String label, String value, IconData icon) {
+  Widget _buildStatItem(IconData icon, String label, String value, Color color) {
     return Column(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: isDarkMode ? Colors.white54 : Colors.grey[600],
-        ),
+        Icon(icon, color: color, size: 24),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontSize: 16,
             fontWeight: FontWeight.bold,
-            fontSize: 12,
-            color: isDarkMode ? Colors.white : Colors.black,
+            color: color,
           ),
-          textAlign: TextAlign.center,
         ),
         Text(
           label,
           style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 10,
-            color: isDarkMode ? Colors.white54 : Colors.grey[600],
+            fontSize: 12,
+            color: Colors.grey[600],
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
   }
-}
 
-class AddCustomerDialog extends StatefulWidget {
-  const AddCustomerDialog({super.key});
-
-  @override
-  State<AddCustomerDialog> createState() => _AddCustomerDialogState();
-}
-
-class _AddCustomerDialogState extends State<AddCustomerDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _notesController = TextEditingController();
-
-  bool isDarkMode = false;
-
-  // Initialize the add customer dialog
-  @override
-  void initState() {
-    super.initState();
-    _loadTheme();
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    
+    if (diff.inDays == 0) {
+      return 'Today';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} days ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 
-  // Load theme setting for dialog appearance
-  void _loadTheme() async {
-    isDarkMode = await ThemeHelper.isDarkModeEnabled();
-    setState(() {});
-  }
-
-  // Build the add customer dialog UI
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
-        maxWidth: MediaQuery.of(context).size.width * 0.9,
-      ),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? const Color(0xFF3C3C3C)
-                  : const Color(0xFFF5F5F5),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'Add New Customer',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    Icons.close,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Content
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: _getInputDecoration(
-                        'Full Name',
-                        Icons.person,
-                      ),
-                      style: _getTextStyle(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter customer name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: _getInputDecoration(
-                        'Phone Number',
-                        Icons.phone,
-                      ),
-                      style: _getTextStyle(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: _getInputDecoration(
-                        'Email Address',
-                        Icons.email,
-                      ),
-                      style: _getTextStyle(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter email address';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _addressController,
-                      maxLines: 2,
-                      decoration: _getInputDecoration(
-                        'Address',
-                        Icons.location_on,
-                      ),
-                      style: _getTextStyle(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter address';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _notesController,
-                      maxLines: 3,
-                      decoration: _getInputDecoration(
-                        'Notes (Optional)',
-                        Icons.note,
-                      ),
-                      style: _getTextStyle(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Actions
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? const Color(0xFF3C3C3C)
-                  : const Color(0xFFF5F5F5),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        Navigator.pop(context, {
-                          'name': _nameController.text,
-                          'phone': _phoneController.text,
-                          'email': _emailController.text,
-                          'address': _addressController.text,
-                          'notes': _notesController.text,
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00C853),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Add Customer',
-                      style: TextStyle(fontFamily: 'Poppins'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Get input field decoration with theme colors
-  InputDecoration _getInputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(
-        icon,
-        color: isDarkMode ? Colors.white70 : Colors.black54,
-      ),
-      labelStyle: TextStyle(
-        color: isDarkMode ? Colors.white70 : Colors.black54,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDarkMode ? Colors.white24 : Colors.grey,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF00C853)),
-      ),
-      filled: true,
-      fillColor: isDarkMode ? const Color(0xFF3C3C3C) : const Color(0xFFF8F8F8),
-    );
-  }
-
-  // Get text style with theme colors
-  TextStyle _getTextStyle() {
-    return TextStyle(
-      color: isDarkMode ? Colors.white : Colors.black,
-      fontFamily: 'Poppins',
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _addressController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-}
-
-class CustomerDetailsDialog extends StatelessWidget {
-  final Map<String, dynamic> customer;
-
-  const CustomerDetailsDialog({super.key, required this.customer});
-
-  // Build the customer details dialog UI
-  @override
-  Widget build(BuildContext context) {
-    final joinDate = DateTime.parse(customer['joinDate']);
-    final lastOrderDate = DateTime.parse(customer['lastOrderDate']);
-
-    return Dialog(
+  void _showCustomerDetails(CustomerData customer) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(16),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
-          maxWidth: MediaQuery.of(context).size.width * 0.9,
-        ),
-        decoration: BoxDecoration(
-          color: Theme.of(context).dialogBackgroundColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00C853),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      customer['name'][0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF00C853),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      customer['name'],
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                  ),
-                ],
-              ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: ThemeHelper.getBackgroundColor(isDarkMode),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
-
-            // Content
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDetailRow('Email', customer['email'], Icons.email),
-                    _buildDetailRow('Phone', customer['phone'], Icons.phone),
-                    _buildDetailRow(
-                      'Address',
-                      customer['address'],
-                      Icons.location_on,
-                    ),
-                    _buildDetailRow(
-                      'Total Orders',
-                      '${customer['totalOrders']}',
-                      Icons.shopping_cart,
-                    ),
-                    _buildDetailRow(
-                      'Total Spent',
-                      '₱${NumberFormat('#,##0').format(customer['totalSpent'])}',
-                      Icons.monetization_on,
-                    ),
-                    _buildDetailRow(
-                      'Join Date',
-                      DateFormat('MMM d, yyyy').format(joinDate),
-                      Icons.calendar_today,
-                    ),
-                    _buildDetailRow(
-                      'Last Order',
-                      DateFormat('MMM d, yyyy').format(lastOrderDate),
-                      Icons.schedule,
-                    ),
-
-                    if (customer['notes'] != null &&
-                        customer['notes'].isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Notes',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 25,
+                        backgroundColor: const Color(0xFF4CAF50).withOpacity(0.2),
                         child: Text(
-                          customer['notes'],
+                          customer.name.substring(0, 1).toUpperCase(),
                           style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4CAF50),
                           ),
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customer.name,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${customer.orders.length} orders',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
                     ],
-                  ],
+                  ),
                 ),
+                
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                
+                // Order history
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: customer.orders.length,
+                    itemBuilder: (context, index) {
+                      final order = customer.orders[index];
+                      return _buildOrderItem(order);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOrderItem(AppOrder order) {
+    final statusColor = _getStatusColor(order.status);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Order #${order.id.substring(0, 8)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    order.status.toUpperCase(),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${order.items.length} item(s) - ₱${order.totalAmount.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _formatDate(order.orderDate),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
               ),
             ),
           ],
@@ -1083,42 +725,34 @@ class CustomerDetailsDialog extends StatelessWidget {
     );
   }
 
-  // Build detail row widget for customer information
-  Widget _buildDetailRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+      case 'preparing':
+        return Colors.blue;
+      case 'delivering':
+        return Colors.purple;
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
+}
+
+// Helper class to group customer data
+class CustomerData {
+  final String id;
+  final String name;
+  final List<AppOrder> orders;
+
+  CustomerData({
+    required this.id,
+    required this.name,
+    required this.orders,
+  });
 }

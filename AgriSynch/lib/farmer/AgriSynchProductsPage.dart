@@ -474,7 +474,17 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   Future<void> _pickAndUploadImage(Product product) async {
     try {
       final XFile? image = await _imageUploadService.pickImageFromCamera();
-      if (image == null) return;
+      if (image == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No image selected'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
 
       if (!mounted) return;
       
@@ -499,36 +509,56 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ),
       );
 
-      // Upload to Firebase Storage
-      final String? downloadUrl = await _imageUploadService.uploadProductImage(image, product.id);
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Close uploading dialog
+      try {
+        // Upload to Firebase Storage
+        final String? downloadUrl = await _imageUploadService.uploadProductImage(image, product.id);
+        
+        if (!mounted) return;
+        Navigator.pop(context); // Close uploading dialog
 
-      if (downloadUrl != null) {
-        // Update product with new image URL
-        final updatedImages = [...product.images, downloadUrl];
-        await _productService.updateProduct(product.id, {'images': updatedImages});
+        if (downloadUrl != null) {
+          // Update product with new image URL
+          final updatedImages = [...product.images, downloadUrl];
+          await _productService.updateProduct(product.id, {'images': updatedImages});
 
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Photo uploaded successfully!'),
+                backgroundColor: Color(0xFF4CAF50),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to upload photo - please try again'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (uploadError) {
+        if (!mounted) return;
+        Navigator.pop(context); // Close uploading dialog
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Photo uploaded successfully!'),
-            backgroundColor: Color(0xFF4CAF50),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to upload photo'),
+          SnackBar(
+            content: Text('Upload error: ${uploadError.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Close uploading dialog if still open
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }

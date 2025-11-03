@@ -46,7 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '823257894813',
     projectId: 'agrisynch-a9350',
     authDomain: 'agrisynch-a9350.firebaseapp.com',
-    storageBucket: 'agrisynch-a9350.firebasestorage.app',
+    storageBucket: 'agrisynch-a9350.appspot.com',
     measurementId: 'G-BPV9N5DWCN',
   );
 
@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:823257894813:android:1f51c971c825b1ab17e974',
     messagingSenderId: '823257894813',
     projectId: 'agrisynch-a9350',
-    storageBucket: 'agrisynch-a9350.firebasestorage.app',
+    storageBucket: 'agrisynch-a9350.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

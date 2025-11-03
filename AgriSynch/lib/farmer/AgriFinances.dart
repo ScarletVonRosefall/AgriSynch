@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
@@ -83,18 +85,92 @@ class _AgriFinancesState extends State<AgriFinances> {
   }
 
   void _loadTransactions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedTransactions = prefs.getString('financial_transactions');
-    if (savedTransactions != null) {
-      transactions = List<Map<String, dynamic>>.from(
-        json.decode(savedTransactions),
-      );
+    // Get current user
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('❌ No user logged in');
+      return;
     }
+
+    try {
+      // Load from Firestore
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('transactions')
+          .orderBy('date', descending: true)
+          .get();
+
+      transactions = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': data['id'] ?? doc.id,
+          'type': data['type'] ?? 'income',
+          'category': data['category'] ?? '',
+          'amount': (data['amount'] ?? 0.0).toDouble(),
+          'description': data['description'] ?? '',
+          'date': data['date'] ?? DateTime.now().toIso8601String(),
+          'orderId': data['orderId'],
+        };
+      }).toList();
+
+      // Also save to local storage for offline access
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('financial_transactions', json.encode(transactions));
+      
+      print('✅ Loaded ${transactions.length} transactions from Firestore');
+    } catch (e) {
+      print('❌ Error loading from Firestore: $e');
+      
+      // Fallback to local storage
+      final prefs = await SharedPreferences.getInstance();
+      final savedTransactions = prefs.getString('financial_transactions');
+      if (savedTransactions != null) {
+        transactions = List<Map<String, dynamic>>.from(
+          json.decode(savedTransactions),
+        );
+        print('✅ Loaded ${transactions.length} transactions from local storage (fallback)');
+      }
+    }
+    
     _calculateTotals();
     setState(() {});
   }
 
   void _saveTransactions() async {
+    // Get current user
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('❌ No user logged in');
+      return;
+    }
+
+    try {
+      // Save to Firestore - update or create each transaction
+      for (var transaction in transactions) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('transactions')
+            .doc(transaction['id'])
+            .set({
+              'id': transaction['id'],
+              'type': transaction['type'],
+              'category': transaction['category'],
+              'amount': transaction['amount'],
+              'description': transaction['description'],
+              'date': transaction['date'],
+              'orderId': transaction['orderId'],
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+      }
+      
+      print('✅ Saved ${transactions.length} transactions to Firestore');
+    } catch (e) {
+      print('❌ Error saving to Firestore: $e');
+    }
+
+    // Also save to local storage
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('financial_transactions', json.encode(transactions));
   }

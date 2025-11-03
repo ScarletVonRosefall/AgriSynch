@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../shared/theme_helper.dart';
+import 'ShoppingCartPage.dart';
 
 class BrowseProductsPage extends StatefulWidget {
   final String? initialCategory;
@@ -22,6 +25,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   late String selectedCategory;
   List<String> favoriteProducts = [];
   List<Map<String, dynamic>> cart = [];
+  
+  // New filter states
+  String selectedLocation = 'All';
+  double minPrice = 0;
+  double maxPrice = 10000;
+  String sortBy = 'newest'; // newest, price_low, price_high
 
   final List<String> categories = [
     'All',
@@ -32,6 +41,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     'Fruits',
     'Dairy',
     'Other',
+  ];
+  
+  final List<String> sortOptions = [
+    'Newest First',
+    'Price: Low to High',
+    'Price: High to Low',
   ];
 
   @override
@@ -59,6 +74,38 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   }
 
   Future<void> loadCart() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser != null) {
+      // Try to load from Firestore first
+      try {
+        final cartDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('cart')
+            .doc('items')
+            .get();
+        
+        if (cartDoc.exists && cartDoc.data() != null) {
+          final cartData = cartDoc.data()!['items'] as List<dynamic>?;
+          if (cartData != null) {
+            setState(() {
+              cart = List<Map<String, dynamic>>.from(
+                cartData.map((item) => Map<String, dynamic>.from(item))
+              );
+            });
+            // Also save to local storage as backup
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('buyer_cart', json.encode(cart));
+            return;
+          }
+        }
+      } catch (e) {
+        print('Error loading cart from Firestore: $e');
+      }
+    }
+    
+    // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final cartString = prefs.getString('buyer_cart');
     if (cartString != null) {
@@ -124,7 +171,27 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       }
     });
 
+    // Save to SharedPreferences
     await prefs.setString('buyer_cart', json.encode(cart));
+    
+    // Save to Firestore
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('cart')
+            .doc('items')
+            .set({
+              'items': cart,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+      } catch (e) {
+        print('Error saving cart to Firestore: $e');
+        // Continue anyway - local storage is saved
+      }
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -135,6 +202,47 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         ),
       );
     }
+  }
+
+  // Filter and sort products
+  List<Product> filterAndSortProducts(List<Product> products) {
+    var filtered = products;
+
+    // Apply search query
+    if (searchQuery.isNotEmpty) {
+      filtered = filtered.where((p) =>
+        p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+        p.farmerName.toLowerCase().contains(searchQuery.toLowerCase())
+      ).toList();
+    }
+
+    // Apply location filter
+    if (selectedLocation != 'All') {
+      filtered = filtered.where((p) =>
+        p.location.toLowerCase().contains(selectedLocation.toLowerCase())
+      ).toList();
+    }
+
+    // Apply price range filter
+    filtered = filtered.where((p) =>
+      p.price >= minPrice && p.price <= maxPrice
+    ).toList();
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'price_low':
+        filtered.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'price_high':
+        filtered.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case 'newest':
+      default:
+        // Newest first (default Firestore order)
+        break;
+    }
+
+    return filtered;
   }
 
   @override
@@ -171,8 +279,19 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                          onPressed: () {
-                            // Navigate to cart
+                          onPressed: () async {
+                            // Navigate to cart page
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ShoppingCartPage(),
+                              ),
+                            );
+                            
+                            // Reload cart after returning from cart page
+                            if (result == true) {
+                              loadCart();
+                            }
                           },
                         ),
                         if (cart.isNotEmpty)
@@ -261,6 +380,39 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Filter and Sort Row
+                Row(
+                  children: [
+                    // Filter Button
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showFilterDialog(),
+                        icon: const Icon(Icons.filter_list, size: 18),
+                        label: const Text('Filters'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Sort Button
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showSortDialog(),
+                        icon: const Icon(Icons.sort, size: 18),
+                        label: Text(_getSortLabel()),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -291,13 +443,8 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
 
                 List<Product> products = snapshot.data ?? [];
 
-                // Apply search filter
-                if (searchQuery.isNotEmpty) {
-                  products = products.where((product) =>
-                    product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                    product.description.toLowerCase().contains(searchQuery.toLowerCase())
-                  ).toList();
-                }
+                // Apply all filters and sorting
+                products = filterAndSortProducts(products);
 
                 if (products.isEmpty) {
                   return Center(
@@ -542,5 +689,158 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       default:
         return Icons.shopping_basket;
     }
+  }
+
+  String _getSortLabel() {
+    switch (sortBy) {
+      case 'price_low':
+        return 'Price: Low-High';
+      case 'price_high':
+        return 'Price: High-Low';
+      case 'newest':
+      default:
+        return 'Newest First';
+    }
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Filter Products'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Location Filter
+                  const Text('Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Enter location...',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on),
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedLocation = value.isEmpty ? 'All' : value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Price Range
+                  const Text('Price Range', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            labelText: 'Min Price',
+                            border: OutlineInputBorder(),
+                            prefixText: '₱',
+                          ),
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              minPrice = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            labelText: 'Max Price',
+                            border: OutlineInputBorder(),
+                            prefixText: '₱',
+                          ),
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              maxPrice = double.tryParse(value) ?? 10000;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '₱${minPrice.toStringAsFixed(0)} - ₱${maxPrice.toStringAsFixed(0)}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setDialogState(() {
+                    selectedLocation = 'All';
+                    minPrice = 0;
+                    maxPrice = 10000;
+                  });
+                },
+                child: const Text('Reset'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {}); // Refresh main UI
+                  Navigator.pop(context);
+                },
+                child: const Text('Apply'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showSortDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sort Products'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('Newest First'),
+              value: 'newest',
+              groupValue: sortBy,
+              onChanged: (value) {
+                setState(() => sortBy = value!);
+                Navigator.pop(context);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Price: Low to High'),
+              value: 'price_low',
+              groupValue: sortBy,
+              onChanged: (value) {
+                setState(() => sortBy = value!);
+                Navigator.pop(context);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Price: High to Low'),
+              value: 'price_high',
+              groupValue: sortBy,
+              onChanged: (value) {
+                setState(() => sortBy = value!);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

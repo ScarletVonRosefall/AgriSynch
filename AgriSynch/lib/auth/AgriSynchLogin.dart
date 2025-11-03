@@ -87,22 +87,12 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 16),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back,
-                                size: 24,
-                                color: Colors.black,
-                              ),
-                              onPressed: () =>
-                                  Navigator.pushReplacementNamed(context, '/'),
-                            ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 40),
                             Center(
                               child: Column(
                                 children: [
                                   const Text(
-                                    "Sign in to continue",
+                                    "Log in to continue",
                                     style: TextStyle(
                                       fontFamily: 'Poppins',
                                       fontSize: 16,
@@ -274,21 +264,8 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                           ),
                                                         ]);
 
-                                                        // Navigate based on type
-                                                        if (mounted) {
-                                                          if (accountType ==
-                                                              'Buyer') {
-                                                            Navigator.pushReplacementNamed(
-                                                              context,
-                                                              '/buyer-home',
-                                                            );
-                                                          } else {
-                                                            Navigator.pushReplacementNamed(
-                                                              context,
-                                                              '/home',
-                                                            );
-                                                          }
-                                                        }
+                                                        // AuthWrapper will automatically navigate based on auth state
+                                                        // No manual navigation needed here
                                                       }
                                                     } on FirebaseAuthException catch (e) {
                                                       if (!mounted) return;

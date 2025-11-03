@@ -19,22 +19,14 @@ class AgriSynchOrdersPage extends StatefulWidget {
 class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   final OrderService _orderService = OrderService();
   List<Map<String, dynamic>> _orders = [];
-  List<AppOrder> _firestoreOrders = [];
-  final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _customProductController = TextEditingController();
   bool isDarkMode = false;
   int unreadNotifications = 0;
 
-  final List<String> _products = ['Quail Eggs', 'Chicken Egg', 'Pigs', 'Custom'];
   final List<String> _statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
-  String? _selectedProduct;
-  String _selectedCategory = 'All';
   String _selectedStatusFilter = 'All'; // Filter for viewing orders by status
   String _searchTerm = '';
   String _sortOption = 'Date (Newest First)';
-  String _selectedStatus = 'Pending'; // Default status for new orders
 
   // Initialize the orders page when widget is first created
   @override
@@ -84,13 +76,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     await prefs.setString('orders', json.encode(_orders));
   }
 
-  // Add a new order with validation
-  String _generateOrderId() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final random = timestamp.toString().substring(timestamp.toString().length - 4);
-    return 'ORD-${DateTime.now().year}${random}';
-  }
-
   int _getStatusPriority(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -125,123 +110,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     }
   }
 
-  void _addOrder() {
-    final quantity = _quantityController.text.trim();
-    final price = _priceController.text.trim();
-    final customProductName = _customProductController.text.trim();
-
-    // Form validation
-    if (_selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a product'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // Validate custom product name if Custom is selected
-    if (_selectedProduct == 'Custom' && customProductName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a custom product name'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    if (quantity.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a quantity'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    if (int.tryParse(quantity) == null || int.parse(quantity) <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Quantity must be greater than 0'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    if (price.isEmpty || double.tryParse(price) == null || double.parse(price) <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid price'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final priceValue = double.parse(price);
-    final quantityValue = int.parse(quantity);
-    final total = priceValue * quantityValue;
-    final orderId = _generateOrderId();
-    
-    // Use custom product name if Custom is selected, otherwise use selected product
-    final productName = _selectedProduct == 'Custom' ? customProductName : _selectedProduct;
-    
-    final newOrder = {
-      'id': orderId,
-      'orderId': orderId, // Add orderId field for status updates
-      'product': productName,
-      'quantity': quantity,
-      'price': priceValue,
-      'total': total,
-      'orderDate': DateTime.now().toIso8601String(),
-      'status': _selectedStatus,
-      'statusHistory': [
-        {
-          'status': _selectedStatus,
-          'date': DateTime.now().toIso8601String(),
-        }
-      ],
-      'estimatedDelivery': DateTime.now().add(const Duration(days: 3)).toIso8601String(),
-    };
-
-    setState(() {
-      _orders.add(newOrder);
-    });
-
-    // Create order notification
-    NotificationHelper.addOrderNotification(
-      title: 'New Order Added',
-      message: 'Order for $productName (Qty: $quantity) has been created',
-      orderId: newOrder.toString(),
-    );
-
-    setState(() {
-      _selectedProduct = null;
-    });
-    _quantityController.clear();
-    _priceController.clear();
-    _customProductController.clear();
-    _saveOrders();
-
-    // Show success snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Order Added'),
-        duration: Duration(seconds: 2),
-        backgroundColor: Color(0xFF00C853),
-      ),
-    );
-  }
-
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -258,105 +126,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
         return Colors.grey;
     }
   }
-
-  List<String> _getValidTransitions(String currentStatus) {
-    switch (currentStatus.toLowerCase()) {
-      case 'pending':
-        return ['Processing', 'Cancelled'];
-      case 'processing':
-        return ['Shipped', 'Cancelled'];
-      case 'shipped':
-        return ['Delivered', 'Processing'];
-      case 'delivered':
-        return ['Processing']; // Allow return to processing if needed
-      case 'cancelled':
-        return ['Pending']; // Allow reactivating cancelled orders
-      default:
-        return ['Pending'];
-    }
-  }
-
-  void _updateOrderStatus(int index, String newStatus) {
-    final order = _orders[index];
-    final oldStatus = order['status'];
-
-    if (oldStatus == newStatus) return;
-
-    // Update estimated delivery based on new status
-    DateTime? estimatedDelivery;
-    if (newStatus == 'Processing') {
-      estimatedDelivery = DateTime.now().add(const Duration(days: 3));
-    } else if (newStatus == 'Shipped') {
-      estimatedDelivery = DateTime.now().add(const Duration(days: 1));
-    }
-
-    setState(() {
-      _orders[index]['status'] = newStatus;
-      if (estimatedDelivery != null) {
-        _orders[index]['estimatedDelivery'] = estimatedDelivery.toIso8601String();
-      }
-      // Cast the existing history to List<dynamic> first, then add new entry
-      final existingHistory = (order['statusHistory'] as List<dynamic>? ?? []).map((item) {
-        if (item is Map<String, dynamic>) return item;
-        return {'status': 'Unknown', 'date': DateTime.now().toIso8601String()};
-      }).toList();
-      
-      _orders[index]['statusHistory'] = [
-        ...existingHistory,
-        {
-          'status': newStatus,
-          'date': DateTime.now().toIso8601String(),
-        }
-      ];
-    });
-    _saveOrders();
-
-    // If order is marked as Delivered, add transaction to finances
-    if (newStatus.toLowerCase() == 'delivered') {
-      FinanceService.addTransactionFromOrder(
-        orderId: order['id']?.toString() ?? order['orderId']?.toString() ?? 'Unknown',
-        productName: order['product']?.toString() ?? 'Unknown Product',
-        amount: (order['total'] as num?)?.toDouble() ?? 0.0,
-        quantity: int.tryParse(order['quantity']?.toString() ?? '0') ?? 0,
-      );
-    }
-
-    // Create status update notification with appropriate emoji
-    String emoji = '';
-    switch (newStatus.toLowerCase()) {
-      case 'processing':
-        emoji = '⚙️';
-        break;
-      case 'shipped':
-        emoji = '🚚';
-        break;
-      case 'delivered':
-        emoji = '📦';
-        break;
-      case 'cancelled':
-        emoji = '❌';
-        break;
-      default:
-        emoji = '📋';
-    }
-
-    NotificationHelper.addOrderNotification(
-      title: 'Order Status Updated $emoji',
-      message:
-          '${order['product']} (Order #${order['id']}) status changed to $newStatus',
-      orderId: order['id'].toString(),
-    );
-
-    // Show status update snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Order status updated to $newStatus!'),
-        duration: const Duration(seconds: 2),
-        backgroundColor: _getStatusColor(newStatus),
-      ),
-    );
-  }
-
 
   void _deleteOrder(String orderId) {
     final index = _orders.indexWhere((order) => order['orderId'] == orderId);
@@ -411,13 +180,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
   List<Map<String, dynamic>> get _filteredOrders {
     List<Map<String, dynamic>> filtered = _orders;
-
-    // Filter by category (product type)
-    if (_selectedCategory != 'All') {
-      filtered = filtered
-          .where((order) => order['product'] == _selectedCategory)
-          .toList();
-    }
 
     // Filter by status
     if (_selectedStatusFilter != 'All') {
@@ -1055,8 +817,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    _buildInputSection(),
-                    const SizedBox(height: 16),
                     _buildFilterAndSortSection(),
                     const SizedBox(height: 12),
                     _buildOrdersHeader(),
@@ -1097,197 +857,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInputSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Add New Order",
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: ThemeHelper.getHeaderColor(isDarkMode),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Custom Product Name Field (only shows when Custom is selected)
-          if (_selectedProduct == 'Custom') ...[
-            Container(
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFF8F9FA),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextFormField(
-                controller: _customProductController,
-                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                decoration: InputDecoration(
-                  labelText: 'Custom Product Name',
-                  hintText: 'Enter product name (e.g., Tomatoes, Rice)',
-                  labelStyle: ThemeHelper.getBodyTextStyle(
-                    isDark: isDarkMode,
-                  ),
-                  hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.edit,
-                    color: ThemeHelper.getIconColor(isDarkMode),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedProduct,
-                    decoration: InputDecoration(
-                      labelText: 'Product',
-                      labelStyle: ThemeHelper.getBodyTextStyle(
-                        isDark: isDarkMode,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                    dropdownColor: ThemeHelper.getCardColor(isDarkMode),
-                    isExpanded: true,
-                    items: _products
-                        .map(
-                          (product) => DropdownMenuItem(
-                            value: product,
-                            child: Row(
-                              children: [
-                                if (product == 'Custom')
-                                  Icon(
-                                    Icons.add_circle,
-                                    size: 16,
-                                    color: ThemeHelper.getHeaderColor(isDarkMode),
-                                  ),
-                                if (product == 'Custom') const SizedBox(width: 8),
-                                Text(
-                                  product,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedProduct = value;
-                        // Clear custom product name when switching away from Custom
-                        if (value != 'Custom') {
-                          _customProductController.clear();
-                        }
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextFormField(
-                    controller: _quantityController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                    decoration: InputDecoration(
-                      labelText: 'Qty',
-                      labelStyle: ThemeHelper.getBodyTextStyle(
-                        isDark: isDarkMode,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextFormField(
-                    controller: _priceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                    ],
-                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                    decoration: InputDecoration(
-                      labelText: '₱ Price',
-                      labelStyle: ThemeHelper.getBodyTextStyle(
-                        isDark: isDarkMode,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: ThemeHelper.getHeaderColor(isDarkMode),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: _addOrder,
-                  icon: const Icon(Icons.add, color: Colors.white, size: 24),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -1374,41 +943,6 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 ).copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 12),
-              // Product Category Filter
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButton<String>(
-                    value: _selectedCategory,
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    hint: Text('Product', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode)),
-                    style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                    dropdownColor: ThemeHelper.getCardColor(isDarkMode),
-                    items: ['All', ..._products]
-                        .map(
-                          (cat) =>
-                              DropdownMenuItem(value: cat, child: Text(cat)),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCategory = value!;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
               // Status Filter
               Expanded(
                 child: Container(
@@ -1620,16 +1154,14 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     String editedProduct = order['product'];
     String editedQuantity = order['quantity'];
 
-    // Build a list of all unique products (predefined + custom ones from existing orders)
-    final allProducts = <String>{..._products};
+    // Build a list of all unique products from existing orders
+    final allProducts = <String>{};
     for (var o in _orders) {
       final productName = o['product'] as String?;
       if (productName != null && productName.isNotEmpty) {
         allProducts.add(productName);
       }
     }
-    // Remove 'Custom' from the edit dropdown since we're showing actual product names
-    allProducts.remove('Custom');
     final productList = allProducts.toList()..sort();
 
     await showDialog(

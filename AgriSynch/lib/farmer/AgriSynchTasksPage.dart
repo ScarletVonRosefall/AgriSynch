@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import '../shared/theme_helper.dart';
@@ -773,11 +774,6 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      ),
-                      const SizedBox(width: 8),
                       const Text(
                         'Tasks',
                         style: TextStyle(
@@ -928,38 +924,50 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
             ),
             const SizedBox(height: 16),
             // Category filters with improved styling
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: taskCategories.map((category) {
-                  final isSelected = selectedCategory == category;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      selected: isSelected,
-                      label: Text(
-                        category,
-                        style: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : (isDarkMode ? Colors.white : Colors.black87),
-                          fontFamily: 'Poppins',
+            SizedBox(
+              height: 50,
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                  },
+                ),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: taskCategories.length,
+                  itemBuilder: (context, index) {
+                    final category = taskCategories[index];
+                    final isSelected = selectedCategory == category;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        selected: isSelected,
+                        label: Text(
+                          category,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : (isDarkMode ? Colors.white : Colors.black87),
+                            fontFamily: 'Poppins',
+                          ),
                         ),
+                        selectedColor: const Color(0xFF00C853),
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF2C2C2C)
+                            : Colors.grey.shade100,
+                        checkmarkColor: Colors.white,
+                        onSelected: (selected) {
+                          setState(() {
+                            selectedCategory = selected ? category : 'All';
+                          });
+                        },
                       ),
-                      selectedColor: const Color(0xFF00C853),
-                      backgroundColor: isDarkMode
-                          ? const Color(0xFF2C2C2C)
-                          : Colors.grey.shade100,
-                      checkmarkColor: Colors.white,
-                      onSelected: (selected) {
-                        setState(() {
-                          selectedCategory = selected ? category : 'All';
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 16),

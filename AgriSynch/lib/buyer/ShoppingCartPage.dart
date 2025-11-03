@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../services/order_service.dart';
 import '../services/product_service.dart';
@@ -35,6 +37,38 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   }
 
   Future<void> loadCart() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser != null) {
+      // Try to load from Firestore first
+      try {
+        final cartDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('cart')
+            .doc('items')
+            .get();
+        
+        if (cartDoc.exists && cartDoc.data() != null) {
+          final cartData = cartDoc.data()!['items'] as List<dynamic>?;
+          if (cartData != null) {
+            setState(() {
+              cart = List<Map<String, dynamic>>.from(
+                cartData.map((item) => Map<String, dynamic>.from(item))
+              );
+            });
+            // Also save to local storage as backup
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('buyer_cart', json.encode(cart));
+            return;
+          }
+        }
+      } catch (e) {
+        print('Error loading cart from Firestore: $e');
+      }
+    }
+    
+    // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final cartString = prefs.getString('buyer_cart');
     if (cartString != null) {
@@ -55,8 +89,28 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   }
 
   Future<void> updateCart() async {
+    // Save to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('buyer_cart', json.encode(cart));
+    
+    // Save to Firestore
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('cart')
+            .doc('items')
+            .set({
+              'items': cart,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+      } catch (e) {
+        print('Error saving cart to Firestore: $e');
+        // Continue anyway - local storage is saved
+      }
+    }
   }
 
   Future<void> updateQuantity(int index, int newQuantity) async {
@@ -112,12 +166,10 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       return;
     }
 
-    // Get current user details
-    final prefs = await SharedPreferences.getInstance();
-    final String? userName = prefs.getString('user_name');
-    final String? userId = prefs.getString('user_id');
-
-    if (userId == null || userName == null) {
+    // Get current user from Firebase Auth
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('User authentication error'),
@@ -126,6 +178,15 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       );
       return;
     }
+
+    // Get user details from Firestore
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+    
+    final String userName = userDoc.data()?['name'] ?? 'Unknown User';
+    final String userId = currentUser.uid;
 
     // Group cart items by farmer
     Map<String, List<Map<String, dynamic>>> ordersByFarmer = {};

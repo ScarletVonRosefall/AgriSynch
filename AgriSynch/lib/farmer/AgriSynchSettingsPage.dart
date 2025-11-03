@@ -293,24 +293,6 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Row(
               children: [
-                // Back Button
-                Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1011,8 +993,8 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
 
       if (!mounted) return;
 
-      // Navigate to login page
-      await Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      // Navigate to root (AuthWrapper) which will show login page
+      await Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
