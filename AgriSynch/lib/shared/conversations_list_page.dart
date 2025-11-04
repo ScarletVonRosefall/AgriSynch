@@ -78,79 +78,96 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      body: Column(
-        children: [
-          // --- Fixed Top Green Header ---
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-            width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Messages',
-                            style: ThemeHelper.getHeaderTextStyle(
-                              isDark: isDarkMode,
-                            ),
+      body: _buildConversationsContent(isDarkMode),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NewMessagePage(),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFF00C853),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildConversationsContent(bool isDarkMode) {
+    return Column(
+      children: [
+        // --- Fixed Top Green Header ---
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+          width: double.infinity,
+          decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Messages',
+                          style: ThemeHelper.getHeaderTextStyle(
+                            isDark: isDarkMode,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Search box
+              Container(
+                height: 42,
+                decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          setState(() => _searchQuery = value);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search conversations...',
+                          border: InputBorder.none,
+                          hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                        ),
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
+                        icon: Icon(Icons.clear, color: ThemeHelper.getIconColor(isDarkMode)),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                // Search box
-                Container(
-                  height: 42,
-                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (value) {
-                            setState(() => _searchQuery = value);
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Search conversations...',
-                            border: InputBorder.none,
-                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
-                          ),
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                      if (_searchQuery.isNotEmpty)
-                        IconButton(
-                          icon: Icon(Icons.clear, color: ThemeHelper.getIconColor(isDarkMode)),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
-          // --- Scrollable Conversations ---
-          Expanded(
-            child: StreamBuilder<List<Conversation>>(
+        // --- Scrollable Conversations ---
+        Expanded(
+          child: StreamBuilder<List<Conversation>>(
         stream: ChatService.getConversationsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -375,25 +392,18 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 ),
               ),
             );
-            },
-          );
-        },
-      ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NewMessagePage(),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFF00C853),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+          },
+        );
+      },
+    ),
+        ),
+      ],
     );
+  }
+
+  // Method to get embeddable content without Scaffold
+  Widget getEmbeddableContent() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    return _buildConversationsContent(isDarkMode);
   }
 }

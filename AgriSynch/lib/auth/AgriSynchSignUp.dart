@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +8,41 @@ import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
 
 final storage = FlutterSecureStorage();
+
+// Custom input formatter that detects invalid characters and shows warnings
+class InvalidCharDetectorFormatter extends TextInputFormatter {
+  final RegExp allowedPattern;
+  final String fieldType;
+  final Function(String, String) onInvalidChar;
+
+  InvalidCharDetectorFormatter({
+    required this.allowedPattern,
+    required this.fieldType,
+    required this.onInvalidChar,
+  });
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Check if any new characters are invalid
+    if (newValue.text.length > oldValue.text.length) {
+      String newChar = newValue.text.substring(oldValue.text.length);
+      if (!allowedPattern.hasMatch(newChar)) {
+        onInvalidChar(fieldType, newChar);
+        return oldValue; // Reject the invalid character
+      }
+    }
+    
+    // Allow the change if all characters are valid
+    if (allowedPattern.allMatches(newValue.text).length == newValue.text.length) {
+      return newValue;
+    }
+    
+    return oldValue;
+  }
+}
 
 class AgriSynchSignUpPage extends StatefulWidget {
   const AgriSynchSignUpPage({super.key});
@@ -30,6 +66,10 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
   String _selectedAccountType = 'Farmer'; // Default to Farmer
   bool _isPasswordVisible = false; // Track password visibility
   final _themeNotifier = ThemeNotifier();
+  
+  // State variables for input validation warnings
+  String _invalidCharWarning = '';
+  bool _showWarning = false;
 
   @override
   void initState() {
@@ -85,18 +125,39 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _showInvalidCharWarning(String fieldType, String invalidChar) {
+    setState(() {
+      _showWarning = true;
+      switch (fieldType) {
+        case 'name':
+          _invalidCharWarning = 'Names can only contain letters, spaces, hyphens, and apostrophes';
+          break;
+        case 'email':
+          _invalidCharWarning = 'Email can only contain letters, numbers, @, ., _, -, and +';
+          break;
+        case 'password':
+          _invalidCharWarning = 'Password can use letters, numbers, and symbols like @#\$%^&*()_+=!?.';
+          break;
+      }
+    });
+
+    // Hide warning after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showWarning = false;
+          _invalidCharWarning = '';
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
     
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-        foregroundColor: Colors.white,
-        title: const Text('Sign Up', style: TextStyle(fontFamily: 'Poppins')),
-      ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -196,7 +257,57 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                         _inputField("Email", emailController),
                                         const SizedBox(height: 12),
                                         _passwordField(),
-                                        const SizedBox(height: 16),
+                                        const SizedBox(height: 8),
+                                        // Warning indicator for invalid characters
+                                        AnimatedContainer(
+                                          duration: const Duration(milliseconds: 300),
+                                          height: _showWarning ? 40 : 0,
+                                          child: _showWarning
+                                              ? Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    border: Border.all(
+                                                      color: Colors.red.shade400,
+                                                      width: 2,
+                                                    ),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.2),
+                                                        blurRadius: 4,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.warning_amber_rounded,
+                                                        color: Colors.red.shade600,
+                                                        size: 16,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          _invalidCharWarning,
+                                                          style: TextStyle(
+                                                            color: Colors.red.shade700,
+                                                            fontSize: 12,
+                                                            fontFamily: 'Poppins',
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                        const SizedBox(height: 8),
                                         const Text(
                                           "Which type of account?",
                                           style: TextStyle(
@@ -510,6 +621,13 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
     return TextField(
       controller: passController,
       obscureText: !_isPasswordVisible,
+      inputFormatters: [
+        InvalidCharDetectorFormatter(
+          allowedPattern: RegExp(r"[a-zA-Z0-9@#$%^&*()_+=\-!?.]"),
+          fieldType: 'password',
+          onInvalidChar: _showInvalidCharWarning,
+        ),
+      ],
       style: const TextStyle(fontFamily: 'Poppins'),
       decoration: InputDecoration(
         hintText: "Password",
@@ -544,9 +662,27 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
     TextEditingController controller, {
     bool obscure = false,
   }) {
+    // Define input formatters based on the field type
+    List<TextInputFormatter> formatters = [];
+    
+    if (hint == "Name") {
+      formatters.add(InvalidCharDetectorFormatter(
+        allowedPattern: RegExp(r"[a-zA-Z\s\-']"),
+        fieldType: 'name',
+        onInvalidChar: _showInvalidCharWarning,
+      ));
+    } else if (hint == "Email") {
+      formatters.add(InvalidCharDetectorFormatter(
+        allowedPattern: RegExp(r"[a-zA-Z0-9@._+-]"),
+        fieldType: 'email',
+        onInvalidChar: _showInvalidCharWarning,
+      ));
+    }
+    
     return TextField(
       controller: controller,
       obscureText: obscure,
+      inputFormatters: formatters,
       style: const TextStyle(fontFamily: 'Poppins'),
       decoration: InputDecoration(
         hintText: hint,

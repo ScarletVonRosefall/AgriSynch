@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message.dart';
+import 'dart:math';
 
 class ChatService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,6 +11,14 @@ class ChatService {
   static String generateConversationId(String userId1, String userId2) {
     final ids = [userId1, userId2]..sort();
     return '${ids[0]}_${ids[1]}';
+  }
+
+  /// Generate unique message ID to prevent duplicates
+  static String generateMessageId(String senderId, String message) {
+    final timestamp = DateTime.now().microsecondsSinceEpoch; // Use microseconds for better uniqueness
+    final random = Random().nextInt(100000);
+    final messageHash = message.hashCode.abs();
+    return '${senderId}_${timestamp}_${messageHash}_${random}';
   }
 
   /// Send a message
@@ -25,19 +34,38 @@ class ChatService {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
-        print('❌ No authenticated user');
+        print('❌ ChatService: No authenticated user');
         return false;
       }
 
       final senderId = currentUser.uid;
       final senderName = currentUser.displayName ?? 'User';
-
-      // Generate conversation ID
       final conversationId = generateConversationId(senderId, receiverId);
+      
+      // Generate unique message ID to prevent duplicates
+      final messageId = generateMessageId(senderId, message);
+      
+      print('🔧 ChatService: Sending message');
+      print('   📋 MessageID: $messageId');
+      print('   💬 Content: "$message"');
+      print('   👤 From: $senderId -> $receiverId');
+
+      // Check if message with this ID already exists
+      final existingMessage = await _firestore
+          .collection('messages')
+          .doc(messageId)
+          .get();
+          
+      if (existingMessage.exists) {
+        print('🚫 ChatService: Message with this ID already exists');
+        return false;
+      }
+
+      print('✅ ChatService: Message ID is unique, proceeding to send');
 
       // Create message
       final chatMessage = ChatMessage(
-        id: '',
+        id: messageId,
         conversationId: conversationId,
         senderId: senderId,
         senderName: senderName,
@@ -50,12 +78,16 @@ class ChatService {
         orderId: orderId,
       );
 
-      // Add message to messages collection
+      // Add message to messages collection with custom document ID to prevent duplicates
+      print('💾 ChatService: Saving to Firestore...');
       await _firestore
           .collection('messages')
-          .add(chatMessage.toFirestore());
+          .doc(messageId)
+          .set(chatMessage.toFirestore());
+      print('✅ ChatService: Message saved to Firestore');
 
       // Update or create conversation
+      print('🔄 ChatService: Updating conversation...');
       final conversationRef = _firestore.collection('conversations').doc(conversationId);
       final conversationDoc = await conversationRef.get();
 
@@ -90,10 +122,11 @@ class ChatService {
       // TODO: Add push notification when NotificationService is updated
       // await NotificationService().sendMessageNotification(...);
 
-      print('✅ Message sent successfully');
+      print('🎉 ChatService: Message send completed successfully');
       return true;
-    } catch (e) {
-      print('❌ Error sending message: $e');
+    } catch (e, stackTrace) {
+      print('❌ ChatService: Error sending message: $e');
+      print('📚 Stack trace: $stackTrace');
       return false;
     }
   }
@@ -118,10 +151,26 @@ class ChatService {
           .map((doc) => ChatMessage.fromFirestore(doc))
           .toList();
       
-      // Sort by timestamp descending (newest first)
-      messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      // Remove duplicates based on message content, sender, and timestamp proximity
+      final deduplicatedMessages = <ChatMessage>[];
+      for (final message in messages) {
+        final isDuplicate = deduplicatedMessages.any((existing) => 
+          existing.senderId == message.senderId &&
+          existing.message == message.message &&
+          existing.timestamp.difference(message.timestamp).abs().inSeconds < 2
+        );
+        
+        if (!isDuplicate) {
+          deduplicatedMessages.add(message);
+        } else {
+          print('🚫 Stream: Filtering out duplicate message: "${message.message}"');
+        }
+      }
       
-      return messages;
+      // Sort by timestamp descending (newest first)
+      deduplicatedMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      
+      return deduplicatedMessages;
     });
   }
 

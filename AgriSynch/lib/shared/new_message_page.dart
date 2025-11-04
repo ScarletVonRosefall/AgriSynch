@@ -49,18 +49,42 @@ class _NewMessagePageState extends State<NewMessagePage> {
           .where((doc) => doc.id != currentUserId) // Exclude current user
           .map((doc) {
             final data = doc.data();
+            final rawRole = data['accountType'] ?? data['userType'] ?? data['role'] ?? 'user';
+            
+            // Clean up invalid/placeholder data
+            String finalRole = rawRole.toString();
+            if (finalRole.toLowerCase().contains('selected') || 
+                finalRole.toLowerCase().contains('account') ||
+                finalRole.toLowerCase().contains('type') ||
+                finalRole.isEmpty ||
+                finalRole == 'null') {
+              finalRole = 'user'; // Default for invalid data
+            }
+            
             return {
               'id': doc.id,
               'name': data['name'] ?? 'Unknown',
               'email': data['email'] ?? '',
-              'role': data['role'] ?? 'user',
+              'role': finalRole,
               'location': data['location'] ?? '',
             };
           })
           .where((user) {
+            // Filter out placeholder/test users
+            final name = user['name'].toString().toLowerCase();
+            final email = user['email'].toString().toLowerCase();
+            
+            // Skip users with placeholder data
+            if (name == 'unknown' || name == 'name' || name.isEmpty ||
+                email == 'email' || email.isEmpty || !email.contains('@')) {
+              return false;
+            }
+            
             // Filter by role in memory (client-side)
             if (_selectedRole == 'All') return true;
-            return user['role'].toString().toLowerCase() == _selectedRole.toLowerCase();
+            final userRole = user['role'].toString().toLowerCase();
+            final selectedRole = _selectedRole.toLowerCase();
+            return userRole == selectedRole;
           })
           .toList();
     });
@@ -253,11 +277,34 @@ class _NewMessagePageState extends State<NewMessagePage> {
             itemCount: filteredUsers.length,
             itemBuilder: (context, index) {
               final user = filteredUsers[index];
-              final isFarmer = user['role'].toString().toLowerCase() == 'farmer';
+              final userRole = user['role'].toString();
+              final userRoleLower = userRole.toLowerCase();
+              final isFarmer = userRoleLower == 'farmer';
+              final isBuyer = userRoleLower == 'buyer';
+              
+              // Determine display role and colors
+              String displayRole;
+              Color backgroundColor;
+              Color textColor;
+              
+              if (isFarmer) {
+                displayRole = 'FARMER';
+                backgroundColor = Colors.green[100]!;
+                textColor = Colors.green[800]!;
+              } else if (isBuyer) {
+                displayRole = 'BUYER';
+                backgroundColor = Colors.blue[100]!;
+                textColor = Colors.blue[800]!;
+              } else {
+                // For any remaining edge cases, show as USER
+                displayRole = 'USER';
+                backgroundColor = Colors.grey[200]!;
+                textColor = Colors.grey[800]!;
+              }
               
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: isFarmer ? Colors.green : Colors.blue,
+                  backgroundColor: isFarmer ? Colors.green : (isBuyer ? Colors.blue : Colors.grey),
                   child: Text(
                     user['name'].toString().isNotEmpty
                         ? user['name'].toString()[0].toUpperCase()
@@ -285,15 +332,15 @@ class _NewMessagePageState extends State<NewMessagePage> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: isFarmer ? Colors.green[100] : Colors.blue[100],
+                        color: backgroundColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        user['role'].toString().toUpperCase(),
+                        displayRole,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isFarmer ? Colors.green[800] : Colors.blue[800],
+                          color: textColor,
                         ),
                       ),
                     ),

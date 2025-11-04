@@ -1,10 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import '../services/error_handler.dart';
 import '../shared/theme_helper.dart';
+
+// Lighter input formatter for login - only blocks obviously problematic characters
+class LightInputValidator extends TextInputFormatter {
+  final RegExp allowedPattern;
+  final String fieldType;
+  final Function(String) onInvalidChar;
+
+  LightInputValidator({
+    required this.allowedPattern,
+    required this.fieldType,
+    required this.onInvalidChar,
+  });
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Check if any new characters are invalid
+    if (newValue.text.length > oldValue.text.length) {
+      String newChar = newValue.text.substring(oldValue.text.length);
+      if (!allowedPattern.hasMatch(newChar)) {
+        onInvalidChar(fieldType);
+        return oldValue; // Reject the invalid character
+      }
+    }
+    
+    return newValue;
+  }
+}
 
 class AgriSynchLoginPage extends StatefulWidget {
   const AgriSynchLoginPage({super.key});
@@ -21,6 +52,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   final _themeNotifier = ThemeNotifier();
+  
+  // State variables for light input validation warnings
+  String _invalidCharWarning = '';
+  bool _showWarning = false;
 
   @override
   void initState() {
@@ -68,6 +103,30 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showLightInvalidCharWarning(String fieldType) {
+    setState(() {
+      _showWarning = true;
+      switch (fieldType) {
+        case 'email':
+          _invalidCharWarning = 'Please use standard email characters';
+          break;
+        case 'password':
+          _invalidCharWarning = 'Characters like < > { } [ ] | \\ are not allowed';
+          break;
+      }
+    });
+
+    // Hide warning after 2 seconds (shorter for login)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showWarning = false;
+          _invalidCharWarning = '';
+        });
+      }
+    });
   }
 
   @override
@@ -192,7 +251,57 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                         );
                                       },
                                     ),
-                                    const SizedBox(height: 24),
+                                    const SizedBox(height: 8),
+                                    // Light warning indicator for invalid characters
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 250),
+                                      height: _showWarning ? 32 : 0,
+                                      child: _showWarning
+                                          ? Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber.shade50,
+                                                border: Border.all(
+                                                  color: Colors.orange.shade600,
+                                                  width: 2,
+                                                ),
+                                                borderRadius: BorderRadius.circular(6),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.15),
+                                                    blurRadius: 3,
+                                                    offset: const Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.info_outline,
+                                                    color: Colors.orange.shade700,
+                                                    size: 14,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _invalidCharWarning,
+                                                      style: TextStyle(
+                                                        color: Colors.orange.shade800,
+                                                        fontSize: 11,
+                                                        fontFamily: 'Poppins',
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+                                    const SizedBox(height: 16),
                                     Center(
                                       child: ValueListenableBuilder<bool>(
                                         valueListenable: isLoading,
@@ -251,6 +360,9 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         final data = doc.data();
                                                         final accountType = data?['accountType'] ?? 'Farmer';
                                                         final userName = data?['name'] ?? '';
+                                                        
+                                                        // Debug to verify account type
+                                                        showError("Login successful! Account type: $accountType");
 
                                                         // Store data in parallel
                                                         await Future.wait([
@@ -283,9 +395,28 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         );
                                                         await ErrorHandler.setCustomKey('account_type', accountType);
                                                         await ErrorHandler.setCustomKey('user_name', userName);
-
-                                                        // AuthWrapper will automatically navigate based on auth state
-                                                        // No manual navigation needed here
+                                                        
+                                                        // Force navigation after successful login
+                                                        if (!mounted) return;
+                                                        
+                                                        try {
+                                                          // Navigate based on account type with complete stack replacement
+                                                          if (accountType == 'Buyer') {
+                                                            Navigator.pushNamedAndRemoveUntil(
+                                                              context, 
+                                                              '/buyer-home', 
+                                                              (route) => false,
+                                                            );
+                                                          } else {
+                                                            Navigator.pushNamedAndRemoveUntil(
+                                                              context, 
+                                                              '/home', 
+                                                              (route) => false,
+                                                            );
+                                                          }
+                                                        } catch (e) {
+                                                          showError("Navigation error: $e");
+                                                        }
                                                       }
                                                     } on FirebaseAuthException catch (e) {
                                                       if (!mounted) return;
@@ -428,10 +559,30 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     TextInputType? keyboardType,
     Widget? suffixIcon,
   }) {
+    // Light validation - only block obviously problematic characters
+    List<TextInputFormatter> formatters = [];
+    
+    if (hint == "Email") {
+      // Email: block < > { } [ ] | \ and quotes - keep it simple for login
+      formatters.add(LightInputValidator(
+        allowedPattern: RegExp(r"[^<>{}[\]|\\]"),
+        fieldType: 'email',
+        onInvalidChar: _showLightInvalidCharWarning,
+      ));
+    } else if (hint == "Password") {
+      // Password: only block the most problematic characters like < > { } [ ] |
+      formatters.add(LightInputValidator(
+        allowedPattern: RegExp(r"[^<>{}[\]|\\]"),
+        fieldType: 'password',
+        onInvalidChar: _showLightInvalidCharWarning,
+      ));
+    }
+    
     return TextField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
+      inputFormatters: formatters,
       style: const TextStyle(fontFamily: 'Poppins'),
       decoration: InputDecoration(
         hintText: hint,

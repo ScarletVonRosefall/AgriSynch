@@ -34,7 +34,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final _themeNotifier = ThemeNotifier();
   
   String userName = '';
-  final int _selectedIndex = 0;
+  int _selectedIndex = 0;
 
   // Data for buyer dashboard
   List<Map<String, dynamic>> orders = [];
@@ -307,14 +307,12 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Handle bottom navigation tab selection
   void _onItemTapped(int index) {
-    if (index == 1) {
-      // Navigate to Messages
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ConversationsListPage()),
-      );
-    } else if (index == 2) {
-      // Navigate to Settings
+    setState(() {
+      _selectedIndex = index;
+    });
+    
+    if (index == 2) {
+      // Navigate to Settings (keeping this as a separate page)
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const AgriSynchBuyerSettingsPage()),
@@ -323,40 +321,49 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         loadTheme();
         loadBuyerData();
         loadUnreadNotifications();
+        // Return to home tab after settings
+        setState(() {
+          _selectedIndex = 0;
+        });
       });
     }
-    // Index 0 is Home - already on this page
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _getSelectedPage() {
+    switch (_selectedIndex) {
+      case 1:
+        return const ConversationsListPage();
+      default:
+        return _buildHomePage();
+    }
+  }
+
+  Widget _buildHomePage() {
     final isDarkMode = _themeNotifier.isDarkMode;
     
-    return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      body: Column(
-        children: [
-          // Fixed Top Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-            width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      child: Icon(Icons.person, color: Colors.white),
-                      backgroundColor: Colors.blue,
-                      radius: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
+    return Column(
+      children: [
+        // Fixed Top Header
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+          width: double.infinity,
+          decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    child: Icon(Icons.person, color: Colors.white),
+                    backgroundColor: Colors.blue,
+                    radius: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
                           style: ThemeHelper.getHeaderTextStyle(
                             isDark: isDarkMode,
                           ),
@@ -829,7 +836,16 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             ),
           ),
         ],
-      ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      body: _getSelectedPage(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
