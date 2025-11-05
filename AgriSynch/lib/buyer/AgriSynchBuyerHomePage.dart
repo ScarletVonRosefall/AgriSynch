@@ -11,7 +11,6 @@ import '../services/product_service.dart';
 import '../services/order_service.dart';
 import '../models/product.dart';
 import '../models/order.dart';
-import 'AgriSynchBuyerSettingsPage.dart';
 import 'BrowseProductsPage.dart';
 import 'MyOrdersPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -19,6 +18,7 @@ import 'DeliveryTrackingPage.dart';
 import 'dart:convert';
 import '../shared/conversations_list_page.dart';
 import '../services/chat_service.dart';
+import 'AgriSynchBuyerSettingsPage.dart';
 
 class AgriSynchBuyerHomePage extends StatefulWidget {
   const AgriSynchBuyerHomePage({super.key});
@@ -34,7 +34,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final _themeNotifier = ThemeNotifier();
   
   String userName = '';
-  final int _selectedIndex = 0;
 
   // Data for buyer dashboard
   List<Map<String, dynamic>> orders = [];
@@ -305,29 +304,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     );
   }
 
-  // Handle bottom navigation tab selection
-  void _onItemTapped(int index) {
-    if (index == 1) {
-      // Navigate to Messages
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ConversationsListPage()),
-      );
-    } else if (index == 2) {
-      // Navigate to Settings
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AgriSynchBuyerSettingsPage()),
-      ).then((_) {
-        // Reload theme and data when returning from settings
-        loadTheme();
-        loadBuyerData();
-        loadUnreadNotifications();
-      });
-    }
-    // Index 0 is Home - already on this page
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
@@ -370,7 +346,67 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       ],
                     ),
                     const Spacer(),
-                    // Notification Button (removed settings button since it's now in bottom nav)
+                    // Messages Button
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ConversationsListPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.message_outlined,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                        StreamBuilder<int>(
+                          stream: ChatService.getUnreadCountStream(),
+                          builder: (context, snapshot) {
+                            final unreadCount = snapshot.data ?? 0;
+                            if (unreadCount > 0) {
+                              return Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    // Notification Button
                     Stack(
                       children: [
                         Container(
@@ -423,6 +459,33 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                             ),
                           ),
                       ],
+                    ),
+                    const SizedBox(width: 8),
+                    // Settings Button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AgriSynchBuyerSettingsPage(),
+                            ),
+                          );
+                          // Reload data when returning from settings
+                          loadTheme();
+                          loadBuyerData();
+                          loadUnreadNotifications();
+                        },
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -827,61 +890,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
-        selectedItemColor: isDarkMode ? Colors.white : const Color(0xFF4CAF50),
-        unselectedItemColor: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-        elevation: 8,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: StreamBuilder<int>(
-              stream: ChatService.getUnreadCountStream(),
-              builder: (context, snapshot) {
-                final unreadCount = snapshot.data ?? 0;
-                return Stack(
-                  children: [
-                    const Icon(Icons.message),
-                    if (unreadCount > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            unreadCount > 99 ? '99+' : '$unreadCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            label: 'Messages',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
           ),
         ],
       ),

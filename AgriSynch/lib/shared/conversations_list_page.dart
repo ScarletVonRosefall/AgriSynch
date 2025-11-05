@@ -7,7 +7,12 @@ import 'new_message_page.dart';
 import 'theme_helper.dart';
 
 class ConversationsListPage extends StatefulWidget {
-  const ConversationsListPage({super.key});
+  final bool showBackButton;
+  
+  const ConversationsListPage({
+    super.key,
+    this.showBackButton = true,
+  });
 
   @override
   State<ConversationsListPage> createState() => _ConversationsListPageState();
@@ -91,17 +96,33 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Back Button (conditionally shown)
+                    if (widget.showBackButton) ...[
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Messages',
-                            style: ThemeHelper.getHeaderTextStyle(
-                              isDark: isDarkMode,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: widget.showBackButton ? 12 : 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Messages',
+                              style: ThemeHelper.getHeaderTextStyle(
+                                isDark: isDarkMode,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],

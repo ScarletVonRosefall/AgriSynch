@@ -1,7 +1,10 @@
-2025/11/04-02:49:49.028 25ac Reusing MANIFEST C:\Users\kuuno\AppData\Local\Temp\flutter_tools.42faf04a\flutter_tools_chrome_device.d0ae4e03\Default\Sync Data\LevelDB/MANIFEST-000001
-2025/11/04-02:49:49.030 25ac Recovering log #13
-2025/11/04-02:49:49.031 25ac Reusing old log C:\Users\kuuno\AppData\Local\Temp\flutter_tools.42faf04a\flutter_tools_chrome_device.d0ae4e03\Default\Sync Data\LevelDB/000013.log 
-2025/11/04-02:49:49.033 25ac Delete type=0 #3
-2025/11/04-02:49:49.033 25ac Delete type=0 #4
-2025/11/04-02:49:49.033 25ac Delete type=0 #7
-2025/11/04-02:49:49.034 25ac Delete type=0 #10
+2025/11/05-18:43:41.422 3510 Reusing MANIFEST C:\Users\kuuno\AppData\Local\Temp\flutter_tools.27b2702\flutter_tools_chrome_device.7dcc652\Default\Sync Data\LevelDB/MANIFEST-000001
+2025/11/05-18:43:41.424 3510 Recovering log #13
+2025/11/05-18:43:41.428 3510 Reusing old log C:\Users\kuuno\AppData\Local\Temp\flutter_tools.27b2702\flutter_tools_chrome_device.7dcc652\Default\Sync Data\LevelDB/000013.log 
+2025/11/05-18:43:41.429 3510 Delete type=0 #3
+2025/11/05-18:43:41.429 3510 Delete type=0 #4
+2025/11/05-18:43:41.429 3510 Delete type=0 #7
+2025/11/05-18:43:41.430 3510 Delete type=0 #10
+2025/11/05-18:43:59.146 3810 Level-0 table #17: started
+2025/11/05-18:43:59.154 3810 Level-0 table #17: 92276 bytes OK
+2025/11/05-18:43:59.157 3810 Delete type=0 #13

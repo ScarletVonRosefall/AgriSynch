@@ -815,7 +815,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     children: [
                                       // Contact Farmer Button
                                       Expanded(
-                                        child: OutlinedButton.icon(
+                                        child: OutlinedButton(
                                           onPressed: () {
                                             Navigator.push(
                                               context,
@@ -829,13 +829,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                               ),
                                             );
                                           },
-                                          icon: const Icon(Icons.message, size: 16),
-                                          label: const Text('Contact', style: TextStyle(fontSize: 11)),
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                                             side: BorderSide(color: ThemeHelper.getHeaderColor(isDarkMode)),
                                             padding: const EdgeInsets.symmetric(vertical: 8),
                                           ),
+                                          child: const Icon(Icons.message, size: 16),
                                         ),
                                       ),
                                       const SizedBox(width: 8),

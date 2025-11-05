@@ -6,9 +6,6 @@ import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
 import '../shared/theme_helper.dart';
-import 'AgriSynchBuyerHomePage.dart';
-import '../shared/conversations_list_page.dart';
-import '../services/chat_service.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -27,7 +24,6 @@ class _AgriSynchBuyerSettingsPageState
   bool _darkModeEnabled = false;
   int unreadNotifications = 0;
   String _selectedCurrency = 'PHP';
-  final int _selectedIndex = 2; // Settings is now index 2
   final _themeNotifier = ThemeNotifier();
 
   String userName = '';
@@ -110,24 +106,6 @@ class _AgriSynchBuyerSettingsPageState
     }
   }
 
-  // Handle bottom navigation
-  void _onItemTapped(int index) {
-    if (index == 0) {
-      // Navigate to Home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const AgriSynchBuyerHomePage()),
-      );
-    } else if (index == 1) {
-      // Navigate to Messages
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ConversationsListPage()),
-      );
-    }
-    // Index 2 is Settings - already on this page
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
@@ -159,6 +137,18 @@ class _AgriSynchBuyerSettingsPageState
             ),
             child: Row(
               children: [
+                // Back Button
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,65 +579,10 @@ class _AgriSynchBuyerSettingsPageState
                     ),
                   ),
 
-                  const SizedBox(height: 100), // Extra space for bottom nav
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
-        selectedItemColor: isDarkMode ? Colors.white : const Color(0xFF4CAF50),
-        unselectedItemColor: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-        elevation: 8,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: StreamBuilder<int>(
-              stream: ChatService.getUnreadCountStream(),
-              builder: (context, snapshot) {
-                final unreadCount = snapshot.data ?? 0;
-                return Stack(
-                  children: [
-                    const Icon(Icons.message),
-                    if (unreadCount > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            unreadCount > 99 ? '99+' : '$unreadCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            label: 'Messages',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
           ),
         ],
       ),

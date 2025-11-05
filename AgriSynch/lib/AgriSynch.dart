@@ -19,6 +19,7 @@ import 'auth/AgriSynchLogin.dart';
 import 'auth/AgriSynchRecover.dart';
 import 'shared/StorageViewer.dart';
 import 'buyer/AgriSynchBuyerHomePage.dart';
+import 'buyer/AgriSynchBuyerSettingsPage.dart';
 import 'shared/conversations_list_page.dart';
 import 'services/chat_service.dart';
 
@@ -45,7 +46,7 @@ class AgriSynchApp extends StatelessWidget {
         '/': (context) => const AgriSynchSignUpPage(),
         '/login': (context) => const AgriSynchLoginPage(),
         '/home': (context) => const AgriSynchHome(),
-        '/buyer-home': (context) => const AgriSynchBuyerHomePage(),
+        '/buyer-home': (context) => const AgriSynchBuyerHome(),
         '/storage': (context) => const StorageViewerPage(),
         '/recover': (context) => const AgriSynchRecoverPage(),
       },
@@ -69,7 +70,7 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
     AgriSynchTasksPage(),
     AgriSynchProductsPage(),
     AgriSynchOrdersPage(),
-    ConversationsListPage(),
+    ConversationsListPage(showBackButton: false),
     AgriSynchSettingsPage(),
   ];
 
@@ -138,6 +139,88 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
           const BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: "Settings",
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AgriSynchBuyerHome extends StatefulWidget {
+  const AgriSynchBuyerHome({super.key});
+
+  @override
+  State<AgriSynchBuyerHome> createState() => _AgriSynchBuyerHomeState();
+}
+
+class _AgriSynchBuyerHomeState extends State<AgriSynchBuyerHome> {
+  int _currentIndex = 0;
+
+  final List<Widget> pages = const [
+    AgriSynchBuyerHomePage(),
+    ConversationsListPage(showBackButton: false),
+    AgriSynchBuyerSettingsPage(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF4CAF50),
+        unselectedItemColor: Colors.grey,
+        elevation: 8,
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: StreamBuilder<int>(
+              stream: ChatService.getUnreadCountStream(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  children: [
+                    const Icon(Icons.message),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            label: 'Messages',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),
