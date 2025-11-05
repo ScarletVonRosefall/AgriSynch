@@ -22,6 +22,7 @@ import 'buyer/AgriSynchBuyerHomePage.dart';
 import 'buyer/AgriSynchBuyerSettingsPage.dart';
 import 'shared/conversations_list_page.dart';
 import 'services/chat_service.dart';
+import 'shared/theme_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +65,23 @@ class AgriSynchHome extends StatefulWidget {
 
 class _AgriSynchHomeState extends State<AgriSynchHome> {
   int _currentIndex = 0;
+  final _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
 
   final List<Widget> pages = const [
     AgriSynchHomePage(),
@@ -76,6 +94,8 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       body: pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -85,10 +105,12 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
             _currentIndex = index;
           });
         },
-        selectedItemColor: const Color(0xFF00C853),
-        unselectedItemColor: Colors.grey,
+        backgroundColor: isDarkMode ? const Color(0xFF1B5E20) : Colors.white,
+        selectedItemColor: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+        unselectedItemColor: isDarkMode ? const Color(0xFF9E9E9E) : const Color(0xFF757575),
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
+        elevation: 8,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           const BottomNavigationBarItem(icon: Icon(Icons.task), label: "Tasks"),
@@ -155,6 +177,23 @@ class AgriSynchBuyerHome extends StatefulWidget {
 
 class _AgriSynchBuyerHomeState extends State<AgriSynchBuyerHome> {
   int _currentIndex = 0;
+  final _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
 
   final List<Widget> pages = const [
     AgriSynchBuyerHomePage(),
@@ -164,6 +203,8 @@ class _AgriSynchBuyerHomeState extends State<AgriSynchBuyerHome> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Scaffold(
       body: pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -174,8 +215,9 @@ class _AgriSynchBuyerHomeState extends State<AgriSynchBuyerHome> {
           });
         },
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF4CAF50),
-        unselectedItemColor: Colors.grey,
+        backgroundColor: isDarkMode ? const Color(0xFF1B5E20) : Colors.white,
+        selectedItemColor: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+        unselectedItemColor: isDarkMode ? const Color(0xFF9E9E9E) : const Color(0xFF757575),
         elevation: 8,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
