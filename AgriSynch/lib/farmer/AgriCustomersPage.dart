@@ -249,15 +249,20 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
             expandedHeight: 180,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF4CAF50),
+            backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
             automaticallyImplyLeading: false,
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-                decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              background: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(28),
+                  bottomRight: Radius.circular(28),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+                  decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     Row(
                       children: [
                         IconButton(
@@ -370,6 +375,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               ),
             ),
           ),
+          ),
 
           // Sort options
           SliverToBoxAdapter(
@@ -382,11 +388,18 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     padding: const EdgeInsets.only(left: 16, bottom: 8),
                     child: Row(
                       children: [
-                        const Icon(Icons.sort, size: 20),
+                        Icon(
+                          Icons.sort, 
+                          size: 20,
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : null,
+                        ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Sort by:',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: isDarkMode ? const Color(0xFFE0E0E0) : null,
+                          ),
                         ),
                       ],
                     ),
@@ -428,6 +441,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     }
 
     if (_customerOrders.isEmpty) {
+      final isDarkMode = _themeNotifier.isDarkMode;
       return SliverFillRemaining(
         child: Center(
           child: Column(
@@ -436,14 +450,14 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               Icon(
                 Icons.people_outline,
                 size: 80,
-                color: Colors.grey[400],
+                color: isDarkMode ? const Color(0xFF757575) : Colors.grey[400],
               ),
               const SizedBox(height: 16),
               Text(
                 'No customers yet',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.grey[600],
+                  color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -452,7 +466,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                 'Customers will appear here after they place orders',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[500],
+                  color: isDarkMode ? const Color(0xFF757575) : Colors.grey[500],
                 ),
               ),
             ],
@@ -481,6 +495,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     _sortCustomers(customers);
 
     if (customers.isEmpty) {
+      final isDarkMode = _themeNotifier.isDarkMode;
       return SliverFillRemaining(
         child: Center(
           child: Column(
@@ -489,14 +504,14 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               Icon(
                 Icons.search_off,
                 size: 80,
-                color: Colors.grey[400],
+                color: isDarkMode ? const Color(0xFF757575) : Colors.grey[400],
               ),
               const SizedBox(height: 16),
               Text(
                 'No customers found',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.grey[600],
+                  color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
                 ),
               ),
             ],
@@ -539,6 +554,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   }
 
   Widget _buildSortChip(String label, String value) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final isSelected = sortBy == value;
     return FilterChip(
       label: Text(label),
@@ -548,11 +564,15 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
           sortBy = value;
         });
       },
-      selectedColor: const Color(0xFF4CAF50),
+      selectedColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
+      backgroundColor: isDarkMode ? const Color(0xFF263238) : null,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : null,
+        color: isSelected 
+            ? Colors.white 
+            : (isDarkMode ? const Color(0xFFE0E0E0) : null),
         fontWeight: isSelected ? FontWeight.bold : null,
       ),
+      checkmarkColor: Colors.white,
     );
   }
 
@@ -577,6 +597,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   }
 
   Widget _buildCustomerCard(CustomerData customer) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final totalOrders = customer.orders.length;
     final totalRevenue = customer.orders.fold<double>(
       0,
@@ -594,6 +615,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
+      color: isDarkMode ? const Color(0xFF1E1E1E) : null,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () => _showCustomerDetails(customer),
@@ -608,13 +630,13 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                   // Avatar
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: const Color(0xFF4CAF50).withOpacity(0.2),
+                    backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withOpacity(0.2),
                     child: Text(
                       customer.name.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4CAF50),
+                        color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
                       ),
                     ),
                   ),
@@ -627,9 +649,10 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                       children: [
                         Text(
                           customer.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: isDarkMode ? const Color(0xFFE0E0E0) : null,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -637,7 +660,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                           'Last order: ${_formatDate(lastOrderDate)}',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[600],
+                            color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
                           ),
                         ),
                       ],
@@ -651,23 +674,23 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.1),
+                      color: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.shopping_bag,
                           size: 16,
-                          color: Color(0xFF4CAF50),
+                          color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '$totalOrders',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF4CAF50),
+                            color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
                           ),
                         ),
                       ],
@@ -677,7 +700,10 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               ),
               
               const SizedBox(height: 16),
-              const Divider(height: 1),
+              Divider(
+                height: 1,
+                color: isDarkMode ? const Color(0xFF424242) : null,
+              ),
               const SizedBox(height: 16),
               
               // Order statistics
@@ -712,6 +738,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   }
 
   Widget _buildStatItem(IconData icon, String label, String value, Color color) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
@@ -728,7 +755,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
           ),
         ),
       ],
@@ -775,7 +802,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: isDarkMode ? const Color(0xFF616161) : Colors.grey[300],
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -787,13 +814,13 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     children: [
                       CircleAvatar(
                         radius: 25,
-                        backgroundColor: const Color(0xFF4CAF50).withOpacity(0.2),
+                        backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withOpacity(0.2),
                         child: Text(
                           customer.name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF4CAF50),
+                            color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
                           ),
                         ),
                       ),
@@ -804,16 +831,17 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                           children: [
                             Text(
                               customer.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
+                                color: isDarkMode ? const Color(0xFFE0E0E0) : null,
                               ),
                             ),
                             Text(
                               '${customer.orders.length} orders',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
                               ),
                             ),
                           ],
@@ -821,14 +849,20 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
+                        icon: Icon(
+                          Icons.close,
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : null,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 
                 const SizedBox(height: 16),
-                const Divider(height: 1),
+                Divider(
+                  height: 1,
+                  color: isDarkMode ? const Color(0xFF424242) : null,
+                ),
                 
                 // Order history
                 Expanded(
@@ -851,10 +885,13 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   }
 
   Widget _buildOrderItem(AppOrder order) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final statusColor = _getStatusColor(order.status);
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: isDarkMode ? const Color(0xFF1E1E1E) : null,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -865,9 +902,10 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               children: [
                 Text(
                   'Order #${order.id.substring(0, 8)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    color: isDarkMode ? const Color(0xFFE0E0E0) : null,
                   ),
                 ),
                 Container(
@@ -895,7 +933,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               '${order.items.length} item(s) - ₱${order.totalAmount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
               ),
             ),
             const SizedBox(height: 4),
@@ -903,7 +941,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
               _formatDate(order.orderDate),
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[500],
+                color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[500],
               ),
             ),
           ],

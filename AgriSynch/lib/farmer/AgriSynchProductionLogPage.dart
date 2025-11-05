@@ -729,8 +729,18 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _isDark ? Colors.grey[800] : Colors.grey[100],
+        color: _isDark ? const Color(0xFF37474F) : Colors.grey[100],
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: _isDark 
+                ? Colors.black.withOpacity(0.3)
+                : Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -760,7 +770,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.agriculture, size: 64, color: Colors.grey[400]),
+          Icon(Icons.agriculture, size: 64, color: _isDark ? const Color(0xFF757575) : Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             _logEntries.isEmpty

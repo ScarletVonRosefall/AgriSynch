@@ -167,11 +167,13 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         width: double.infinity,
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.grey[850] : Colors.blue[50],
+          color: isDarkMode ? const Color(0xFF263238) : Colors.blue[50],
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
+              color: isDarkMode 
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.3),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 3),
@@ -181,7 +183,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDarkMode
-                ? [Colors.grey[850]!, Colors.grey[800]!]
+                ? [const Color(0xFF37474F), const Color(0xFF263238)]
                 : [Colors.blue[100]!, Colors.blue[50]!],
           ),
         ),
@@ -190,7 +192,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? Colors.blue[700] : Colors.blue[600],
+                color: isDarkMode ? const Color(0xFF1976D2) : Colors.blue[600],
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
@@ -211,7 +213,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[800],
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.grey[800],
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -221,14 +223,14 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.blue[300] : Colors.blue[700],
+                        color: isDarkMode ? const Color(0xFF64B5F6) : Colors.blue[700],
                       ),
                     ),
                     Text(
                       currentWeather!.description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
                       ),
                     ),
                   ] else ...[
@@ -236,7 +238,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       'Loading...',
                       style: TextStyle(
                         fontSize: 16,
-                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -245,7 +247,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
               size: 16,
             ),
           ],
@@ -267,11 +269,13 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+          color: isDarkMode ? const Color(0xFF37474F) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.2),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -287,14 +291,14 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black87,
+                color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
               ),
             ),
             Text(
               title,
               style: TextStyle(
                 fontSize: 12,
-                color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                color: isDarkMode ? const Color(0xFFB0B0B0) : Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
@@ -328,26 +332,32 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                     radius: 20,
                   ),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
                           style: ThemeHelper.getHeaderTextStyle(
                             isDark: isDarkMode,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         Text(
                           "Welcome to AgriSynch Marketplace!",
                           style: ThemeHelper.getSubHeaderTextStyle(
                             isDark: isDarkMode,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    // Messages Button
-                    Stack(
+                  ),
+                  const SizedBox(width: 10),
+                  // Messages Button
+                  Stack(
                       children: [
                         Container(
                           decoration: BoxDecoration(
@@ -493,6 +503,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                 Text(
                   "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
                   style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ),
@@ -544,7 +556,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isDarkMode
-                            ? const Color(0xFF4CAF50)
+                            ? const Color(0xFF2E7D32)
                             : const Color(0xFF00E676),
                         borderRadius: BorderRadius.circular(18),
                       ),
@@ -602,14 +614,14 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           Container(
                             width: 64,
                             height: 64,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Icon(
                                 Icons.shopping_basket,
-                                color: Colors.orange,
+                                color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
                                 size: 30,
                               ),
                             ),
@@ -682,7 +694,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           padding: const EdgeInsets.all(20),
                           child: Text(
                             'Error loading products',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: TextStyle(color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600]),
                             textAlign: TextAlign.center,
                           ),
                         );
@@ -698,12 +710,12 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           child: Column(
                             children: [
                               Icon(Icons.inventory_2_outlined,
-                                  size: 60, color: Colors.grey[400]),
+                                  size: 60, color: isDarkMode ? const Color(0xFF757575) : Colors.grey[400]),
                               const SizedBox(height: 12),
                               Text(
                                 'No products available yet',
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
                                   fontSize: 14,
                                 ),
                               ),
@@ -1133,9 +1145,10 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                 children: [
                   Text(
                     'Order #${order.id.substring(0, 8)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
                     ),
                   ),
                   Container(

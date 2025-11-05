@@ -153,6 +153,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
   }
 
   void _showAddEventDialog() {
+    final isDarkMode = _themeNotifier.isDarkMode;
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     
@@ -181,9 +182,14 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text(
+          backgroundColor: isDarkMode ? const Color(0xFF263238) : Colors.white,
+          title: Text(
             'Add Farm Event',
-            style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontFamily: 'Poppins', 
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+            ),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -191,17 +197,40 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Event Title',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: selectedCategory,
-                  decoration: const InputDecoration(
+                  dropdownColor: isDarkMode ? const Color(0xFF263238) : Colors.white,
+                  style: TextStyle(
+                    color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Category',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                      ),
+                    ),
                   ),
                   items: categories.map((category) {
                     return DropdownMenuItem(
@@ -219,9 +248,20 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                 TextField(
                   controller: descriptionController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Description',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
                 // Show crop and field for all agricultural categories
@@ -234,25 +274,48 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                   const Divider(),
                   Text(
                     '$selectedCategory Details',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: cropTypeController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Crop Type',
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                      ),
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: fieldLocationController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Field Location',
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                      ),
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                        ),
+                      ),
                     ),
                   ),
                   // Additional fields specific to Harvesting
@@ -260,12 +323,32 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                     const SizedBox(height: 8),
                     TextField(
                       controller: expectedYieldController,
+                      style: TextStyle(
+                        color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         labelText: 'Expected Yield (kg)',
-                        border: OutlineInputBorder(),
-                        hintText: '1000',  // Add this line to show example value
+                        labelStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                        ),
+                        border: const OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                          ),
+                        ),
+                        hintText: '1000',
+                        hintStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFF757575) : Colors.grey[400],
+                        ),
                         helperText: 'Enter harvest amount in kg (e.g., 1000 for 1 ton)',
+                        helperStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[600],
+                        ),
                         suffixText: 'kg',
+                        suffixStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                        ),
                       ),
                       keyboardType: TextInputType.number,
                     ),
@@ -277,9 +360,20 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                     const SizedBox(height: 8),
                     TextField(
                       controller: weatherDependencyController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                      ),
+                      decoration: InputDecoration(
                         labelText: 'Weather Requirements',
-                        border: OutlineInputBorder(),
+                        labelStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                        ),
+                        border: const OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode ? const Color(0xFF616161) : Colors.grey,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -290,9 +384,17 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                ),
+              ),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853),
+              ),
               onPressed: () {
                 if (titleController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -451,14 +553,56 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                           _eventsStream = _calendarService.getEventsForDate(selectedDay);
                         });
                       },
-                      calendarStyle: const CalendarStyle(
-                        selectedDecoration: BoxDecoration(
+                      calendarStyle: CalendarStyle(
+                        selectedDecoration: const BoxDecoration(
                           color: Color(0xFF00C853),
                           shape: BoxShape.circle,
                         ),
-                        todayDecoration: BoxDecoration(
+                        todayDecoration: const BoxDecoration(
                           color: Color(0xFF00E676),
                           shape: BoxShape.circle,
+                        ),
+                        // Text styles for better dark mode contrast
+                        defaultTextStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                        ),
+                        weekendTextStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                        ),
+                        outsideTextStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFF757575) : Colors.grey[400],
+                        ),
+                        selectedTextStyle: const TextStyle(
+                          color: Colors.white,
+                        ),
+                        todayTextStyle: const TextStyle(
+                          color: Colors.white,
+                        ),
+                      ),
+                      headerStyle: HeaderStyle(
+                        titleTextStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        formatButtonTextStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                        ),
+                        leftChevronIcon: Icon(
+                          Icons.chevron_left,
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                        ),
+                        rightChevronIcon: Icon(
+                          Icons.chevron_right,
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                        ),
+                      ),
+                      daysOfWeekStyle: DaysOfWeekStyle(
+                        weekdayStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
+                        ),
+                        weekendStyle: TextStyle(
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[700],
                         ),
                       ),
                     ),

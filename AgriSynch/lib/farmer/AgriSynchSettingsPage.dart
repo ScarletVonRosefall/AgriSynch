@@ -64,9 +64,9 @@ class ThemeProvider extends ChangeNotifier {
     ),
     cardColor: const Color(0xFF1E1E1E),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
-      bodyMedium: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
-      titleLarge: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+      bodyLarge: TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'Poppins'),
+      bodyMedium: TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'Poppins'),
+      titleLarge: TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'Poppins'),
     ),
   );
 }
@@ -1185,11 +1185,11 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          backgroundColor: isDarkMode ? const Color(0xFF263238) : Colors.white,
           title: Text(
             'Select Currency',
             style: TextStyle(
-              color: isDarkMode ? Colors.white : Colors.black87,
+              color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
             ),
@@ -1219,7 +1219,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                   title: Text(
                     currency['name']!,
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
                       fontFamily: 'Poppins',
                       fontWeight: isSelected
                           ? FontWeight.bold
@@ -1229,7 +1229,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                   subtitle: Text(
                     '${currency['code']} (${currency['symbol']})',
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.black54,
                       fontFamily: 'Poppins',
                     ),
                   ),

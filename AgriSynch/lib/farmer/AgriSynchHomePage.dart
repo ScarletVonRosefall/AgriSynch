@@ -259,11 +259,13 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         width: double.infinity,
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.grey[850] : Colors.blue[50],
+          color: isDarkMode ? const Color(0xFF263238) : Colors.blue[50],
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
+              color: isDarkMode 
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.3),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 3),
@@ -273,7 +275,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDarkMode
-                ? [Colors.grey[850]!, Colors.grey[800]!]
+                ? [const Color(0xFF37474F), const Color(0xFF263238)]
                 : [Colors.blue[100]!, Colors.blue[50]!],
           ),
         ),
@@ -283,7 +285,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? Colors.blue[700] : Colors.blue[600],
+                color: isDarkMode ? const Color(0xFF1976D2) : Colors.blue[600],
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
@@ -306,7 +308,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[800],
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.grey[800],
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -316,14 +318,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.blue[300] : Colors.blue[700],
+                        color: isDarkMode ? const Color(0xFF64B5F6) : Colors.blue[700],
                       ),
                     ),
                     Text(
                       currentWeather!.description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
                       ),
                     ),
                   ] else ...[
@@ -331,7 +333,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       'Loading...',
                       style: TextStyle(
                         fontSize: 16,
-                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -466,19 +468,22 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                   children: [
                     _buildProfileAvatar(),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildGreetingText(),
-                        Text(
-                          "Let's Get Tasks Done!",
-                          style: ThemeHelper.getSubHeaderTextStyle(
-                            isDark: isDarkMode,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildGreetingText(),
+                          Text(
+                            "Let's Get Tasks Done!",
+                            style: ThemeHelper.getSubHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 10),
                     Stack(
                       children: [
                         Container(
@@ -539,6 +544,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 Text(
                   "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
                   style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ),
@@ -590,9 +597,19 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isDarkMode
-                            ? const Color(0xFF4CAF50)
+                            ? const Color(0xFF2E7D32)
                             : const Color(0xFF00E676),
                         borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode 
+                                ? Colors.black.withOpacity(0.3)
+                                : Colors.grey.withOpacity(0.2),
+                            spreadRadius: 1,
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
@@ -893,6 +910,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
           style: ThemeHelper.getHeaderTextStyle(
             isDark: isDarkMode,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         );
       },
     );

@@ -118,7 +118,7 @@ class _AgriSynchBuyerSettingsPageState
     final cardColor = isDarkMode
         ? const Color(0xFF1E1E1E)
         : const Color(0xFFC5E1A5);
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final textColor = isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -860,11 +860,11 @@ class _AgriSynchBuyerSettingsPageState
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          backgroundColor: isDarkMode ? const Color(0xFF263238) : Colors.white,
           title: Text(
             'Select Currency',
             style: TextStyle(
-              color: isDarkMode ? Colors.white : Colors.black87,
+              color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
             ),
@@ -894,7 +894,7 @@ class _AgriSynchBuyerSettingsPageState
                   title: Text(
                     currency['name']!,
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
                       fontFamily: 'Poppins',
                       fontWeight: isSelected
                           ? FontWeight.bold
@@ -904,7 +904,7 @@ class _AgriSynchBuyerSettingsPageState
                   subtitle: Text(
                     '${currency['code']} (${currency['symbol']})',
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.black54,
                       fontFamily: 'Poppins',
                     ),
                   ),
