@@ -314,25 +314,25 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         children: [
           // Fixed Top Header
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-            width: double.infinity,
-            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      child: Icon(Icons.person, color: Colors.white),
-                      backgroundColor: Colors.blue,
-                      radius: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
+          padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+          width: double.infinity,
+          decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    child: Icon(Icons.person, color: Colors.white),
+                    backgroundColor: Colors.blue,
+                    radius: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
                           style: ThemeHelper.getHeaderTextStyle(
                             isDark: isDarkMode,
                           ),
