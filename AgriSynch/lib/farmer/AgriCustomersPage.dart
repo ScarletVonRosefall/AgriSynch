@@ -82,6 +82,8 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
         return;
       }
 
+      print('🔍 Loading customers for farmerId: ${currentUser.uid}');
+      
       final querySnapshot = await FirebaseFirestore.instance
           .collection('orders')
           .where('farmerId', isEqualTo: currentUser.uid)
@@ -95,17 +97,23 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
             },
           );
 
+      print('📦 Found ${querySnapshot.docs.length} orders');
+      
       final orders = querySnapshot.docs
           .map((doc) {
             try {
-              return AppOrder.fromFirestore(doc);
+              final order = AppOrder.fromFirestore(doc);
+              print('✅ Order ${doc.id}: buyer=${order.buyerName}, status=${order.status}');
+              return order;
             } catch (e) {
-              print('Error parsing order ${doc.id}: $e');
+              print('❌ Error parsing order ${doc.id}: $e');
               return null;
             }
           })
           .whereType<AppOrder>()
           .toList();
+      
+      print('👥 Total valid orders: ${orders.length}');
 
       if (!mounted) return;
       

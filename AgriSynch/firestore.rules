@@ -51,19 +51,26 @@ service cloud.firestore {
         && isValidString(request.resource.data.name, 100)
         && isValidString(request.resource.data.category, 50)
         && isValidPrice(request.resource.data.price)
-        && isValidQuantity(request.resource.data.stockQuantity)
+        && isValidQuantity(request.resource.data.stock)
         && isValidString(request.resource.data.unit, 20)
-        && request.resource.data.available is bool
+        && request.resource.data.isAvailable is bool
         && request.resource.data.createdAt is timestamp;
       
       // Only the farmer who created can update their product
-      allow update: if isSignedIn() 
-        && resource.data.farmerId == request.auth.uid
-        && request.resource.data.farmerId == request.auth.uid // Prevent farmerId change
-        && isValidString(request.resource.data.name, 100)
-        && isValidPrice(request.resource.data.price)
-        && isValidQuantity(request.resource.data.stockQuantity)
-        && request.resource.data.available is bool;
+      // OR buyers can update ONLY the stock field (when placing orders)
+      allow update: if isSignedIn() && (
+        // Farmer updating their own product
+        (resource.data.farmerId == request.auth.uid
+          && request.resource.data.farmerId == request.auth.uid // Prevent farmerId change
+          && isValidString(request.resource.data.name, 100)
+          && isValidPrice(request.resource.data.price)
+          && isValidQuantity(request.resource.data.stock)
+          && request.resource.data.isAvailable is bool)
+        ||
+        // Buyer decrementing stock (only stock and updatedAt fields can change)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'updatedAt'])
+          && request.resource.data.stock < resource.data.stock) // Stock can only decrease
+      );
       
       // Only the farmer who created can delete their product
       allow delete: if isSignedIn() && resource.data.farmerId == request.auth.uid;

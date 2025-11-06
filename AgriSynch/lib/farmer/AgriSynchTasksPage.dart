@@ -759,15 +759,14 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         backgroundColor: const Color(0xFF00C853),
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with gradient background
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-              width: double.infinity,
-              decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with gradient background
+          Container(
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            width: double.infinity,
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1239,7 +1238,6 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
             ),
           ],
         ),
-      ),
     );
   }
 }

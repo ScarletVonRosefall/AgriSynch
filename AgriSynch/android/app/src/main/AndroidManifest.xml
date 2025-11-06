@@ -21,7 +21,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     
     <application
-        android:label="test001"
+        android:label="AgriSynch"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

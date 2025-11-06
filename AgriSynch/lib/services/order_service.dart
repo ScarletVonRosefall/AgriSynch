@@ -15,7 +15,24 @@ class OrderService {
 
   // Create a new order (buyer creates order)
   Future<void> createOrder(AppOrder order) async {
-    await _firestore.collection('orders').doc(order.id).set(order.toFirestore());
+    // Use a batch to ensure atomic updates
+    final batch = _firestore.batch();
+    
+    // Add the order
+    final orderRef = _firestore.collection('orders').doc(order.id);
+    batch.set(orderRef, order.toFirestore());
+    
+    // Decrement stock for each product in the order
+    for (final item in order.items) {
+      final productRef = _firestore.collection('products').doc(item.productId);
+      batch.update(productRef, {
+        'stock': FieldValue.increment(-item.quantity),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+    
+    // Commit all changes atomically
+    await batch.commit();
     
     // Notify farmer about new order
     try {

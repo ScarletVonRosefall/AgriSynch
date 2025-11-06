@@ -617,7 +617,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.65,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -708,7 +708,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                           // Product Details
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(10),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -716,21 +716,21 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     product.name,
                                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                      fontSize: 13,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 3),
                                   Text(
                                     '₱${product.price.toStringAsFixed(2)} ${product.unit}',
                                     style: const TextStyle(
                                       color: Color(0xFF4CAF50),
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: 15,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 3),
                                   Row(
                                     children: [
                                       const Icon(Icons.person, size: 12, color: Colors.grey),
@@ -799,10 +799,11 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
-                                          product.location,
-                                          style: const TextStyle(
+                                          product.location.isEmpty ? 'No location' : product.location,
+                                          style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.grey,
+                                            color: isDarkMode ? const Color(0xFF9E9E9E) : Colors.grey[700],
+                                            fontWeight: FontWeight.w500,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -832,7 +833,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                                             side: BorderSide(color: ThemeHelper.getHeaderColor(isDarkMode)),
-                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                            padding: const EdgeInsets.symmetric(vertical: 6),
                                           ),
                                           child: const Icon(Icons.message, size: 16),
                                         ),
@@ -848,9 +849,9 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                                             foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                            padding: const EdgeInsets.symmetric(vertical: 6),
                                           ),
-                                          child: const Text('Add to Cart', style: TextStyle(fontSize: 12)),
+                                          child: const Text('Add to Cart', style: TextStyle(fontSize: 11)),
                                         ),
                                       ),
                                     ],
