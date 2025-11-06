@@ -300,7 +300,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         children: [
           // --- Top Green Header ---
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             width: double.infinity,
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Row(
@@ -318,62 +318,6 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                         'Manage account & preferences',
                         style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
                       ),
-                    ],
-                  ),
-                ),
-                // Notification Button
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Notifications feature coming soon!",
-                              ),
-                              backgroundColor: Color(0xFF00C853),
-                            ),
-                          );
-                        },
-                      ),
-                      // Notification badge
-                      if (unreadNotifications > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              unreadNotifications > 99
-                                  ? '99+'
-                                  : unreadNotifications.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),

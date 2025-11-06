@@ -453,7 +453,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
               children: [

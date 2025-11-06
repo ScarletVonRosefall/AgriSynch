@@ -87,7 +87,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
         children: [
           // --- Fixed Top Green Header ---
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             width: double.infinity,
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
