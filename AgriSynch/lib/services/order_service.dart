@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart' show AppOrder;
 import 'notification_service.dart';
+import '../shared/notification_helper.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -21,6 +22,21 @@ class OrderService {
       // Get first product name from order items
       final productName = order.items.isNotEmpty ? order.items.first.name : 'Product(s)';
       
+      // Show local notification on current device (works on Spark Plan)
+      await _notificationService.showLocalNotificationDirect(
+        title: '🔔 New Order Received!',
+        body: '${order.buyerName} ordered $productName (₱${order.totalAmount.toStringAsFixed(2)})',
+        payload: 'order:${order.id}',
+      );
+      
+      // Also save to NotificationHelper for persistence
+      await NotificationHelper.addOrderNotification(
+        title: '🔔 New Order Received!',
+        message: '${order.buyerName} ordered $productName (₱${order.totalAmount.toStringAsFixed(2)})',
+        orderId: order.id,
+      );
+      
+      // Queue for Cloud Functions (if deployed)
       await _notificationService.notifyFarmerNewOrder(
         farmerId: order.farmerId,
         orderId: order.id,
@@ -84,6 +100,54 @@ class OrderService {
             ? (items.first as Map<String, dynamic>)['name'] ?? 'Product(s)'
             : 'Product(s)';
         
+        // Generate status-specific message
+        String title = '';
+        String body = '';
+        switch (status.toLowerCase()) {
+          case 'confirmed':
+            title = '✅ Order Confirmed';
+            body = 'Your order for $productName has been confirmed!';
+            break;
+          case 'preparing':
+            title = '📦 Order Preparing';
+            body = 'The farmer is preparing your order for $productName.';
+            break;
+          case 'ready':
+            title = '✨ Order Ready';
+            body = 'Your order for $productName is ready for pickup/delivery!';
+            break;
+          case 'in transit':
+            title = '🚚 Order In Transit';
+            body = 'Your order for $productName is on its way!';
+            break;
+          case 'delivered':
+            title = '🎉 Order Delivered';
+            body = 'Your order for $productName has been delivered!';
+            break;
+          case 'cancelled':
+            title = '❌ Order Cancelled';
+            body = 'Your order for $productName has been cancelled.';
+            break;
+          default:
+            title = '📬 Order Update';
+            body = 'Status changed to: $status';
+        }
+        
+        // Show local notification on current device (works on Spark Plan)
+        await _notificationService.showLocalNotificationDirect(
+          title: title,
+          body: body,
+          payload: 'order:$orderId',
+        );
+        
+        // Also save to NotificationHelper for persistence
+        await NotificationHelper.addOrderNotification(
+          title: title,
+          message: body,
+          orderId: orderId,
+        );
+        
+        // Queue for Cloud Functions (if deployed)
         await _notificationService.notifyBuyerOrderStatusChange(
           buyerId: buyerId,
           orderId: orderId,

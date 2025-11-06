@@ -242,6 +242,49 @@ class NotificationService {
     );
   }
 
+  /// Show a local notification directly (without Cloud Functions)
+  /// Use this for Spark Plan - shows notification on the current device
+  Future<void> showLocalNotificationDirect({
+    required String title,
+    required String body,
+    String? payload,
+    int? id,
+  }) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'agrisynch_orders',
+      'Order Updates',
+      channelDescription: 'Notifications for order status updates and new orders',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      id ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      platformDetails,
+      payload: payload,
+    );
+
+    if (kDebugMode) {
+      print('📱 Local notification shown: $title');
+    }
+  }
+
   /// Send a notification to a specific user
   /// This would typically be called from your backend/Cloud Functions
   /// For demo purposes, we'll store it in Firestore to trigger via Cloud Functions
