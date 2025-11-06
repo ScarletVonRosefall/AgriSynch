@@ -1,2 +1,5 @@
-2025/11/04-20:43:25.752 4c0c Creating DB C:\Users\Reddi\AppData\Local\Temp\flutter_tools.ddf17f98\flutter_tools_chrome_device.ad4e5b29\Default\Session Storage since it was missing.
-2025/11/04-20:43:25.789 4c0c Reusing MANIFEST C:\Users\Reddi\AppData\Local\Temp\flutter_tools.ddf17f98\flutter_tools_chrome_device.ad4e5b29\Default\Session Storage/MANIFEST-000001
+2025/11/06-12:54:29.415 dc0 Reusing MANIFEST C:\Users\kuuno\AppData\Local\Temp\flutter_tools.b5c8b9fd\flutter_tools_chrome_device.3c43f0bc\Default\Session Storage/MANIFEST-000001
+2025/11/06-12:54:29.430 dc0 Recovering log #4
+2025/11/06-12:54:29.439 dc0 Reusing old log C:\Users\kuuno\AppData\Local\Temp\flutter_tools.b5c8b9fd\flutter_tools_chrome_device.3c43f0bc\Default\Session Storage/000004.log 
+2025/11/06-12:54:29.441 dc0 Delete type=0 #3
+2025/11/06-12:54:29.441 dc0 Delete type=2 #5

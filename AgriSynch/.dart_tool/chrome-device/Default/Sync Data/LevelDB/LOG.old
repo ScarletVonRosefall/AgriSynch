@@ -1,2 +1,13 @@
-2025/11/04-20:43:25.580 32e8 Creating DB C:\Users\Reddi\AppData\Local\Temp\flutter_tools.ddf17f98\flutter_tools_chrome_device.ad4e5b29\Default\Sync Data\LevelDB since it was missing.
-2025/11/04-20:43:25.624 32e8 Reusing MANIFEST C:\Users\Reddi\AppData\Local\Temp\flutter_tools.ddf17f98\flutter_tools_chrome_device.ad4e5b29\Default\Sync Data\LevelDB/MANIFEST-000001
+2025/11/06-12:54:28.733 830 Reusing MANIFEST C:\Users\kuuno\AppData\Local\Temp\flutter_tools.b5c8b9fd\flutter_tools_chrome_device.3c43f0bc\Default\Sync Data\LevelDB/MANIFEST-000001
+2025/11/06-12:54:28.735 830 Recovering log #18
+2025/11/06-12:54:28.735 830 Reusing old log C:\Users\kuuno\AppData\Local\Temp\flutter_tools.b5c8b9fd\flutter_tools_chrome_device.3c43f0bc\Default\Sync Data\LevelDB/000018.log 
+2025/11/06-12:54:28.737 830 Delete type=0 #3
+2025/11/06-12:54:28.737 830 Delete type=0 #4
+2025/11/06-12:54:28.737 830 Delete type=2 #5
+2025/11/06-12:54:28.737 830 Delete type=0 #7
+2025/11/06-12:54:28.737 830 Delete type=2 #8
+2025/11/06-12:54:28.737 830 Delete type=0 #10
+2025/11/06-12:54:28.737 830 Delete type=2 #11
+2025/11/06-12:54:28.737 830 Delete type=0 #13
+2025/11/06-12:54:28.837 830 Delete type=2 #14
+2025/11/06-12:54:28.837 830 Delete type=0 #16
