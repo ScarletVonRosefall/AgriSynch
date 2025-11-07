@@ -12,6 +12,9 @@ import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import '../auth/auth_service.dart';
+import '../services/task_service.dart';
+import '../services/order_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -25,6 +28,8 @@ class AgriSynchHomePage extends StatefulWidget {
 class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   final storage = FlutterSecureStorage();
   final _themeNotifier = ThemeNotifier();
+  final _taskService = TaskService();
+  final _orderService = OrderService();
 
   // Data for summary
   List<Map<String, dynamic>> tasks = [];
@@ -37,6 +42,9 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   Timer? _debounceTimer;
   Timer? _refreshTimer;
   Timer? _reloadTimer;
+  
+  StreamSubscription? _tasksSubscription;
+  StreamSubscription? _ordersSubscription;
 
   @override
   void initState() {
@@ -54,6 +62,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     _debounceTimer?.cancel();
     _refreshTimer?.cancel();
     _reloadTimer?.cancel();
+    _tasksSubscription?.cancel();
+    _ordersSubscription?.cancel();
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -146,35 +156,83 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     // Theme is now handled by ThemeNotifier, no need to load manually
   }
 
-  // Load tasks and orders data for dashboard statistics
+  // Load tasks and orders data for dashboard statistics from Firestore
   Future<void> loadTasksAndOrders() async {
     if (!mounted) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // Cancel existing subscriptions to prevent memory leaks
+      _tasksSubscription?.cancel();
+      _ordersSubscription?.cancel();
 
-      // Load tasks
-      final savedTasks = prefs.getString('tasks');
-      final newTasks = savedTasks != null
-          ? List<Map<String, dynamic>>.from(json.decode(savedTasks))
-          : <Map<String, dynamic>>[];
+      // Load tasks from Firestore
+      _tasksSubscription = _taskService.getTasks(limit: 100).listen((snapshot) {
+        if (!mounted) return;
+        
+        final newTasks = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'title': data['title'] ?? '',
+            'description': data['description'] ?? '',
+            'completed': data['completed'] ?? false,
+            'dueDate': data['dueDate'],
+            'priority': data['priority'] ?? 'Medium',
+            'category': data['category'] ?? '',
+            'createdAt': data['createdAt'],
+          };
+        }).toList();
+        
+        if (mounted && !_areListsEqual(tasks, newTasks)) {
+          setState(() {
+            tasks = newTasks;
+          });
+        }
+      }, onError: (error) {
+        print('Error loading tasks: $error');
+        if (mounted) {
+          setState(() {
+            tasks = [];
+          });
+        }
+      });
 
-      // Load orders
-      final savedOrders = prefs.getString('orders');
-      final newOrders = savedOrders != null
-          ? List<Map<String, dynamic>>.from(json.decode(savedOrders))
-          : <Map<String, dynamic>>[];
+      // Load orders from Firestore (farmer's orders)
+      _ordersSubscription = _orderService.getMyFarmerOrders().listen((ordersList) {
+        if (!mounted) return;
+        
+        final newOrders = ordersList.map((order) {
+          return {
+            'id': order.id,
+            'buyerName': order.buyerName,
+            'status': order.status,
+            'totalAmount': order.totalAmount,
+            'createdAt': Timestamp.fromDate(order.orderDate),
+            'items': order.items.map((item) => {
+              'productId': item.productId,
+              'name': item.name,
+              'quantity': item.quantity,
+              'price': item.price,
+            }).toList(),
+          };
+        }).toList();
+        
+        if (mounted && !_areListsEqual(orders, newOrders)) {
+          setState(() {
+            orders = newOrders;
+          });
+        }
+      }, onError: (error) {
+        print('Error loading orders: $error');
+        if (mounted) {
+          setState(() {
+            orders = [];
+          });
+        }
+      });
 
-      // Only update state if data has changed
-      if (!mounted) return;
-      
-      if (!_areListsEqual(tasks, newTasks) || !_areListsEqual(orders, newOrders)) {
-        setState(() {
-          tasks = newTasks;
-          orders = newOrders;
-        });
-      }
     } catch (e) {
+      print('Error setting up task/order streams: $e');
       // Handle load errors silently but ensure we have valid lists
       if (mounted) {
         setState(() {
@@ -636,7 +694,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                                   ),
                                 ),
                                 Text(
-                                  "• ${tasks.where((t) => t['done'] == true).length} Completed",
+                                  "• ${tasks.where((t) => t['completed'] != true).length} Pending Tasks",
                                   style: const TextStyle(
                                     fontFamily: 'Poppins',
                                     color: Colors.white,
@@ -644,7 +702,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                                   ),
                                 ),
                                 Text(
-                                  "• ${tasks.where((t) => t['done'] != true).length} Pending",
+                                  "• ${orders.length} Total Orders",
                                   style: const TextStyle(
                                     fontFamily: 'Poppins',
                                     color: Colors.white,
@@ -652,7 +710,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                                   ),
                                 ),
                                 Text(
-                                  "• ${orders.length} Active Orders",
+                                  "• ${orders.where((o) => o['status']?.toLowerCase() != 'delivered' && o['status']?.toLowerCase() != 'cancelled').length} Pending Orders",
                                   style: const TextStyle(
                                     fontFamily: 'Poppins',
                                     color: Colors.white,
