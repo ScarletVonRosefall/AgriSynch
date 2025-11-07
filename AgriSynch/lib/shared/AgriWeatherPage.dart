@@ -18,6 +18,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   int unreadNotifications = 0;
   WeatherData? currentWeather;
   bool isLoading = true;
+  String? errorMessage;
 
   bool _mounted = false;
   bool _isInitialized = false;
@@ -110,28 +111,40 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
   Future<void> _loadWeather({bool showError = true}) async {
     if (!_mounted) return;
     
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
     
     try {
       final weather = await WeatherHelper.getCurrentWeather()
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
           
       if (!_mounted) return;
       
       setState(() {
         currentWeather = weather;
         isLoading = false;
+        errorMessage = null;
       });
     } catch (e) {
       if (!_mounted) return;
       
+      String message = 'Failed to load weather data';
+      if (e.toString().contains('Location')) {
+        message = e.toString().replaceAll('Exception: ', '');
+      } else if (e.toString().contains('timeout')) {
+        message = 'Request timed out. Please check your connection.';
+      }
+      
       setState(() {
         currentWeather = null;
         isLoading = false;
+        errorMessage = message;
       });
       
       if (showError) {
-        _showError('Failed to load weather data');
+        _showError(message);
       }
     }
   }
@@ -284,24 +297,70 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.cloud_off,
+                          errorMessage != null && errorMessage!.contains('Location')
+                              ? Icons.location_off
+                              : Icons.cloud_off,
                           size: 64,
                           color: isDarkMode ? Colors.white54 : Colors.grey,
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Weather data unavailable',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                            color: isDarkMode ? Colors.white54 : Colors.grey,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Text(
+                            errorMessage ?? 'Weather data unavailable',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16,
+                              color: isDarkMode ? Colors.white54 : Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
                           onPressed: _loadWeather,
-                          child: const Text('Retry'),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDarkMode
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFF00C853),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
                         ),
+                        if (errorMessage != null && errorMessage!.contains('Location')) ...[
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () async {
+                              // Open app settings
+                              await showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Location Permission'),
+                                  content: const Text(
+                                    'To show accurate weather for your location:\n\n'
+                                    '1. Go to your device Settings\n'
+                                    '2. Find AgriSynch app\n'
+                                    '3. Enable Location permission\n'
+                                    '4. Return and tap Retry',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.settings),
+                            label: const Text('How to Enable Location'),
+                          ),
+                        ],
                       ],
                     ),
                   )
@@ -433,6 +492,26 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.gps_fixed,
+                color: Colors.white.withOpacity(0.7),
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Using your current location',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
