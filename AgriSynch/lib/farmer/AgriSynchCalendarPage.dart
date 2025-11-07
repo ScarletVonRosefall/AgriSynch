@@ -767,6 +767,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddEventDialog,
         backgroundColor: const Color(0xFF00C853),
+        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
     );

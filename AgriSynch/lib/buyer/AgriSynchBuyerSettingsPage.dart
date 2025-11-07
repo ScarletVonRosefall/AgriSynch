@@ -710,12 +710,15 @@ class _AgriSynchBuyerSettingsPageState
               Navigator.pop(context); // Close dialog
               
               try {
-                // Sign out from Firebase
-                await FirebaseAuth.instance.signOut();
+                // Clear all local data
+                final storage = const FlutterSecureStorage();
+                await storage.deleteAll();
                 
-                // Clear local data
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.clear();
+                
+                // Sign out from Firebase
+                await FirebaseAuth.instance.signOut();
                 
                 if (!mounted) return;
                 

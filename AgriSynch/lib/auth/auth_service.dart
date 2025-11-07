@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -65,6 +67,12 @@ class AuthService {
         email: email,
         password: password,
       );
+      
+      // Ensure user document exists in Firestore
+      if (result.user != null) {
+        await _ensureUserDocumentExists(result.user!);
+      }
+      
       return result;
     } catch (e) {
       print('Error during sign in: $e');
@@ -72,10 +80,45 @@ class AuthService {
     }
   }
 
-  // Sign out
+  // Ensure user document exists in Firestore (create if missing)
+  static Future<void> _ensureUserDocumentExists(User user) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      
+      if (!userDoc.exists) {
+        print('⚠️ User document missing for ${user.email}. Creating default document...');
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': user.email ?? '',
+          'name': user.displayName ?? '',
+          'userType': 'farmer', // Default type
+          'profileImage': '',
+          'nickname': '',
+          'bio': '',
+          'location': '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        print('✅ User document created for ${user.email}');
+      }
+    } catch (e) {
+      print('❌ Error ensuring user document exists: $e');
+    }
+  }
+
+  // Sign out and clear all cached user data
   static Future<void> signOut() async {
     try {
+      // Sign out from Firebase
       await _auth.signOut();
+      
+      // Clear all local storage to prevent data leakage between accounts
+      final storage = const FlutterSecureStorage();
+      await storage.deleteAll();
+      
+      // Clear SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      
+      print('✅ Signed out and cleared all local data');
     } catch (e) {
       print('Error during sign out: $e');
     }
@@ -194,26 +237,48 @@ class AuthService {
   }) async {
     try {
       User? user = _auth.currentUser;
-      if (user != null) {
-        Map<String, dynamic> updateData = {};
-
-        if (name != null) {
-          updateData['name'] = name;
-          await user.updateDisplayName(name);
-        }
-        if (nickname != null) updateData['nickname'] = nickname;
-        if (bio != null) updateData['bio'] = bio;
-        if (location != null) updateData['location'] = location;
-        if (profileImage != null) updateData['profileImage'] = profileImage;
-
-        updateData['updatedAt'] = FieldValue.serverTimestamp();
-
-        await _firestore.collection('users').doc(user.uid).update(updateData);
-        return true;
+      if (user == null) {
+        print('❌ Error: No user logged in');
+        return false;
       }
-      return false;
+
+      // Check if user document exists
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      
+      Map<String, dynamic> updateData = {};
+
+      if (name != null) {
+        updateData['name'] = name;
+        await user.updateDisplayName(name);
+      }
+      if (nickname != null) updateData['nickname'] = nickname;
+      if (bio != null) updateData['bio'] = bio;
+      if (location != null) updateData['location'] = location;
+      if (profileImage != null) updateData['profileImage'] = profileImage;
+
+      updateData['updatedAt'] = FieldValue.serverTimestamp();
+
+      if (!userDoc.exists) {
+        // Create document if it doesn't exist
+        print('⚠️ User document does not exist for ${user.uid}. Creating it now...');
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': user.email ?? '',
+          'userType': 'farmer', // Default, should be updated if known
+          'createdAt': FieldValue.serverTimestamp(),
+          ...updateData,
+        });
+        print('✅ User document created for ${user.email}');
+      } else {
+        // Update existing document
+        await _firestore.collection('users').doc(user.uid).update(updateData);
+        print('✅ Profile updated for ${user.email}');
+      }
+      
+      return true;
     } catch (e) {
-      print('Error updating user profile: $e');
+      print('❌ Error updating user profile: $e');
+      print('   User: ${_auth.currentUser?.email}');
+      print('   UID: ${_auth.currentUser?.uid}');
       return false;
     }
   }

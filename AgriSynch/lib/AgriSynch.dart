@@ -105,9 +105,9 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
             _currentIndex = index;
           });
         },
-        backgroundColor: isDarkMode ? const Color(0xFF1B5E20) : Colors.white,
-        selectedItemColor: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
-        unselectedItemColor: isDarkMode ? const Color(0xFF9E9E9E) : const Color(0xFF757575),
+        backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+        selectedItemColor: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+        unselectedItemColor: isDarkMode ? const Color(0xFFBDBDBD) : const Color(0xFF757575),
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
@@ -218,9 +218,9 @@ class _AgriSynchBuyerHomeState extends State<AgriSynchBuyerHome> {
           });
         },
         type: BottomNavigationBarType.fixed,
-        backgroundColor: isDarkMode ? const Color(0xFF1B5E20) : Colors.white,
-        selectedItemColor: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
-        unselectedItemColor: isDarkMode ? const Color(0xFF9E9E9E) : const Color(0xFF757575),
+        backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+        selectedItemColor: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+        unselectedItemColor: isDarkMode ? const Color(0xFFBDBDBD) : const Color(0xFF757575),
         elevation: 8,
         selectedFontSize: 11,
         unselectedFontSize: 10,

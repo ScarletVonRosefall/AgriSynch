@@ -918,25 +918,34 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   }
 
   void _showFilterDialog() {
+    final isDarkMode = _themeNotifier.isDarkMode;
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('Filter Products'),
+            backgroundColor: ThemeHelper.getCardColor(isDarkMode),
+            title: Text('Filter Products', style: TextStyle(
+              color: ThemeHelper.getTextColor(isDarkMode),
+            )),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Location Filter
-                  const Text('Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Location', style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: ThemeHelper.getTextColor(isDarkMode),
+                  )),
                   const SizedBox(height: 8),
                   TextField(
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
+                    decoration: InputDecoration(
                       hintText: 'Enter location...',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on),
+                      hintStyle: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode)),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on, color: ThemeHelper.getTextColor(isDarkMode)),
                     ),
                     onChanged: (value) {
                       setDialogState(() {
@@ -947,16 +956,22 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                   const SizedBox(height: 16),
                   
                   // Price Range
-                  const Text('Price Range', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Price Range', style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: ThemeHelper.getTextColor(isDarkMode),
+                  )),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
+                          decoration: InputDecoration(
                             labelText: 'Min Price',
-                            border: OutlineInputBorder(),
+                            labelStyle: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode)),
+                            border: const OutlineInputBorder(),
                             prefixText: '₱',
+                            prefixStyle: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                           ),
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
@@ -969,10 +984,13 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
+                          decoration: InputDecoration(
                             labelText: 'Max Price',
-                            border: OutlineInputBorder(),
+                            labelStyle: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode)),
+                            border: const OutlineInputBorder(),
                             prefixText: '₱',
+                            prefixStyle: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                           ),
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
@@ -987,7 +1005,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                   const SizedBox(height: 8),
                   Text(
                     '₱${minPrice.toStringAsFixed(0)} - ₱${maxPrice.toStringAsFixed(0)}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode), fontSize: 12),
                   ),
                 ],
               ),

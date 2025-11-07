@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/auth_service.dart';
 import '../services/validation_service.dart';
 import 'theme_helper.dart';
@@ -52,6 +53,10 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _isLoading = true);
 
     try {
+      // Get email from Firebase Auth (source of truth)
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final userEmail = currentUser?.email ?? '';
+      
       // Try to load from Firebase first
       final userData = await AuthService.getUserData();
 
@@ -60,7 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _nameController.text = data['name'] ?? '';
           _nicknameController.text = data['nickname'] ?? '';
-          _emailController.text = data['email'] ?? '';
+          _emailController.text = userEmail; // Always use Firebase Auth email
           _bioController.text = data['bio'] ?? '';
           _locationController.text = data['location'] ?? '';
           _profileImageBase64 = data['profileImage'] ?? '';
@@ -70,7 +75,6 @@ class _ProfilePageState extends State<ProfilePage> {
         // Fallback to local storage for offline capability
         final name = await _storage.read(key: 'user_name') ?? '';
         final nickname = await _storage.read(key: 'user_nickname') ?? '';
-        final email = await _storage.read(key: 'user_email') ?? '';
         final bio = await _storage.read(key: 'user_bio') ?? '';
         final location = await _storage.read(key: 'user_location') ?? '';
         final profileImage = await _storage.read(key: 'profile_image');
@@ -78,7 +82,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _nameController.text = name;
           _nicknameController.text = nickname;
-          _emailController.text = email;
+          _emailController.text = userEmail; // Always use Firebase Auth email
           _bioController.text = bio;
           _locationController.text = location;
           _profileImageBase64 = profileImage;
@@ -123,7 +127,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       // Save to Firebase first
-      await AuthService.updateUserProfile(
+      final success = await AuthService.updateUserProfile(
         name: ValidationService.sanitizeInput(_nameController.text),
         nickname: ValidationService.sanitizeInput(_nicknameController.text),
         bio: ValidationService.sanitizeInput(_bioController.text),
@@ -131,13 +135,26 @@ class _ProfilePageState extends State<ProfilePage> {
         profileImage: _profileImageBase64,
       );
 
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to save profile to server. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
       // Also save locally for offline capability
       await _storage.write(key: 'user_name', value: ValidationService.sanitizeInput(_nameController.text));
       await _storage.write(
         key: 'user_nickname',
         value: ValidationService.sanitizeInput(_nicknameController.text),
       );
-      await _storage.write(key: 'user_email', value: _emailController.text);
+      // Don't save email to local storage - always get from Firebase Auth
       await _storage.write(key: 'user_bio', value: ValidationService.sanitizeInput(_bioController.text));
       await _storage.write(
         key: 'user_location',
@@ -221,10 +238,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Profile', style: TextStyle(fontFamily: 'Poppins')),
+          title: Text('Profile', style: TextStyle(
+            fontFamily: 'Poppins',
+            color: Colors.white,
+          )),
           backgroundColor: const Color(0xFF4CAF50),
           foregroundColor: Colors.white,
         ),
@@ -238,7 +259,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(fontFamily: 'Poppins')),
+        title: Text('Profile', style: TextStyle(
+          fontFamily: 'Poppins',
+          color: Colors.white,
+        )),
         backgroundColor: const Color(0xFF4CAF50),
         foregroundColor: Colors.white,
         actions: [
@@ -302,6 +326,7 @@ class _ProfilePageState extends State<ProfilePage> {
               controller: _emailController,
               icon: Icons.email,
               keyboardType: TextInputType.emailAddress,
+              isReadOnly: true, // Email is always read-only
             ),
             const SizedBox(height: 20),
             _buildProfileField(
@@ -358,44 +383,79 @@ class _ProfilePageState extends State<ProfilePage> {
     required IconData icon,
     TextInputType? keyboardType,
     String? hintText,
+    bool isReadOnly = false, // New parameter for read-only fields
   }) {
+    final bool isFieldEnabled = isReadOnly ? false : _isEditing;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Color(0xFF4CAF50),
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Color(0xFF4CAF50),
+              ),
+            ),
+            if (isReadOnly) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.lock_outline,
+                size: 14,
+                color: Colors.grey,
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _isEditing ? const Color(0xFF4CAF50) : Colors.grey[300]!,
+              color: isReadOnly 
+                  ? Colors.grey[300]! 
+                  : (_isEditing ? const Color(0xFF4CAF50) : Colors.grey[300]!),
               width: 1.5,
             ),
+            color: isReadOnly ? Colors.grey[100] : null,
           ),
           child: TextFormField(
             controller: controller,
-            enabled: _isEditing,
+            enabled: isFieldEnabled,
+            readOnly: isReadOnly,
             keyboardType: keyboardType,
-            style: const TextStyle(fontFamily: 'Poppins', fontSize: 16),
+            style: TextStyle(
+              fontFamily: 'Poppins', 
+              fontSize: 16,
+              color: isReadOnly ? Colors.grey[700] : null,
+            ),
             decoration: InputDecoration(
               prefixIcon: Icon(
                 icon,
-                color: _isEditing ? const Color(0xFF4CAF50) : Colors.grey[500],
+                color: isReadOnly 
+                    ? Colors.grey[500]
+                    : (_isEditing ? const Color(0xFF4CAF50) : Colors.grey[500]),
               ),
+              suffixIcon: isReadOnly 
+                  ? Tooltip(
+                      message: 'Email cannot be changed',
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: Colors.grey[500],
+                      ),
+                    )
+                  : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 16,
               ),
-              hintText: _isEditing ? (hintText ?? 'Enter $label') : '',
+              hintText: _isEditing && !isReadOnly ? (hintText ?? 'Enter $label') : '',
             ),
           ),
         ),

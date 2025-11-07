@@ -414,17 +414,26 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   }
 
   void _showAddPhotosDialog(Product product) {
+    final isDarkMode = _themeNotifier.isDarkMode;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Product Photos'),
+        backgroundColor: ThemeHelper.getCardColor(isDarkMode),
+        title: Text('Add Product Photos', style: TextStyle(
+          color: ThemeHelper.getTextColor(isDarkMode),
+        )),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Add photos for "${product.name}"'),
+            Text('Add photos for "${product.name}"', style: TextStyle(
+              color: ThemeHelper.getTextColor(isDarkMode),
+            )),
             const SizedBox(height: 16),
             if (product.images.isNotEmpty) ...[
-              const Text('Current photos:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Current photos:', style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: ThemeHelper.getTextColor(isDarkMode),
+              )),
               const SizedBox(height: 8),
               Container(
                 height: 80,
@@ -1070,6 +1079,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddProductDialog,
         backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Add Product'),
       ),

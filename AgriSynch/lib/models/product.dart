@@ -40,6 +40,18 @@ class Product {
   // Convert Firestore document to Product
   factory Product.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
+    
+    // Safely parse images field - handle incorrect types in database
+    List<String> imagesList = [];
+    if (data['images'] != null) {
+      if (data['images'] is List) {
+        imagesList = List<String>.from(data['images']);
+      } else {
+        // If images is not a list (e.g., boolean), default to empty list
+        print('Warning: Product ${doc.id} has invalid images field type: ${data['images'].runtimeType}');
+      }
+    }
+    
     return Product(
       id: doc.id,
       name: data['name'] ?? '',
@@ -51,7 +63,7 @@ class Product {
       farmerName: data['farmerName'] ?? '',
       location: data['location'] ?? '',
       stock: data['stock'] ?? 0,
-      images: List<String>.from(data['images'] ?? []),
+      images: imagesList,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isAvailable: data['isAvailable'] ?? true,

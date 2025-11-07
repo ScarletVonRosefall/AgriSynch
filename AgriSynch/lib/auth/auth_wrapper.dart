@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../AgriSynch.dart';
 import '../buyer/AgriSynchBuyerHomePage.dart';
 import 'AgriSynchLogin.dart';
+import 'AgriSynchVerify.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -30,10 +31,18 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If user is signed in, check their role and show appropriate page
+        // If user is signed in
         if (snapshot.hasData && snapshot.data != null) {
+          final user = snapshot.data!;
+          
+          // Check if email is verified
+          if (!user.emailVerified) {
+            return const AgriSynchEmailVerificationPage();
+          }
+          
+          // If verified, check their role and show appropriate page
           return FutureBuilder<String>(
-            future: _getUserRole(snapshot.data!.uid),
+            future: _getUserRole(user.uid),
             builder: (context, roleSnapshot) {
               if (roleSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());

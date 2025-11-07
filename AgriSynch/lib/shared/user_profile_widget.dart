@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import '../auth/auth_service.dart';
+import 'theme_helper.dart';
 
 class UserProfileWidget extends StatefulWidget {
   final bool showEmail;
@@ -46,6 +48,10 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
 
   Future<void> _loadUserData() async {
     try {
+      // Get email from Firebase Auth (source of truth)
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final userEmail = currentUser?.email ?? '';
+      
       // Try to load from Firebase first
       final userData = await AuthService.getUserData();
 
@@ -55,7 +61,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
           setState(() {
             _name = data['name'] ?? data['nickname'] ?? 'User';
             _nickname = data['nickname'] ?? '';
-            _email = data['email'] ?? '';
+            _email = userEmail; // Always use Firebase Auth email
             _location = data['location'] ?? '';
             _profileImageBase64 = data['profileImage'] ?? '';
             _isLoading = false;
@@ -69,7 +75,6 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
         }
         
         final nickname = await _storage.read(key: 'user_nickname') ?? '';
-        final email = await _storage.read(key: 'user_email') ?? '';
         final location = await _storage.read(key: 'user_location') ?? '';
         final profileImage = await _storage.read(key: 'profile_image');
 
@@ -77,7 +82,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
           setState(() {
             _name = name.isEmpty ? 'User' : name;
             _nickname = nickname;
-            _email = email;
+            _email = userEmail; // Always use Firebase Auth email
             _location = location;
             _profileImageBase64 = profileImage;
             _isLoading = false;
@@ -122,6 +127,8 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ThemeNotifier().isDarkMode;
+    
     if (_isLoading) {
       return Row(
         children: [
@@ -187,11 +194,11 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                   Expanded(
                     child: Text(
                       _name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Colors.black87,
+                        color: isDarkMode ? Colors.white : Colors.black87,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),

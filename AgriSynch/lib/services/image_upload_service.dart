@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ImageUploadService {
   // Try to use default instance first, will auto-detect bucket
@@ -71,7 +71,7 @@ class ImageUploadService {
     }
   }
 
-  /// Upload image to Firebase Storage
+  /// Upload image to Firebase Storage (works on both Web and Mobile)
   Future<String?> uploadProductImage(XFile imageFile, String productId) async {
     if (currentUserId == null) {
       print('❌ Error: User not authenticated');
@@ -82,15 +82,8 @@ class ImageUploadService {
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
       final String filePath = 'products/$currentUserId/$productId/$fileName';
       
-      print('📤 Starting upload to: $filePath');
-      
-      final File file = File(imageFile.path);
-      
-      // Check if file exists
-      if (!await file.exists()) {
-        print('❌ Error: File does not exist at path: ${imageFile.path}');
-        throw Exception('Image file not found');
-      }
+      print('📤 Starting upload to: $filePath (Platform: ${kIsWeb ? "Web" : "Mobile"})');
+      print('👤 Current User ID: $currentUserId');
       
       final Reference ref = _storage.ref().child(filePath);
       
@@ -100,16 +93,37 @@ class ImageUploadService {
         customMetadata: {'productId': productId},
       );
       
-      final UploadTask uploadTask = ref.putFile(file, metadata);
+      // Read image as bytes (works on both web and mobile)
+      final bytes = await imageFile.readAsBytes();
       
-      // Monitor upload progress
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        print('📊 Upload progress: ${progress.toStringAsFixed(2)}%');
-      });
+      print('📦 Image size: ${bytes.length} bytes');
       
-      // Wait for upload to complete
-      final TaskSnapshot snapshot = await uploadTask;
+      // Upload bytes directly (compatible with web and mobile)
+      final UploadTask uploadTask = ref.putData(bytes, metadata);
+      
+      // Monitor upload progress with better error detection
+      uploadTask.snapshotEvents.listen(
+        (TaskSnapshot snapshot) {
+          final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          print('📊 Upload progress: ${progress.toStringAsFixed(2)}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)');
+          print('   State: ${snapshot.state}');
+        },
+        onError: (error) {
+          print('❌ Upload stream error: $error');
+        },
+      );
+      
+      // Wait for upload to complete with timeout
+      print('⏳ Waiting for upload to complete...');
+      final TaskSnapshot snapshot = await uploadTask.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          print('❌ Upload timeout after 30 seconds');
+          throw Exception('Upload timed out. Please check your internet connection and Firebase Storage rules.');
+        },
+      );
+      
+      print('✅ Upload task completed. State: ${snapshot.state}');
       
       // Get download URL
       final String downloadUrl = await snapshot.ref.getDownloadURL();
@@ -117,10 +131,14 @@ class ImageUploadService {
       print('✅ Image uploaded successfully: $downloadUrl');
       return downloadUrl;
     } on FirebaseException catch (e) {
-      print('❌ Firebase error uploading image: ${e.code} - ${e.message}');
+      print('❌ Firebase error uploading image:');
+      print('   Code: ${e.code}');
+      print('   Message: ${e.message}');
+      print('   Plugin: ${e.plugin}');
       throw Exception('Upload failed: ${e.message}');
     } catch (e) {
       print('❌ Error uploading image: $e');
+      print('   Error type: ${e.runtimeType}');
       throw Exception('Failed to upload image: $e');
     }
   }

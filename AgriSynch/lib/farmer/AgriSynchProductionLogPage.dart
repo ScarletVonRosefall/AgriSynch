@@ -640,6 +640,7 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: ThemeHelper.getHeaderColor(_isDark),
+        foregroundColor: Colors.white,
         onPressed: _showAddLogModal,
         child: const Icon(Icons.add),
       ),
