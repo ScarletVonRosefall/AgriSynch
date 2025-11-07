@@ -846,6 +846,42 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                       fontSize: 14,
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  // Search bar inside header
+                  Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: Colors.white.withOpacity(0.8)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            onChanged: (value) => setState(() => searchQuery = value),
+                            decoration: InputDecoration(
+                              hintText: 'Search tasks...',
+                              border: InputBorder.none,
+                              hintStyle: TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white.withOpacity(0.6),
+                              ),
+                            ),
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -882,44 +918,6 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                   ],
                 ),
               ),
-            const SizedBox(height: 16),
-            // Search field with improved styling
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                onChanged: (value) => setState(() => searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: 'Search tasks...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF00C853),
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: isDarkMode
-                      ? const Color(0xFF2C2C2C)
-                      : Colors.grey.shade50,
-                  hintStyle: TextStyle(
-                    color: isDarkMode ? Colors.white70 : Colors.grey.shade600,
-                  ),
-                ),
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-            ),
             const SizedBox(height: 16),
             // Category filters with improved styling
             SizedBox(
