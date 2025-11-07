@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
@@ -56,6 +57,7 @@ class _AgriSynchBuyerSettingsPageState
   void didChangeDependencies() {
     super.didChangeDependencies();
     _reloadCurrency();
+    loadUserInfo(); // Reload user credentials when page regains focus
   }
 
   // Reload currency when page regains focus
@@ -68,14 +70,56 @@ class _AgriSynchBuyerSettingsPageState
 
   // Load user information from secure storage
   Future<void> loadUserInfo() async {
-    userName = await storage.read(key: 'name') ?? '';
-    userEmail = await storage.read(key: 'user_email') ?? '';
-
-    // Get user role from storage
-    final accountType = await storage.read(key: 'account_type') ?? '';
-    userRole = _formatRole(accountType);
-
-    setState(() {});
+    try {
+      // Get current Firebase user
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user != null) {
+        // Try to get user data from Firestore
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          
+          if (doc.exists) {
+            final data = doc.data();
+            userName = data?['name'] ?? '';
+            userEmail = data?['email'] ?? user.email ?? '';
+            userRole = _formatRole(data?['accountType'] ?? '');
+          } else {
+            // Fallback to Firebase Auth user data if Firestore doc doesn't exist
+            userName = user.displayName ?? '';
+            userEmail = user.email ?? '';
+            userRole = 'Buyer'; // Default role
+          }
+        } catch (firestoreError) {
+          print('Error fetching from Firestore: $firestoreError');
+          // Fallback to Firebase Auth user data
+          userName = user.displayName ?? '';
+          userEmail = user.email ?? '';
+          userRole = 'Buyer'; // Default role
+        }
+      } else {
+        // No user logged in
+        userName = '';
+        userEmail = '';
+        userRole = '';
+      }
+      
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error loading user info: $e');
+      if (mounted) {
+        setState(() {
+          userName = '';
+          userEmail = '';
+          userRole = '';
+        });
+      }
+    }
   }
 
   String _formatRole(String accountType) {

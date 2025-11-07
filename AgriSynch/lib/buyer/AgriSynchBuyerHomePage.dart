@@ -7,6 +7,7 @@ import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../auth/auth_service.dart';
 import '../services/product_service.dart';
 import '../services/order_service.dart';
 import '../models/product.dart';
@@ -326,24 +327,13 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             children: [
               Row(
                 children: [
-                  const CircleAvatar(
-                    child: Icon(Icons.person, color: Colors.white),
-                    backgroundColor: Colors.blue,
-                    radius: 20,
-                  ),
+                  _buildProfileAvatar(),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "${_getGreeting()}${userName.isNotEmpty ? ' $userName' : ''}!",
-                          style: ThemeHelper.getHeaderTextStyle(
-                            isDark: isDarkMode,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
+                        _buildGreetingText(),
                         Text(
                           "Welcome to AgriSynch Marketplace!",
                           style: ThemeHelper.getSubHeaderTextStyle(
@@ -548,86 +538,111 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
                   const SizedBox(height: 16),
 
-                  // Summary Card
+                  // Summary Card with Real-time Orders
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color(0xFF2E7D32)
-                            : const Color(0xFF00E676),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Shopping Summary",
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  "• ${orders.length} Total Orders",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  "• ${cart.length} Items in Cart",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  "• ${orders.where((o) => o['status'] == 'pending').length} Pending Orders",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  "• ${orders.where((o) => o['status'] == 'delivered').length} Completed",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    child: StreamBuilder<List<AppOrder>>(
+                      stream: _orderService.getMyBuyerOrders(),
+                      builder: (context, snapshot) {
+                        // Default values
+                        int totalOrders = 0;
+                        int pendingOrders = 0;
+                        int completedOrders = 0;
+
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final realOrders = snapshot.data!;
+                          totalOrders = realOrders.length;
+                          // Count all orders that aren't delivered or cancelled as pending
+                          pendingOrders = realOrders.where((o) => 
+                            o.status == 'pending' || 
+                            o.status == 'confirmed' || 
+                            o.status == 'preparing' || 
+                            o.status == 'delivering' ||
+                            o.status == 'processing' || 
+                            o.status == 'shipped'
+                          ).length;
+                          completedOrders = realOrders.where((o) => o.status == 'delivered').length;
+                        }
+
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? const Color(0xFF2E7D32)
+                                : const Color(0xFF00E676),
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.shopping_basket,
-                                color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
-                                size: 30,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Shopping Summary",
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      "• $totalOrders Total Orders",
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      "• ${cart.length} Items in Cart",
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      "• $pendingOrders Pending Orders",
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      "• $completedOrders Completed",
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.shopping_basket,
+                                    color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
+                                    size: 30,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
 
@@ -1013,9 +1028,10 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                     children: [
                       Text(
                         product.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -1032,14 +1048,14 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       const Spacer(),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 12, color: Colors.grey[600]),
+                          Icon(Icons.location_on, size: 12, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               product.location,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[600],
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1340,6 +1356,106 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         return Icons.water_drop;
       default:
         return Icons.shopping_basket;
+    }
+  }
+
+  // Build profile avatar widget
+  Widget _buildProfileAvatar() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return FutureBuilder<Map<String, String?>>(
+      future: _loadUserProfileData(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final profileImageBase64 = snapshot.data!['profileImage'];
+          if (profileImageBase64 != null && profileImageBase64.isNotEmpty) {
+            return Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: Image.memory(
+                  base64Decode(profileImageBase64),
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          }
+        }
+        
+        // Default avatar
+        return CircleAvatar(
+          backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
+          radius: 20,
+          child: Icon(
+            Icons.person,
+            color: Colors.white,
+            size: 24,
+          ),
+        );
+      },
+    );
+  }
+
+  // Build greeting text widget
+  Widget _buildGreetingText() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return FutureBuilder<Map<String, String?>>(
+      future: _loadUserProfileData(),
+      builder: (context, snapshot) {
+        String displayName = '';
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          displayName = data['name'] ?? data['nickname'] ?? '';
+        }
+        
+        return Text(
+          "${_getGreeting()}${displayName.isNotEmpty ? ' $displayName' : ''}!",
+          style: ThemeHelper.getHeaderTextStyle(
+            isDark: isDarkMode,
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        );
+      },
+    );
+  }
+
+  // Load user profile data from Firestore
+  Future<Map<String, String?>> _loadUserProfileData() async {
+    try {
+      final userData = await AuthService.getUserData();
+
+      if (userData != null && userData.exists) {
+        final data = userData.data() as Map<String, dynamic>;
+        return {
+          'name': data['name'] ?? '',
+          'nickname': data['nickname'] ?? '',
+          'profileImage': data['profileImage'] ?? '',
+        };
+      } else {
+        // Fallback to local storage
+        final name = await storage.read(key: 'user_name') ?? 
+                     await storage.read(key: 'name') ?? '';
+        return {
+          'name': name,
+          'nickname': '',
+          'profileImage': '',
+        };
+      }
+    } catch (e) {
+      print('Error loading profile data: $e');
+      return {
+        'name': '',
+        'nickname': '',
+        'profileImage': '',
+      };
     }
   }
 }
