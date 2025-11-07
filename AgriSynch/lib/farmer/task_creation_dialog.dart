@@ -111,6 +111,16 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 fillColor: isDarkMode
                     ? const Color(0xFF3C3C3C)
                     : const Color(0xFFF8F8F8),
+                labelStyle: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                ),
+                hintStyle: TextStyle(
+                  color: isDarkMode ? Colors.white54 : Colors.grey.shade500,
+                ),
+              ),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black,
+                fontFamily: 'Poppins',
               ),
             ),
             const SizedBox(height: 16),
@@ -126,6 +136,16 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 fillColor: isDarkMode
                     ? const Color(0xFF3C3C3C)
                     : const Color(0xFFF8F8F8),
+                labelStyle: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                ),
+                hintStyle: TextStyle(
+                  color: isDarkMode ? Colors.white54 : Colors.grey.shade500,
+                ),
+              ),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black,
+                fontFamily: 'Poppins',
               ),
             ),
             const SizedBox(height: 16),
@@ -144,6 +164,13 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                       fillColor: isDarkMode
                           ? const Color(0xFF3C3C3C)
                           : const Color(0xFFF8F8F8),
+                      labelStyle: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      fontFamily: 'Poppins',
                     ),
                   ),
                 ),
@@ -160,6 +187,14 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                       fillColor: isDarkMode
                           ? const Color(0xFF3C3C3C)
                           : const Color(0xFFF8F8F8),
+                      labelStyle: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                      ),
+                    ),
+                    dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      fontFamily: 'Poppins',
                     ),
                     items: [
                       for (final p in TaskCreationDialog.priorities)
@@ -226,15 +261,19 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 "Weather Dependent",
                 style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black87,
+                  fontFamily: 'Poppins',
                 ),
               ),
               subtitle: Text(
                 "Task requires suitable weather conditions",
                 style: TextStyle(
                   color: isDarkMode ? Colors.white70 : Colors.black54,
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
                 ),
               ),
               value: weatherDependent,
+              activeColor: const Color(0xFF4CAF50),
               onChanged: (bool value) {
                 setState(() {
                   weatherDependent = value;
@@ -253,6 +292,14 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 fillColor: isDarkMode
                     ? const Color(0xFF3C3C3C)
                     : const Color(0xFFF8F8F8),
+                labelStyle: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                ),
+              ),
+              dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black,
+                fontFamily: 'Poppins',
               ),
               items: [
                 for (final category in TaskCreationDialog.categories)
@@ -275,9 +322,11 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 "Recurring Task",
                 style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black87,
+                  fontFamily: 'Poppins',
                 ),
               ),
               value: isRecurring,
+              activeColor: const Color(0xFF4CAF50),
               onChanged: (bool value) {
                 setState(() {
                   isRecurring = value;
@@ -299,6 +348,14 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                   fillColor: isDarkMode
                       ? const Color(0xFF3C3C3C)
                       : const Color(0xFFF8F8F8),
+                  labelStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  ),
+                ),
+                dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                  fontFamily: 'Poppins',
                 ),
                 items: [
                   for (final type in TaskCreationDialog.recurringTypes)
@@ -321,6 +378,9 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+          ),
           child: const Text("Cancel"),
         ),
         ElevatedButton(
@@ -340,6 +400,10 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
               });
             }
           },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+          ),
           child: const Text("Create Task"),
         ),
       ],

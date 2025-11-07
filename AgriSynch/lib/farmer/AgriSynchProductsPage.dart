@@ -8,6 +8,7 @@ import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../shared/input_validator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class AgriSynchProductsPage extends StatefulWidget {
@@ -179,17 +180,50 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   return;
                 }
 
+                // Comprehensive input sanitization
+                final sanitizedName = InputValidator.sanitizeText(nameController.text);
+                final sanitizedDescription = InputValidator.sanitizeDescription(descriptionController.text);
+                final sanitizedLocation = InputValidator.sanitizeAddress(locationController.text);
+                
+                // Validate sanitized inputs
+                final nameError = InputValidator.validateText(
+                  sanitizedName,
+                  fieldName: 'Product name',
+                  minLength: 2,
+                  maxLength: 100,
+                );
+                
+                if (nameError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(nameError), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+                
+                // Check for dangerous content
+                if (InputValidator.containsDangerousContent(nameController.text) ||
+                    InputValidator.containsDangerousContent(descriptionController.text) ||
+                    InputValidator.containsDangerousContent(locationController.text)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid characters detected. Please use only standard characters.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 try {
                   final product = Product(
                     id: '',
-                    name: ValidationService.sanitizeInput(nameController.text),
-                    description: ValidationService.sanitizeInput(descriptionController.text),
+                    name: sanitizedName,
+                    description: sanitizedDescription,
                     price: double.parse(priceController.text),
                     unit: selectedUnit,
                     category: selectedCategory,
                     farmerId: _productService.currentUserId!,
                     farmerName: _productService.currentUserName ?? 'Farmer',
-                    location: ValidationService.sanitizeInput(locationController.text),
+                    location: sanitizedLocation,
                     stock: int.parse(stockController.text.isNotEmpty ? stockController.text : '0'),
                     createdAt: DateTime.now(),
                     updatedAt: DateTime.now(),
@@ -339,15 +373,33 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   return;
                 }
 
+                // Comprehensive input sanitization
+                final sanitizedName = InputValidator.sanitizeText(nameController.text);
+                final sanitizedDescription = InputValidator.sanitizeDescription(descriptionController.text);
+                final sanitizedLocation = InputValidator.sanitizeAddress(locationController.text);
+                
+                // Check for dangerous content
+                if (InputValidator.containsDangerousContent(nameController.text) ||
+                    InputValidator.containsDangerousContent(descriptionController.text) ||
+                    InputValidator.containsDangerousContent(locationController.text)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid characters detected in input'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 try {
                   await _productService.updateProduct(product.id, {
-                    'name': ValidationService.sanitizeInput(nameController.text),
-                    'description': ValidationService.sanitizeInput(descriptionController.text),
+                    'name': sanitizedName,
+                    'description': sanitizedDescription,
                     'price': double.parse(priceController.text),
                     'unit': selectedUnit,
                     'category': selectedCategory,
                     'stock': int.parse(stockController.text),
-                    'location': ValidationService.sanitizeInput(locationController.text),
+                    'location': sanitizedLocation,
                     'isAvailable': isAvailable,
                   });
 

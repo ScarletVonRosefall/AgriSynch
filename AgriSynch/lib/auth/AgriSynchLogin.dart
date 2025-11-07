@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import '../services/error_handler.dart';
 import '../shared/theme_helper.dart';
+import '../shared/input_validator.dart';
 
 // Lighter input formatter for login - only blocks obviously problematic characters
 class LightInputValidator extends TextInputFormatter {
@@ -318,6 +319,27 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                       return;
                                                     }
 
+                                                    // Sanitize and validate inputs
+                                                    final sanitizedEmail = InputValidator.sanitizeEmail(email);
+                                                    final emailError = InputValidator.validateEmail(sanitizedEmail);
+                                                    
+                                                    if (emailError != null) {
+                                                      showError(emailError);
+                                                      return;
+                                                    }
+                                                    
+                                                    if (pass.length > InputValidator.maxPasswordLength) {
+                                                      showError("Password is too long");
+                                                      return;
+                                                    }
+                                                    
+                                                    // Check for dangerous content
+                                                    if (InputValidator.containsDangerousContent(email) ||
+                                                        InputValidator.containsDangerousContent(pass)) {
+                                                      showError("Invalid characters detected in login credentials");
+                                                      return;
+                                                    }
+
                                                     if (!mounted) return;
                                                     isLoading.value = true;
 
@@ -325,7 +347,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                       // Add timeout for Firebase operations
                                                       final loginFuture = FirebaseAuth.instance
                                                           .signInWithEmailAndPassword(
-                                                            email: email,
+                                                            email: sanitizedEmail,
                                                             password: pass,
                                                           );
 

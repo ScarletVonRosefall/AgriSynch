@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/error_handler.dart';
 import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
+import '../shared/input_validator.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -400,14 +401,43 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 return;
                                               }
 
-                                              // Validate inputs using ValidationService
-                                              final nameValidation = ValidationService.validateName(name);
+                                              // Comprehensive input sanitization and validation
+                                              final sanitizedName = InputValidator.sanitizeName(name);
+                                              final nameError = InputValidator.validateName(sanitizedName);
+                                              if (nameError != null) {
+                                                showError(nameError);
+                                                return;
+                                              }
+
+                                              final sanitizedEmail = InputValidator.sanitizeEmail(email);
+                                              final emailError = InputValidator.validateEmail(sanitizedEmail);
+                                              if (emailError != null) {
+                                                showError(emailError);
+                                                return;
+                                              }
+
+                                              final passwordError = InputValidator.validatePassword(pass, isSignup: true);
+                                              if (passwordError != null) {
+                                                showError(passwordError);
+                                                return;
+                                              }
+
+                                              // Check for injection attempts
+                                              if (InputValidator.containsDangerousContent(name) ||
+                                                  InputValidator.containsDangerousContent(email) ||
+                                                  InputValidator.containsDangerousContent(pass)) {
+                                                showError("Invalid characters detected. Please use only standard characters.");
+                                                return;
+                                              }
+
+                                              // Validate inputs using ValidationService (legacy compatibility)
+                                              final nameValidation = ValidationService.validateName(sanitizedName);
                                               if (nameValidation != null) {
                                                 showError(nameValidation);
                                                 return;
                                               }
 
-                                              final emailValidation = ValidationService.validateEmail(email);
+                                              final emailValidation = InputValidator.validateEmail(sanitizedEmail);
                                               if (emailValidation != null) {
                                                 showError(emailValidation);
                                                 return;
@@ -428,8 +458,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 // 1) Save the collected data to Firestore BEFORE creating the Auth account.
                                                 //    We mark it as 'pending_auth' so backend/admins can track pending signups if needed.
                                                 final preUserData = {
-                                                  'name': ValidationService.sanitizeInput(name),
-                                                  'email': ValidationService.sanitizeInput(email),
+                                                  'name': sanitizedName,
+                                                  'email': sanitizedEmail,
                                                   'accountType': _selectedAccountType,
                                                   'status': 'pending_auth',
                                                   'createdAt': FieldValue.serverTimestamp(),
@@ -442,7 +472,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 final credential =
                                                     await FirebaseAuth.instance
                                                         .createUserWithEmailAndPassword(
-                                                          email: email,
+                                                          email: sanitizedEmail,
                                                           password: pass,
                                                         );
 
@@ -459,8 +489,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
 
                                                   final userData = {
                                                     'uid': user.uid,
-                                                    'name': name,
-                                                    'email': email,
+                                                    'name': sanitizedName,
+                                                    'email': sanitizedEmail,
                                                     'accountType': _selectedAccountType,
                                                     'createdAt': FieldValue.serverTimestamp(),
                                                   };
@@ -481,11 +511,11 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                   );
                                                   await storage.write(
                                                     key: 'name',
-                                                    value: name,
+                                                    value: sanitizedName,
                                                   );
                                                   await storage.write(
                                                     key: 'user_name',
-                                                    value: name,
+                                                    value: sanitizedName,
                                                   );
                                                   await storage.write(
                                                     key: 'user_email',

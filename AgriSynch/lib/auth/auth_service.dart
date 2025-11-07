@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../shared/input_validator.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -242,18 +243,30 @@ class AuthService {
         return false;
       }
 
+      // Sanitize all text inputs before saving to database
+      final sanitizedName = name != null ? InputValidator.sanitizeName(name) : null;
+      final sanitizedNickname = nickname != null ? InputValidator.sanitizeName(nickname) : null;
+      final sanitizedBio = bio != null ? InputValidator.sanitizeDescription(bio, maxLength: 500) : null;
+      final sanitizedLocation = location != null ? InputValidator.sanitizeAddress(location) : null;
+
+      // Validate sanitized inputs
+      if (sanitizedName != null && sanitizedName.isEmpty && name!.isNotEmpty) {
+        print('❌ Error: Name contains invalid characters');
+        return false;
+      }
+
       // Check if user document exists
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       
       Map<String, dynamic> updateData = {};
 
-      if (name != null) {
-        updateData['name'] = name;
-        await user.updateDisplayName(name);
+      if (sanitizedName != null) {
+        updateData['name'] = sanitizedName;
+        await user.updateDisplayName(sanitizedName);
       }
-      if (nickname != null) updateData['nickname'] = nickname;
-      if (bio != null) updateData['bio'] = bio;
-      if (location != null) updateData['location'] = location;
+      if (sanitizedNickname != null) updateData['nickname'] = sanitizedNickname;
+      if (sanitizedBio != null) updateData['bio'] = sanitizedBio;
+      if (sanitizedLocation != null) updateData['location'] = sanitizedLocation;
       if (profileImage != null) updateData['profileImage'] = profileImage;
 
       updateData['updatedAt'] = FieldValue.serverTimestamp();
