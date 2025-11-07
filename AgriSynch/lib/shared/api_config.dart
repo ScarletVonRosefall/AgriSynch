@@ -16,8 +16,25 @@ class ApiConfig {
   // 📍 Reverse Geocoding: https://geocoding-api.open-meteo.com/v1/reverse
   //
   // Documentation: https://open-meteo.com/en/docs
-  // 
   // Implementation: lib/shared/weather_helper.dart
-  // Usage: Automatically used in AgriWeatherPage with GPS location
+
+  // ✨ Currency API - Frankfurter (Free & No API Key Required!)
+  //
+  // Frankfurter provides FREE currency exchange rates with ZERO configuration! 🎉
+  //
+  // Features:
+  // ✅ No registration or API key needed
+  // ✅ Unlimited requests - perfect for production
+  // ✅ European Central Bank official rates
+  // ✅ 30+ currencies supported
+  // ✅ Current & historical rates
+  //
+  // API Used:
+  // 💱 Exchange Rates: https://api.frankfurter.app
+  //
+  // Supported Currencies: PHP, USD, EUR, GBP, JPY, CNY, AUD, CAD, KRW, SGD, MYR, THB, INR, CHF
+  //
+  // Documentation: https://www.frankfurter.app/docs
+  // Implementation: lib/shared/currency_helper.dart
 }
 

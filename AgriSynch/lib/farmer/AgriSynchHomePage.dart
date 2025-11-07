@@ -11,6 +11,7 @@ import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../shared/AgriCurrencyPage.dart';
 import '../auth/auth_service.dart';
 import '../services/task_service.dart';
 import '../services/order_service.dart';
@@ -411,6 +412,104 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
+  // Build the currency converter card widget for homepage
+  Widget _buildCurrencyCard() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AgriCurrencyPage()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF263238) : Colors.green[50],
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode 
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode
+                ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
+                : [Colors.green[100]!, Colors.green[50]!],
+          ),
+        ),
+        child: Row(
+          children: [
+            // Currency Icon
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF4CAF50) : Colors.green[600],
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: const Icon(
+                Icons.currency_exchange,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+
+            // Currency Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Currency Converter',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'PHP • USD • EUR • More',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Real-time exchange rates',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDarkMode ? const Color(0xFF81C784) : Colors.green[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Arrow Icon
+            Icon(
+              Icons.arrow_forward_ios,
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Check task deadlines and create welcome notifications
   Future<void> checkAndCreateSampleNotifications() async {
     // Check for task deadlines
@@ -746,6 +845,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: _buildWeatherCard(),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // --- Currency Converter Card ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildCurrencyCard(),
                   ),
 
                   const SizedBox(height: 20),
