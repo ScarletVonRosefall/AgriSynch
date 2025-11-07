@@ -79,9 +79,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
 
     try {
+      // Don't pass filter to service - we'll filter in UI to support grouped statuses
       final result = await _orderService.getBuyerOrdersPaginated(
         limit: _pageSize,
-        statusFilter: selectedFilter == 'All' ? null : selectedFilter,
+        statusFilter: null, // Always fetch all orders
       );
 
       if (!mounted) return;
@@ -124,10 +125,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
 
     try {
+      // Don't pass filter to service - we'll filter in UI to support grouped statuses
       final result = await _orderService.getMoreBuyerOrders(
         lastDocument: _lastDocument!,
         limit: _pageSize,
-        statusFilter: selectedFilter == 'All' ? null : selectedFilter,
+        statusFilter: null, // Always fetch all orders
       );
 
       if (!mounted) return;
@@ -236,6 +238,18 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   List<Map<String, dynamic>> getFilteredOrders(List<Map<String, dynamic>> allOrders) {
     if (selectedFilter == 'All') return allOrders;
+    
+    // For "Pending", include all active/in-progress statuses
+    if (selectedFilter == 'Pending') {
+      return allOrders.where((order) {
+        final status = order['status'].toLowerCase();
+        return status == 'pending' || 
+               status == 'confirmed' || 
+               status == 'preparing';
+      }).toList();
+    }
+    
+    // For other filters, do exact match
     return allOrders
         .where(
           (order) =>
@@ -248,6 +262,12 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     switch (status.toLowerCase()) {
       case 'pending':
         return Colors.orange;
+      case 'confirmed':
+        return Colors.blue;
+      case 'preparing':
+        return Colors.amber;
+      case 'delivering':
+        return Colors.purple;
       case 'processing':
         return Colors.blue;
       case 'shipped':
@@ -265,6 +285,12 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     switch (status.toLowerCase()) {
       case 'pending':
         return Icons.schedule;
+      case 'confirmed':
+        return Icons.check;
+      case 'preparing':
+        return Icons.restaurant_menu;
+      case 'delivering':
+        return Icons.local_shipping;
       case 'processing':
         return Icons.autorenew;
       case 'shipped':
@@ -674,8 +700,8 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           onSelected: (selected) {
                             setState(() {
                               selectedFilter = filter;
+                              // No need to reload - filtering is done client-side
                             });
-                            _loadInitialOrders(); // Reload with new filter
                           },
                           backgroundColor: cardColor,
                           selectedColor: const Color(0xFF4CAF50),

@@ -14,6 +14,7 @@ import '../models/product.dart';
 import '../models/order.dart';
 import 'BrowseProductsPage.dart';
 import 'MyOrdersPage.dart';
+import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'DeliveryTrackingPage.dart';
 import 'dart:convert';
@@ -564,82 +565,95 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           completedOrders = realOrders.where((o) => o.status == 'delivered').length;
                         }
 
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? const Color(0xFF2E7D32)
-                                : const Color(0xFF00E676),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      "Shopping Summary",
-                                      style: TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      "• $totalOrders Total Orders",
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    Text(
-                                      "• ${cart.length} Items in Cart",
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    Text(
-                                      "• $pendingOrders Pending Orders",
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    Text(
-                                      "• $completedOrders Completed",
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ShoppingCartPage(),
                               ),
-                              Container(
-                                width: 64,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Icon(
-                                    Icons.shopping_basket,
-                                    color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
-                                    size: 30,
+                            ).then((_) {
+                              // Reload cart data when returning
+                              loadBuyerData();
+                            });
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDarkMode
+                                  ? const Color(0xFF2E7D32)
+                                  : const Color(0xFF00E676),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Shopping Summary",
+                                        style: TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        "• $totalOrders Total Orders",
+                                        style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        "• ${cart.length} Items in Cart",
+                                        style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        "• $pendingOrders Pending Orders",
+                                        style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        "• $completedOrders Completed",
+                                        style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.shopping_basket,
+                                      color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
+                                      size: 30,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
