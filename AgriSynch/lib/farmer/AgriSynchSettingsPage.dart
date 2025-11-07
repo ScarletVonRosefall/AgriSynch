@@ -114,6 +114,21 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Reload currency when returning to settings page
+    _reloadCurrency();
+  }
+
+  Future<void> _reloadCurrency() async {
+    try {
+      final currentCurrency = await CurrencyHelper.getCurrentCurrency();
+      if (mounted) {
+        setState(() {
+          _selectedCurrency = currentCurrency;
+        });
+      }
+    } catch (e) {
+      print('Error reloading currency: $e');
+    }
   }
 
   Future<void> _initializeSettings() async {

@@ -9,6 +9,7 @@ import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import '../shared/input_validator.dart';
+import '../shared/currency_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class AgriSynchProductsPage extends StatefulWidget {
@@ -25,6 +26,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   int unreadNotifications = 0;
   String _searchQuery = '';
   String _categoryFilter = 'All';
+  String _currencySymbol = '₱'; // Will be loaded from settings
 
   final List<String> _categories = [
     'All',
@@ -42,10 +44,27 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadUnreadNotifications();
+    _loadCurrencySymbol();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload currency when returning to this page
+    _loadCurrencySymbol();
   }
 
   void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyHelper.getCurrentCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
   }
 
   @override
@@ -110,8 +129,8 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                           ],
-                          decoration: const InputDecoration(
-                            labelText: 'Price (₱)*',
+                          decoration: InputDecoration(
+                            labelText: 'Price ($_currencySymbol)*',
                             hintText: '0.00',
                           ),
                           validator: ValidationService.validatePrice,
@@ -304,7 +323,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                         child: TextFormField(
                           controller: priceController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Price (₱)*'),
+                          decoration: InputDecoration(labelText: 'Price ($_currencySymbol)*'),
                           validator: ValidationService.validatePrice,
                         ),
                       ),
@@ -996,7 +1015,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                           children: [
                             const SizedBox(height: 4),
                             Text(
-                              '₱${product.price.toStringAsFixed(2)} ${product.unit}',
+                              '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
                               style: const TextStyle(
                                 color: Color(0xFF4CAF50),
                                 fontWeight: FontWeight.bold,

@@ -55,6 +55,15 @@ class _AgriSynchBuyerSettingsPageState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _reloadCurrency();
+  }
+
+  // Reload currency when page regains focus
+  void _reloadCurrency() async {
+    final currentCurrency = await CurrencyHelper.getCurrentCurrency();
+    setState(() {
+      _selectedCurrency = currentCurrency;
+    });
   }
 
   // Load user information from secure storage

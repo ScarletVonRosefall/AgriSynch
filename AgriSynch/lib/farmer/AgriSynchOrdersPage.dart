@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../shared/currency_helper.dart';
 import '../services/finance_service.dart';
 import '../services/order_service.dart';
 import '../services/error_handler.dart';
@@ -22,6 +23,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   final TextEditingController _searchController = TextEditingController();
   final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
+  String _currencySymbol = '₱'; // Will be loaded from settings
 
   final List<String> _statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
   String _selectedStatusFilter = 'All'; // Filter for viewing orders by status
@@ -42,14 +44,30 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
   void initState() {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
-    // Only load from Firestore now, removed legacy _loadOrders()
     _loadUnreadNotifications();
+    _loadCurrencySymbol();
     _loadInitialOrders();
     _scrollController.addListener(_onScroll);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload currency when returning to this page
+    _loadCurrencySymbol();
+  }
+
   void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyHelper.getCurrentCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
   }
 
   @override
@@ -405,7 +423,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   ),
                 ),
                 Text(
-                  "₱${order['total']?.toStringAsFixed(2) ?? '0.00'}",
+                  "$_currencySymbol${order['total']?.toStringAsFixed(2) ?? '0.00'}",
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.bold,
@@ -572,7 +590,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Will add ₱${order.totalAmount.toStringAsFixed(2)} to finances',
+                          'Will add $_currencySymbol${order.totalAmount.toStringAsFixed(2)} to finances',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -631,7 +649,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     ErrorHandler.showSuccessSnackBar(
                       context,
                       selectedStatus == 'delivered'
-                          ? 'Order delivered! ₱${order.totalAmount.toStringAsFixed(2)} added to finances'
+                          ? 'Order delivered! $_currencySymbol${order.totalAmount.toStringAsFixed(2)} added to finances'
                           : 'Order status updated to ${_capitalizeFirst(selectedStatus)}',
                       duration: const Duration(seconds: 3),
                     );

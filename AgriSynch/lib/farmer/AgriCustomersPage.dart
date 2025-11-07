@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
+import '../shared/currency_helper.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
 
@@ -20,6 +21,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
   int unreadNotifications = 0;
   String searchQuery = '';
   String sortBy = 'recent'; // recent, name, orders
+  String _currencySymbol = '₱'; // Will be loaded from settings
   
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -38,12 +40,29 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
     _loadUnreadNotifications();
+    _loadCurrencySymbol();
     _loadInitialOrders();
     _scrollController.addListener(_onScroll);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload currency when returning to this page
+    _loadCurrencySymbol();
+  }
+
   void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyHelper.getCurrentCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
   }
 
   @override
@@ -733,7 +752,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                   _buildStatItem(
                     Icons.attach_money,
                     'Revenue',
-                    '₱${totalRevenue.toStringAsFixed(0)}',
+                    '$_currencySymbol${totalRevenue.toStringAsFixed(0)}',
                     Colors.blue,
                   ),
                 ],
@@ -938,7 +957,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${order.items.length} item(s) - ₱${order.totalAmount.toStringAsFixed(2)}',
+              '${order.items.length} item(s) - $_currencySymbol${order.totalAmount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontSize: 13,
                 color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
