@@ -224,10 +224,7 @@ class _AgriSynchEmailVerificationPageState
       appBar: AppBar(
         backgroundColor: const Color(0xFF00C853),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text(
           'Verify Email',
           style: TextStyle(color: Colors.white),
