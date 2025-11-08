@@ -276,8 +276,14 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
             expandedHeight: 180,
             floating: false,
             pinned: true,
-            backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
+            backgroundColor: Colors.transparent,
             automaticallyImplyLeading: false,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
+              ),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               background: ClipRRect(
                 borderRadius: const BorderRadius.only(
@@ -291,15 +297,26 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
                           onPressed: () => Navigator.pop(context),
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                         ),
                         Expanded(
-                          child: Text(
-                            'My Customers',
-                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'My Customers',
+                                style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Manage your customer relationships',
+                                style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                              ),
+                            ],
                           ),
                         ),
                         // Notification bell

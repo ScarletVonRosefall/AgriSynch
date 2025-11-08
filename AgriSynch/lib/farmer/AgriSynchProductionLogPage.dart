@@ -538,113 +538,150 @@ class _AgriSynchProductionLogState extends State<AgriSynchProductionLog> {
     
     return Scaffold(
       backgroundColor: ThemeHelper.getBackgroundColor(_isDark),
-      appBar: AppBar(
-        backgroundColor: ThemeHelper.getHeaderColor(_isDark),
-        title: Text(
-          'Production Log',
-          style: ThemeHelper.getHeaderTextStyle(isDark: _isDark),
-        ),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              setState(() {
-                _filterType = value;
-                _applyFilters();
-              });
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'All', child: Text('All')),
-              const PopupMenuItem(value: 'Today', child: Text('Today')),
-              const PopupMenuItem(value: 'This Week', child: Text('This Week')),
-              const PopupMenuItem(
-                value: 'This Month',
-                child: Text('This Month'),
+      body: Column(
+        children: [
+          // Green header matching home page
+          Container(
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            width: double.infinity,
+            decoration: ThemeHelper.getHeaderDecoration(isDark: _isDark),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Production Log',
+                            style: ThemeHelper.getHeaderTextStyle(isDark: _isDark),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Track your harvest and production',
+                            style: ThemeHelper.getSubHeaderTextStyle(isDark: _isDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Filter button
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        setState(() {
+                          _filterType = value;
+                          _applyFilters();
+                        });
+                      },
+                      icon: const Icon(Icons.filter_list, color: Colors.white),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(value: 'All', child: Text('All')),
+                        const PopupMenuItem(value: 'Today', child: Text('Today')),
+                        const PopupMenuItem(value: 'This Week', child: Text('This Week')),
+                        const PopupMenuItem(
+                          value: 'This Month',
+                          child: Text('This Month'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Search Bar inside header
+                Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => _applyFilters(),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.7)),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content area
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadEntries,
+              child: Column(
+                children: [
+                  // Analytics Dashboard
+                  _buildAnalyticsDashboard(),
+
+                  // Filter indicator
+                  if (_filterType != 'All' || _searchController.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        children: [
+                          if (_filterType != 'All')
+                            Chip(
+                              label: Text(_filterType),
+                              onDeleted: () {
+                                setState(() {
+                                  _filterType = 'All';
+                                  _applyFilters();
+                                });
+                              },
+                            ),
+                          if (_searchController.text.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: Chip(
+                                label: Text('Search: ${_searchController.text}'),
+                                onDeleted: () {
+                                  _searchController.clear();
+                                  _applyFilters();
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                  // Entries List
+                  Expanded(
+                    child: _filteredEntries.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredEntries.length,
+                            itemBuilder: (context, index) {
+                              final entry = _filteredEntries[index];
+                              return _buildEntryCard(entry);
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Icon(Icons.filter_list, color: Colors.white),
             ),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadEntries,
-        child: Column(
-          children: [
-            // Analytics Dashboard
-            _buildAnalyticsDashboard(),
-
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) => _applyFilters(),
-                style: ThemeHelper.getTextStyle(isDark: _isDark),
-                decoration: ThemeHelper.getInputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: Icons.search,
-                  isDark: _isDark,
-                ),
-              ),
-            ),
-
-            // Filter indicator
-            if (_filterType != 'All' || _searchController.text.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    if (_filterType != 'All')
-                      Chip(
-                        label: Text(_filterType),
-                        onDeleted: () {
-                          setState(() {
-                            _filterType = 'All';
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    if (_searchController.text.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Chip(
-                          label: Text('Search: ${_searchController.text}'),
-                          onDeleted: () {
-                            _searchController.clear();
-                            _applyFilters();
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-            // Entries List
-            Expanded(
-              child: _filteredEntries.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredEntries.length,
-                      itemBuilder: (context, index) {
-                        final entry = _filteredEntries[index];
-                        return _buildEntryCard(entry);
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: ThemeHelper.getHeaderColor(_isDark),
         foregroundColor: Colors.white,
-        onPressed: _showAddLogModal,
-        child: const Icon(Icons.add),
-      ),
-    );
+  onPressed: _showAddLogModal,
+  child: const Icon(Icons.add),
+),
+);
   }
 
   Widget _buildAnalyticsDashboard() {
