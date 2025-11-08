@@ -108,19 +108,32 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
         color: Colors.grey[200],
         border: Border.all(color: const Color(0xFF4CAF50), width: 2),
       ),
-      child: _profileImageBase64 != null
+      child: _profileImageBase64 != null && _profileImageBase64!.isNotEmpty
           ? ClipOval(
               child: Image.memory(
                 base64Decode(_profileImageBase64!),
                 width: widget.imageSize,
                 height: widget.imageSize,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return ClipOval(
+                    child: Image.asset(
+                      'assets/AgriSynchLogoNB2.png',
+                      width: widget.imageSize,
+                      height: widget.imageSize,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                },
               ),
             )
-          : Icon(
-              Icons.person,
-              size: widget.imageSize * 0.6,
-              color: Colors.grey[600],
+          : ClipOval(
+              child: Image.asset(
+                'assets/AgriSynchLogoNB2.png',
+                width: widget.imageSize,
+                height: widget.imageSize,
+                fit: BoxFit.cover,
+              ),
             ),
     );
   }

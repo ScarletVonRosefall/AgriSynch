@@ -25,7 +25,6 @@ class Task {
     required this.updatedAt,
   });
 
-  // Create from Firestore document
   factory Task.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Task(
@@ -44,7 +43,6 @@ class Task {
     );
   }
 
-  // Convert to map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -59,7 +57,6 @@ class Task {
     };
   }
 
-  // Create a copy of the task with some fields updated
   Task copyWith({
     String? title,
     String? description,

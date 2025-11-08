@@ -32,7 +32,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   final _taskService = TaskService();
   final _orderService = OrderService();
 
-  // Data for summary
   List<Map<String, dynamic>> tasks = [];
   List<Map<String, dynamic>> orders = [];
   int unreadNotifications = 0;
@@ -77,14 +76,12 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         _isLoading = true;
       });
 
-      // Load most essential data first with timeout
       await Future.wait([
         loadTheme(),
       ]).timeout(const Duration(seconds: 3));
 
       if (!mounted) return;
 
-      // Load primary data with timeout
       await Future.wait([
         loadTasksAndOrders(),
         loadUnreadNotifications(),
@@ -92,17 +89,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
       if (!mounted) return;
 
-      // Set up periodic refresh for notifications and tasks
       _refreshTimer?.cancel();
       _refreshTimer = Timer.periodic(
         const Duration(minutes: 1),
         (_) => _refreshData(),
       );
 
-      // Load non-critical data last
       _loadNonCriticalData();
     } catch (e) {
-      // Handle initialization errors gracefully
       if (!mounted) return;
       _handleLoadError();
     } finally {
@@ -118,7 +112,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     setState(() {
       tasks = [];
       orders = [];
-      // Theme is now handled by ThemeNotifier
     });
   }
 
@@ -133,7 +126,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
           loadUnreadNotifications(),
         ]).timeout(const Duration(seconds: 5));
       } catch (e) {
-        // Handle refresh errors silently
       }
     });
   }
@@ -147,26 +139,20 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         checkAndCreateSampleNotifications(),
       ]).timeout(const Duration(seconds: 10));
     } catch (e) {
-      // Handle non-critical data load errors silently
     }
   }
 
-  // Load the current theme setting (dark/light mode)
   Future<void> loadTheme() async {
     if (!mounted) return;
-    // Theme is now handled by ThemeNotifier, no need to load manually
   }
 
-  // Load tasks and orders data for dashboard statistics from Firestore
   Future<void> loadTasksAndOrders() async {
     if (!mounted) return;
 
     try {
-      // Cancel existing subscriptions to prevent memory leaks
       _tasksSubscription?.cancel();
       _ordersSubscription?.cancel();
 
-      // Load tasks from Firestore
       _tasksSubscription = _taskService.getTasks(limit: 100).listen((snapshot) {
         if (!mounted) return;
         
@@ -198,7 +184,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         }
       });
 
-      // Load orders from Firestore (farmer's orders)
       _ordersSubscription = _orderService.getMyFarmerOrders().listen((ordersList) {
         if (!mounted) return;
         
@@ -234,7 +219,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
     } catch (e) {
       print('Error setting up task/order streams: $e');
-      // Handle load errors silently but ensure we have valid lists
       if (mounted) {
         setState(() {
           tasks = [];
@@ -256,7 +240,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     return json.encode(map1) == json.encode(map2);
   }
 
-  // Update data when user returns to homepage
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -272,13 +255,11 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     }
   }
 
-  // Load count of unread notifications
   Future<void> loadUnreadNotifications() async {
     unreadNotifications = await NotificationHelper.getUnreadCount();
     setState(() {});
   }
 
-  // Fetch current weather data for the dashboard
   Future<void> loadWeather() async {
     if (!mounted) return;
 
@@ -303,7 +284,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     }
   }
 
-  // Build the weather card widget for homepage
   Widget _buildWeatherCard() {
     final isDarkMode = _themeNotifier.isDarkMode;
     
@@ -412,7 +392,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
-  // Build the currency converter card widget for homepage
   Widget _buildCurrencyCard() {
     final isDarkMode = _themeNotifier.isDarkMode;
     
@@ -510,12 +489,9 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
-  // Check task deadlines and create welcome notifications
   Future<void> checkAndCreateSampleNotifications() async {
-    // Check for task deadlines
     await NotificationHelper.checkTaskDeadlines();
 
-    // Create a welcome notification if it's the first time
     final prefs = await SharedPreferences.getInstance();
     final hasWelcomeNotification =
         prefs.getBool('welcome_notification_sent') ?? false;
@@ -533,7 +509,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     loadUnreadNotifications();
   }
 
-  // Get time-appropriate greeting message
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
@@ -545,7 +520,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     }
   }
 
-  // Build quick stat cards for dashboard
   Widget _buildQuickStat(
     String title,
     String value,
@@ -595,7 +569,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
-  // Build the homepage UI with fixed header and scrollable content
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
@@ -905,9 +878,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               if (mounted) {
                                 _needsReload = true;
                               }
-                            } catch (e) {
-                              // Handle navigation error silently
-                            }
+                            } catch (e) {}
                           },
                         ),
                         _homeTile(
@@ -924,9 +895,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               if (mounted) {
                                 _needsReload = true;
                               }
-                            } catch (e) {
-                              // Handle navigation error silently
-                            }
+                            } catch (e) {}
                           },
                         ),
                         _homeTile(
@@ -943,9 +912,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               if (mounted) {
                                 _needsReload = true;
                               }
-                            } catch (e) {
-                              // Handle navigation error silently
-                            }
+                            } catch (e) {}
                           },
                         ),
                         _homeTile(
@@ -962,9 +929,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               if (mounted) {
                                 _needsReload = true;
                               }
-                            } catch (e) {
-                              // Handle navigation error silently
-                            }
+                            } catch (e) {}
                           },
                         ),
                         const SizedBox(height: 20),
@@ -1029,48 +994,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     } else {
       return Icons.wb_sunny;
     }
-  }
-
-  Widget _buildProfileAvatar() {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
-    return FutureBuilder<Map<String, String?>>(
-      future: _loadUserProfileData(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          final profileImageBase64 = snapshot.data!['profileImage'];
-          if (profileImageBase64 != null && profileImageBase64.isNotEmpty) {
-            return Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: ClipOval(
-                child: Image.memory(
-                  base64Decode(profileImageBase64),
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            );
-          }
-        }
-        
-        // Default avatar
-        return CircleAvatar(
-          backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-          radius: 20,
-          child: Icon(
-            Icons.person,
-            color: Colors.white,
-            size: 24,
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildGreetingText() {

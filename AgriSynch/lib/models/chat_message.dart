@@ -27,7 +27,6 @@ class ChatMessage {
     this.orderId,
   });
 
-  // Create from Firestore document
   factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ChatMessage(
@@ -45,7 +44,6 @@ class ChatMessage {
     );
   }
 
-  // Convert to Firestore format
   Map<String, dynamic> toFirestore() {
     return {
       'conversationId': conversationId,

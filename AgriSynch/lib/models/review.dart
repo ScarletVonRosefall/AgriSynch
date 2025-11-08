@@ -25,7 +25,6 @@ class Review {
     required this.updatedAt,
   });
 
-  // Create from Firestore document
   factory Review.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Review(
@@ -42,7 +41,6 @@ class Review {
     );
   }
 
-  // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
       'farmerId': farmerId,
@@ -57,7 +55,6 @@ class Review {
     };
   }
 
-  // Copy with updated fields
   Review copyWith({
     String? id,
     String? farmerId,

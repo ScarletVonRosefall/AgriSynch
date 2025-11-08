@@ -7,21 +7,18 @@ class ChatService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Generate conversation ID from two user IDs (consistent ordering)
   static String generateConversationId(String userId1, String userId2) {
     final ids = [userId1, userId2]..sort();
     return '${ids[0]}_${ids[1]}';
   }
 
-  /// Generate unique message ID to prevent duplicates
   static String generateMessageId(String senderId, String message) {
-    final timestamp = DateTime.now().microsecondsSinceEpoch; // Use microseconds for better uniqueness
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
     final random = Random().nextInt(100000);
     final messageHash = message.hashCode.abs();
     return '${senderId}_${timestamp}_${messageHash}_${random}';
   }
 
-  /// Send a message
   static Future<bool> sendMessage({
     required String receiverId,
     required String receiverName,
@@ -42,7 +39,6 @@ class ChatService {
       final senderName = currentUser.displayName ?? 'User';
       final conversationId = generateConversationId(senderId, receiverId);
       
-      // Generate unique message ID to prevent duplicates
       final messageId = generateMessageId(senderId, message);
       
       print('🔧 ChatService: Sending message');
@@ -50,7 +46,6 @@ class ChatService {
       print('   💬 Content: "$message"');
       print('   👤 From: $senderId -> $receiverId');
 
-      // Check if message with this ID already exists
       final existingMessage = await _firestore
           .collection('messages')
           .doc(messageId)
@@ -63,7 +58,6 @@ class ChatService {
 
       print('✅ ChatService: Message ID is unique, proceeding to send');
 
-      // Create message
       final chatMessage = ChatMessage(
         id: messageId,
         conversationId: conversationId,
@@ -78,7 +72,6 @@ class ChatService {
         orderId: orderId,
       );
 
-      // Add message to messages collection with custom document ID to prevent duplicates
       print('💾 ChatService: Saving to Firestore...');
       await _firestore
           .collection('messages')
@@ -86,22 +79,18 @@ class ChatService {
           .set(chatMessage.toFirestore());
       print('✅ ChatService: Message saved to Firestore');
 
-      // Update or create conversation
       print('🔄 ChatService: Updating conversation...');
       final conversationRef = _firestore.collection('conversations').doc(conversationId);
       final conversationDoc = await conversationRef.get();
 
       if (conversationDoc.exists) {
-        // Update existing conversation
         await conversationRef.update({
           'lastMessage': message,
           'lastMessageTime': FieldValue.serverTimestamp(),
           'unreadCount': FieldValue.increment(1),
         });
       } else {
-        // Create new conversation
-        // Note: You should determine actual buyer/farmer roles from user data
-        // For now, using a simple approach
+        // TODO: Determine actual buyer/farmer roles from user data
         final conversation = Conversation(
           id: conversationId,
           buyerId: senderId,
@@ -119,9 +108,8 @@ class ChatService {
         await conversationRef.set(conversation.toFirestore());
       }
 
-      // TODO: Add push notification when NotificationService is updated
-      // await NotificationService().sendMessageNotification(...);
-
+      // TODO: Add push notification when NotificationService supports it
+      
       print('🎉 ChatService: Message send completed successfully');
       return true;
     } catch (e, stackTrace) {
@@ -131,7 +119,6 @@ class ChatService {
     }
   }
 
-  /// Get messages stream for a conversation
   static Stream<List<ChatMessage>> getMessagesStream(String otherUserId) {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -140,7 +127,6 @@ class ChatService {
 
     final conversationId = generateConversationId(currentUser.uid, otherUserId);
 
-    // Simplified query - sort in memory to avoid composite index
     return _firestore
         .collection('messages')
         .where('conversationId', isEqualTo: conversationId)
@@ -151,7 +137,7 @@ class ChatService {
           .map((doc) => ChatMessage.fromFirestore(doc))
           .toList();
       
-      // Remove duplicates based on message content, sender, and timestamp proximity
+      // Remove duplicates - same sender, content, and timestamp within 2 seconds
       final deduplicatedMessages = <ChatMessage>[];
       for (final message in messages) {
         final isDuplicate = deduplicatedMessages.any((existing) => 
@@ -167,14 +153,12 @@ class ChatService {
         }
       }
       
-      // Sort by timestamp descending (newest first)
       deduplicatedMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       
       return deduplicatedMessages;
     });
   }
 
-  /// Get all conversations for current user
   static Stream<List<Conversation>> getConversationsStream() {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -183,25 +167,21 @@ class ChatService {
 
     final userId = currentUser.uid;
 
-    // Simplified query without orderBy to avoid index requirement
     return _firestore
         .collection('conversations')
         .where('participants', arrayContains: userId)
         .snapshots()
         .map((snapshot) {
-      // Sort in memory instead of in Firestore
       final conversations = snapshot.docs
           .map((doc) => Conversation.fromFirestore(doc))
           .toList();
       
-      // Sort by lastMessageTime descending (newest first)
       conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
       
       return conversations;
     });
   }
 
-  /// Mark messages as read
   static Future<void> markMessagesAsRead(String otherUserId) async {
     try {
       final currentUser = _auth.currentUser;
@@ -209,14 +189,12 @@ class ChatService {
 
       final conversationId = generateConversationId(currentUser.uid, otherUserId);
 
-      // Get unread messages - simplified query to avoid index
       final unreadMessages = await _firestore
           .collection('messages')
           .where('conversationId', isEqualTo: conversationId)
           .where('receiverId', isEqualTo: currentUser.uid)
           .get();
 
-      // Mark as read - filter for isRead == false in memory
       final batch = _firestore.batch();
       for (var doc in unreadMessages.docs) {
         if (doc.data()['isRead'] == false) {
@@ -225,7 +203,6 @@ class ChatService {
       }
       await batch.commit();
 
-      // Reset unread count in conversation
       await _firestore
           .collection('conversations')
           .doc(conversationId)
@@ -237,7 +214,6 @@ class ChatService {
     }
   }
 
-  /// Get unread message count
   static Stream<int> getUnreadCountStream() {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -252,10 +228,8 @@ class ChatService {
         .map((snapshot) => snapshot.docs.length);
   }
 
-  /// Delete a conversation
   static Future<bool> deleteConversation(String conversationId) async {
     try {
-      // Delete all messages in conversation
       final messages = await _firestore
           .collection('messages')
           .where('conversationId', isEqualTo: conversationId)
@@ -266,7 +240,6 @@ class ChatService {
         batch.delete(doc.reference);
       }
 
-      // Delete conversation
       batch.delete(_firestore.collection('conversations').doc(conversationId));
 
       await batch.commit();
@@ -278,7 +251,6 @@ class ChatService {
     }
   }
 
-  /// Search conversations
   static Future<List<Conversation>> searchConversations(String query) async {
     try {
       final currentUser = _auth.currentUser;

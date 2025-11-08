@@ -6,10 +6,8 @@ class TaskService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // Reference to user's tasks collection
   CollectionReference<Map<String, dynamic>> get _tasksCollection {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
@@ -19,7 +17,6 @@ class TaskService {
     return _firestore.collection('users').doc(userId).collection('tasks');
   }
 
-  // Create a new task
   Future<void> createTask({
     required String title,
     required String description,
@@ -64,36 +61,30 @@ class TaskService {
     });
   }
 
-  // Get all tasks stream
   Stream<QuerySnapshot<Map<String, dynamic>>> getTasks({int limit = 20}) {
     if (currentUserId == null) {
       print('ERROR: No authenticated user in getTasks()');
-      // Return an empty stream instead of throwing
       return Stream.fromIterable([]).cast<QuerySnapshot<Map<String, dynamic>>>();
     }
     
     print('Getting tasks for user: $currentUserId');
     
     try {
-      // TODO: Restore second orderBy after creating composite index
-      // Temporary fix until index is created
+      // TODO: Restore second orderBy after creating composite index in Firebase Console
       return _tasksCollection
           .orderBy('dueDate')
           .limit(limit)
           .snapshots()
           .handleError((error) {
             print('ERROR in tasks stream: $error');
-            // Don't let the stream fail completely
             return Stream.empty();
           });
     } catch (e) {
       print('ERROR setting up tasks stream: $e');
-      // Return empty stream on setup failure
       return Stream.fromIterable([]).cast<QuerySnapshot<Map<String, dynamic>>>();
     }
   }
 
-  // Get pending tasks stream
   Stream<QuerySnapshot<Map<String, dynamic>>> getPendingTasks() {
     if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -112,15 +103,11 @@ class TaskService {
     print('TaskId: $taskId');
     print('Updates: $updates');
 
-    // Create a copy of the updates to avoid concurrent modification
     final updateData = Map<String, dynamic>.from(updates);
 
-    // Set up a timeout for the entire operation
     return Future.any([
-      // The main update operation
       _performTaskUpdate(taskId, updateData),
       
-      // A timeout that will throw if the update takes too long
       Future.delayed(const Duration(seconds: 10)).then((_) {
         throw TimeoutException('Task update timed out after 10 seconds');
       }),
@@ -139,7 +126,6 @@ class TaskService {
   Future<void> _performTaskUpdate(String taskId, Map<String, dynamic> updateData) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // Get the task document with timeout
         final taskRef = _tasksCollection.doc(taskId);
         final taskDoc = await transaction.get(taskRef)
             .timeout(const Duration(seconds: 3));
@@ -148,14 +134,11 @@ class TaskService {
           throw Exception('Task not found');
         }
 
-        // Start with a fresh copy of the current data
         final currentData = taskDoc.data() as Map<String, dynamic>;
         final newData = Map<String, dynamic>.from(currentData);
 
-        // Update timestamp first
         newData['updatedAt'] = FieldValue.serverTimestamp();
 
-        // Basic fields with validation and sanitization
         if (updateData.containsKey('title')) {
           final title = updateData['title']?.toString().trim() ?? '';
           if (title.isEmpty) {
@@ -164,12 +147,10 @@ class TaskService {
           newData['title'] = title;
         }
 
-        // Description
         if (updateData.containsKey('description')) {
           newData['description'] = updateData['description']?.toString().trim() ?? '';
         }
 
-        // Category with validation
         if (updateData.containsKey('category')) {
           final category = updateData['category']?.toString().trim();
           if (category?.isNotEmpty == true) {
@@ -177,7 +158,6 @@ class TaskService {
           }
         }
 
-        // Priority with validation
         if (updateData.containsKey('priority')) {
           final priority = updateData['priority']?.toString().trim();
           if (['Low', 'Medium', 'High', 'Urgent'].contains(priority)) {
@@ -187,22 +167,18 @@ class TaskService {
           }
         }
 
-        // Location
         if (updateData.containsKey('location')) {
           newData['location'] = updateData['location']?.toString().trim() ?? '';
         }
 
-        // Boolean fields
         newData['weatherDependent'] = updateData['weatherDependent'] == true;
         newData['recurringTask'] = updateData['recurringTask'] == true;
 
-        // Recurring frequency
         if (updateData.containsKey('recurringFrequency')) {
           newData['recurringFrequency'] = 
               updateData['recurringFrequency']?.toString().trim() ?? '';
         }
 
-        // Due date with validation
         if (updateData.containsKey('dueDate')) {
           final dueDate = updateData['dueDate'];
           if (dueDate is DateTime) {
@@ -214,7 +190,6 @@ class TaskService {
           }
         }
 
-        // Duration with validation
         if (updateData.containsKey('estimatedDuration')) {
           final duration = updateData['estimatedDuration'];
           if (duration is num) {
@@ -231,7 +206,6 @@ class TaskService {
           }
         }
 
-        // Perform the update
         transaction.set(taskRef, newData);
 
       }, timeout: const Duration(seconds: 5));
@@ -246,7 +220,6 @@ class TaskService {
     }
   }
 
-  // Mark task as complete
   Future<void> completeTask(String taskId) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -257,14 +230,12 @@ class TaskService {
     });
   }
 
-  // Delete task
   Future<void> deleteTask(String taskId) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
     await _tasksCollection.doc(taskId).delete();
   }
 
-  // Update alarm count
   Future<void> updateAlarmCount(String taskId, int alarmCount) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -274,7 +245,6 @@ class TaskService {
     });
   }
 
-  // Get tasks due today
   Stream<QuerySnapshot<Map<String, dynamic>>> getTasksDueToday() {
     if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -290,7 +260,6 @@ class TaskService {
         .snapshots();
   }
 
-  // Get tasks by category
   Stream<QuerySnapshot<Map<String, dynamic>>> getTasksByCategory(
       String category) {
     if (currentUserId == null) throw Exception('User not authenticated');

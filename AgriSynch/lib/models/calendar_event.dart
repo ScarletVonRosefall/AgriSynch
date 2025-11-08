@@ -33,7 +33,6 @@ class CalendarEvent {
     this.agricultural,
   });
 
-  // Convert Firestore document to CalendarEvent object
   factory CalendarEvent.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return CalendarEvent(
@@ -54,7 +53,6 @@ class CalendarEvent {
     );
   }
 
-  // Convert CalendarEvent object to JSON for Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
@@ -74,7 +72,6 @@ class CalendarEvent {
     };
   }
 
-  // Create a copy of this event with some fields updated
   CalendarEvent copyWith({
     String? title,
     String? type,

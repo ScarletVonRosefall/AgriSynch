@@ -13,7 +13,6 @@ class ProductService {
   CollectionReference<Map<String, dynamic>> get _productsCollection =>
       _firestore.collection('products');
 
-  /// Get all available products (for buyers)
   Stream<List<Product>> getAllProducts() {
     return _productsCollection
         .where('isAvailable', isEqualTo: true)
@@ -23,13 +22,11 @@ class ProductService {
               .map((doc) => Product.fromFirestore(doc))
               .where((product) => product.stock > 0)
               .toList();
-          // Sort by date in memory
           products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return products;
         });
   }
 
-  /// Get products by category
   Stream<List<Product>> getProductsByCategory(String category) {
     return _productsCollection
         .where('category', isEqualTo: category)
@@ -39,13 +36,11 @@ class ProductService {
               .map((doc) => Product.fromFirestore(doc))
               .where((product) => product.isAvailable && product.stock > 0)
               .toList();
-          // Sort by date in memory
           products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return products;
         });
   }
 
-  /// Get products by farmer ID (for farmer's own product management)
   Stream<List<Product>> getFarmerProducts(String farmerId) {
     return _productsCollection
         .where('farmerId', isEqualTo: farmerId)
@@ -54,22 +49,18 @@ class ProductService {
           var products = snapshot.docs
               .map((doc) => Product.fromFirestore(doc))
               .toList();
-          // Sort by date in memory
           products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return products;
         });
   }
 
-  /// Get current farmer's products
   Stream<List<Product>> getMyProducts() {
     if (currentUserId == null) throw Exception('User not authenticated');
     return getFarmerProducts(currentUserId!);
   }
 
-  /// Search products by name or description
+  // For production apps, consider using dedicated search solutions like Algolia
   Stream<List<Product>> searchProducts(String query) {
-    // Note: Firestore doesn't support full-text search natively
-    // This is a basic implementation - for production, consider Algolia or ElasticSearch
     final queryLower = query.toLowerCase();
     
     return _productsCollection
@@ -84,7 +75,6 @@ class ProductService {
             .toList());
   }
 
-  /// Add a new product
   Future<String> addProduct(Product product) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -93,18 +83,15 @@ class ProductService {
     return docRef.id;
   }
 
-  /// Update an existing product
   Future<void> updateProduct(String productId, Map<String, dynamic> updates) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
-    // Add updatedAt timestamp
     updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
 
     await _productsCollection.doc(productId).update(updates);
     print('✅ Product updated: $productId');
   }
 
-  /// Delete a product
   Future<void> deleteProduct(String productId) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -112,7 +99,6 @@ class ProductService {
     print('✅ Product deleted: $productId');
   }
 
-  /// Update product stock
   Future<void> updateStock(String productId, int newStock) async {
     await updateProduct(productId, {
       'stock': newStock,
@@ -120,7 +106,6 @@ class ProductService {
     });
   }
 
-  /// Decrease stock when order is placed
   Future<void> decreaseStock(String productId, int quantity) async {
     final docRef = _productsCollection.doc(productId);
     
@@ -146,7 +131,6 @@ class ProductService {
     });
   }
 
-  /// Increase stock (for cancellations or returns)
   Future<void> increaseStock(String productId, int quantity) async {
     final docRef = _productsCollection.doc(productId);
     
@@ -168,28 +152,22 @@ class ProductService {
     });
   }
 
-  /// Get a single product by ID
   Future<Product> getProduct(String productId) async {
     final doc = await _productsCollection.doc(productId).get();
     if (!doc.exists) throw Exception('Product not found');
     return Product.fromFirestore(doc);
   }
 
-  /// Toggle product availability
   Future<void> toggleAvailability(String productId, bool isAvailable) async {
     await updateProduct(productId, {'isAvailable': isAvailable});
   }
 
-  // PAGINATION METHODS
-
-  /// Get paginated products (initial load)
   Future<Map<String, dynamic>> getProductsPaginated({
     int limit = 20,
     String? category,
   }) async {
     try {
-      // Build query - ONLY filter by isAvailable to avoid composite index requirement
-      // We'll sort and filter in-memory
+      // Only filter by isAvailable to avoid composite index requirement - sort and filter in memory
       Query<Map<String, dynamic>> query = _productsCollection
           .where('isAvailable', isEqualTo: true)
           .limit(100); // Get more documents since we'll filter/sort in-memory
@@ -214,22 +192,18 @@ class ProductService {
           .where((product) => product.stock > 0)
           .toList();
 
-      // Filter by category in-memory if needed
       if (category != null && category != 'All') {
         products = products.where((product) => 
           product.category.toLowerCase() == category.toLowerCase()
         ).toList();
       }
 
-      // Sort by date in-memory (newest first)
       products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      // Take only the limit we need after filtering and sorting
       final limitedProducts = products.take(limit).toList();
 
       return {
         'products': limitedProducts,
-        'lastDocument': null, // Disable pagination for now since we're loading all
+        'lastDocument': null,
         'hasMore': false,
       };
     } catch (e) {
@@ -238,14 +212,11 @@ class ProductService {
     }
   }
 
-  /// Get next page of products
   Future<Map<String, dynamic>> getMoreProducts({
     required DocumentSnapshot lastDocument,
     int limit = 20,
     String? category,
   }) async {
-    // Pagination disabled for now - return empty result
-    // Since we load all products in getProductsPaginated
     return {
       'products': <Product>[],
       'lastDocument': null,

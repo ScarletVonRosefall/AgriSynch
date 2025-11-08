@@ -37,17 +37,14 @@ class Product {
     this.reviewCount,
   });
 
-  // Convert Firestore document to Product
   factory Product.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     
-    // Safely parse images field - handle incorrect types in database
     List<String> imagesList = [];
     if (data['images'] != null) {
       if (data['images'] is List) {
         imagesList = List<String>.from(data['images']);
       } else {
-        // If images is not a list (e.g., boolean), default to empty list
         print('Warning: Product ${doc.id} has invalid images field type: ${data['images'].runtimeType}');
       }
     }
@@ -72,7 +69,6 @@ class Product {
     );
   }
 
-  // Convert Product to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
       'name': name,
@@ -93,7 +89,6 @@ class Product {
     };
   }
 
-  // Create a copy with updated fields
   Product copyWith({
     String? id,
     String? name,
