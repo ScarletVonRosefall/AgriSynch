@@ -459,7 +459,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                               ),
                             ),
                             Text(
-                              'Total: ₱${getTotalPrice().toStringAsFixed(2)}',
+                              'Total: P${getTotalPrice().toStringAsFixed(2)}',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontSize: 20,
@@ -550,7 +550,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '₱${item['price'].toStringAsFixed(2)} ${item['unit']}',
+                                        'P${item['price'].toStringAsFixed(2)} ${item['unit']}',
                                         style: TextStyle(
                                           fontFamily: 'Poppins',
                                           color: const Color(0xFF4CAF50),
