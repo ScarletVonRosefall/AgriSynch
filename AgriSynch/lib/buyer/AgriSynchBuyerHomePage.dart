@@ -1138,7 +1138,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   Widget _buildRecentOrderCard(AppOrder order) {
     final isDarkMode = _themeNotifier.isDarkMode;
     Color statusColor = _getOrderStatusColor(order.status);
-    bool isDelivering = order.status.toLowerCase() == 'delivering';
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1146,22 +1145,13 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
       color: ThemeHelper.getCardColor(isDarkMode),
       child: InkWell(
         onTap: () {
-          // Navigate to delivery tracking if order is in delivery, otherwise go to orders page
-          if (isDelivering) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DeliveryTrackingPage()),
-            ).then((_) {
-              loadBuyerData();
-            });
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyOrdersPage()),
-            ).then((_) {
-              loadBuyerData();
-            });
-          }
+          // Navigate to orders page
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MyOrdersPage()),
+          ).then((_) {
+            loadBuyerData();
+          });
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -1217,42 +1207,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
               ),
               const SizedBox(height: 8),
               
-              // Delivery status indicator
-              if (isDelivering) ...[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.teal.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.local_shipping, size: 16, color: Colors.teal),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Out for delivery',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.teal,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        'Track →',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              
               // Order progress tracker for all orders
               _buildOrderProgressTracker(order.status),
               const SizedBox(height: 8),
@@ -1270,9 +1224,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                   ),
                   const Spacer(),
                   Icon(
-                    isDelivering ? Icons.navigation : Icons.arrow_forward_ios, 
+                    Icons.arrow_forward_ios, 
                     size: 14, 
-                    color: isDelivering ? Colors.teal : Colors.grey[400],
+                    color: Colors.grey[400],
                   ),
                 ],
               ),
