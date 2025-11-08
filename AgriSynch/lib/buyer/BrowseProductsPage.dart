@@ -656,7 +656,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                   ),
                                   image: product.images.isNotEmpty
                                       ? DecorationImage(
-                                          image: CachedNetworkImageProvider(product.images.first),
+                                          image: _getImageProvider(product.images.first),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
@@ -1074,5 +1074,16 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         ),
       ),
     );
+  }
+
+  // Helper method to get ImageProvider for both base64 and URL images
+  ImageProvider _getImageProvider(String imageData) {
+    if (imageData.startsWith('data:image')) {
+      // Base64 image
+      return MemoryImage(base64Decode(imageData.split(',')[1]));
+    } else {
+      // URL image - use CachedNetworkImageProvider
+      return CachedNetworkImageProvider(imageData);
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/image_upload_service.dart';
@@ -490,93 +491,178 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeHelper.getCardColor(isDarkMode),
-        title: Text('Add Product Photos', style: TextStyle(
+        title: Text('Manage Product Photos', style: TextStyle(
           color: ThemeHelper.getTextColor(isDarkMode),
         )),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Add photos for "${product.name}"', style: TextStyle(
-              color: ThemeHelper.getTextColor(isDarkMode),
-            )),
-            const SizedBox(height: 16),
-            if (product.images.isNotEmpty) ...[
-              Text('Current photos:', style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: ThemeHelper.getTextColor(isDarkMode),
-              )),
-              const SizedBox(height: 8),
-              Container(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: product.images.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Stack(
-                        children: [
-                          CachedNetworkImage(
-                            imageUrl: product.images[index],
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Photos for "${product.name}"', style: TextStyle(
+                  color: ThemeHelper.getTextColor(isDarkMode),
+                )),
+                const SizedBox(height: 16),
+                if (product.images.isNotEmpty) ...[
+                Text('Current photos (tap X to delete):', style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: ThemeHelper.getTextColor(isDarkMode),
+                )),
+                const SizedBox(height: 8),
+                Container(
+                  height: 80,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: product.images.length,
+                    itemBuilder: (context, index) {
+                      final imageData = product.images[index];
+                      final isBase64 = imageData.startsWith('data:image');
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300, width: 2),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: isBase64
+                                    ? Image.memory(
+                                        base64Decode(imageData.split(',')[1]),
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          width: 80,
+                                          height: 80,
+                                          color: Colors.grey[200],
+                                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                                        ),
+                                      )
+                                    : CachedNetworkImage(
+                                        imageUrl: imageData,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Container(
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: Colors.grey[200],
+                                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                                        ),
+                                      ),
                               ),
                             ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                            Positioned(
+                              top: -5,
+                              right: -5,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                  onPressed: () async {
+                                    await _deleteProductImage(product, index);
+                                    Navigator.pop(context);
+                                    // Reopen dialog to show updated list
+                                    _showAddPhotosDialog(product);
+                                  },
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete All Photos'),
+                        content: const Text('Are you sure you want to delete all photos for this product?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
                           ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                              onPressed: () async {
-                                await _deleteProductImage(product, index);
-                                Navigator.pop(context);
-                              },
-                            ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Delete All', style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
                     );
+                    
+                    if (confirmed == true) {
+                      await _deleteAllProductImages(product);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _showAddPhotosDialog(product);
+                      }
+                    }
                   },
+                  icon: const Icon(Icons.delete_sweep),
+                  label: const Text('Delete All Photos'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    minimumSize: const Size(double.infinity, 45),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final nav = Navigator.of(context);
+                  await _pickAndUploadImage(product);
+                  if (mounted && nav.canPop()) {
+                    nav.pop();
+                  }
+                },
+                icon: const Icon(Icons.camera_alt),
+                label: Text(product.images.isEmpty ? 'Take Photo' : 'Add Photo (Camera)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  minimumSize: const Size(double.infinity, 45),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final nav = Navigator.of(context);
+                  await _pickAndUploadFromGallery(product);
+                  if (mounted && nav.canPop()) {
+                    nav.pop();
+                  }
+                },
+                icon: const Icon(Icons.photo_library),
+                label: Text(product.images.isEmpty ? 'Choose from Gallery' : 'Add Photo (Gallery)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  minimumSize: const Size(double.infinity, 45),
+                ),
+              ),
             ],
-            ElevatedButton.icon(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _pickAndUploadImage(product);
-              },
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Take Photo'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                minimumSize: const Size(double.infinity, 45),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _pickAndUploadFromGallery(product);
-              },
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Choose from Gallery'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                minimumSize: const Size(double.infinity, 45),
-              ),
-            ),
-          ],
+          ),
+        ),
         ),
         actions: [
           TextButton(
@@ -590,7 +676,14 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
 
   Future<void> _pickAndUploadImage(Product product) async {
     try {
-      final XFile? image = await _imageUploadService.pickImageFromCamera();
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 100,
+      );
+      
       if (image == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -605,7 +698,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
 
       if (!mounted) return;
       
-      // Show uploading dialog
+      // Show processing dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -618,7 +711,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Uploading photo...'),
+                  Text('Processing photo...'),
                 ],
               ),
             ),
@@ -627,42 +720,32 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       );
 
       try {
-        // Upload to Firebase Storage
-        final String? downloadUrl = await _imageUploadService.uploadProductImage(image, product.id);
+        // Convert to base64
+        final bytes = await image.readAsBytes();
+        final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
         
         if (!mounted) return;
-        Navigator.pop(context); // Close uploading dialog
+        Navigator.pop(context); // Close processing dialog
 
-        if (downloadUrl != null) {
-          // Update product with new image URL
-          final updatedImages = [...product.images, downloadUrl];
-          await _productService.updateProduct(product.id, {'images': updatedImages});
+        // Update product with new base64 image
+        final updatedImages = [...product.images, base64String];
+        await _productService.updateProduct(product.id, {'images': updatedImages});
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Photo uploaded successfully!'),
-                backgroundColor: Color(0xFF4CAF50),
-              ),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to upload photo - please try again'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Photo added successfully!'),
+              backgroundColor: Color(0xFF4CAF50),
+            ),
+          );
         }
       } catch (uploadError) {
         if (!mounted) return;
-        Navigator.pop(context); // Close uploading dialog
+        Navigator.pop(context); // Close processing dialog
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Upload error: ${uploadError.toString()}'),
+            content: Text('Error processing image: ${uploadError.toString()}'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -683,12 +766,19 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
 
   Future<void> _pickAndUploadFromGallery(Product product) async {
     try {
-      final XFile? image = await _imageUploadService.pickImageFromGallery();
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 100,
+      );
+      
       if (image == null) return;
 
       if (!mounted) return;
       
-      // Show uploading dialog
+      // Show processing dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -701,7 +791,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Uploading photo...'),
+                  Text('Processing photo...'),
                 ],
               ),
             ),
@@ -709,34 +799,26 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ),
       );
 
-      // Upload to Firebase Storage
-      final String? downloadUrl = await _imageUploadService.uploadProductImage(image, product.id);
+      // Convert to base64
+      final bytes = await image.readAsBytes();
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       
       if (!mounted) return;
-      Navigator.pop(context); // Close uploading dialog
+      Navigator.pop(context); // Close processing dialog
 
-      if (downloadUrl != null) {
-        // Update product with new image URL
-        final updatedImages = [...product.images, downloadUrl];
-        await _productService.updateProduct(product.id, {'images': updatedImages});
+      // Update product with new base64 image
+      final updatedImages = [...product.images, base64String];
+      await _productService.updateProduct(product.id, {'images': updatedImages});
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Photo uploaded successfully!'),
-            backgroundColor: Color(0xFF4CAF50),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to upload photo'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo added successfully!'),
+          backgroundColor: Color(0xFF4CAF50),
+        ),
+      );
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Close uploading dialog if still open
+        Navigator.pop(context); // Close processing dialog if still open
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
@@ -746,12 +828,8 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
 
   Future<void> _deleteProductImage(Product product, int index) async {
     try {
-      final imageUrl = product.images[index];
-      
-      // Delete from Storage
-      await _imageUploadService.deleteProductImage(imageUrl);
-      
-      // Update product
+      // No need to delete from Storage for base64 images
+      // Just remove from the list
       final updatedImages = List<String>.from(product.images)..removeAt(index);
       await _productService.updateProduct(product.id, {'images': updatedImages});
 
@@ -767,6 +845,217 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error deleting photo: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAllProductImages(Product product) async {
+    try {
+      // Clear all images
+      await _productService.updateProduct(product.id, {'images': []});
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All photos deleted'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting photos: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showReplacePhotoDialog(Product product) async {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeHelper.getCardColor(isDarkMode),
+        title: Text('Replace Photo', style: TextStyle(
+          color: ThemeHelper.getTextColor(isDarkMode),
+        )),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Choose a new photo. Old photos will be replaced.',
+              style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _replaceWithCamera(product);
+              },
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Take New Photo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4CAF50),
+                minimumSize: const Size(double.infinity, 45),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _replaceWithGallery(product);
+              },
+              icon: const Icon(Icons.photo_library),
+              label: const Text('Choose from Gallery'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4CAF50),
+                minimumSize: const Size(double.infinity, 45),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _replaceWithCamera(Product product) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 100,
+      );
+      
+      if (image == null) return;
+
+      if (!mounted) return;
+      
+      // Show processing dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Replacing photo...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Convert to base64
+      final bytes = await image.readAsBytes();
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      
+      if (!mounted) return;
+      
+      // Replace all images with just this new one
+      await _productService.updateProduct(product.id, {'images': [base64String]});
+      
+      Navigator.pop(context); // Close processing dialog
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Photo replaced successfully!'),
+            backgroundColor: Color(0xFF4CAF50),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close processing dialog if open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _replaceWithGallery(Product product) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 100,
+      );
+      
+      if (image == null) return;
+
+      if (!mounted) return;
+      
+      // Show processing dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Replacing photo...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Convert to base64
+      final bytes = await image.readAsBytes();
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      
+      if (!mounted) return;
+      
+      // Replace all images with just this new one
+      await _productService.updateProduct(product.id, {'images': [base64String]});
+      
+      Navigator.pop(context); // Close processing dialog
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Photo replaced successfully!'),
+            backgroundColor: Color(0xFF4CAF50),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close processing dialog if open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -990,7 +1279,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                             borderRadius: BorderRadius.circular(12),
                             image: product.images.isNotEmpty
                                 ? DecorationImage(
-                                    image: NetworkImage(product.images.first),
+                                    image: _getImageProvider(product.images.first),
                                     fit: BoxFit.cover,
                                   )
                                 : null,
@@ -1097,13 +1386,22 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                         trailing: PopupMenuButton(
                           icon: const Icon(Icons.more_vert),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'photos',
                               child: Row(
                                 children: [
-                                  Icon(Icons.add_photo_alternate, size: 20, color: Color(0xFF4CAF50)),
+                                  Icon(
+                                    product.images.isEmpty ? Icons.add_photo_alternate : Icons.refresh,
+                                    size: 20,
+                                    color: product.images.isEmpty ? Color(0xFF4CAF50) : Colors.orange,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Add Photos', style: TextStyle(color: Color(0xFF4CAF50))),
+                                  Text(
+                                    product.images.isEmpty ? 'Add Photos' : 'Replace Photo',
+                                    style: TextStyle(
+                                      color: product.images.isEmpty ? Color(0xFF4CAF50) : Colors.orange,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1128,9 +1426,15 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                               ),
                             ),
                           ],
-                          onSelected: (value) {
+                          onSelected: (value) async {
                             if (value == 'photos') {
-                              _showAddPhotosDialog(product);
+                              if (product.images.isNotEmpty) {
+                                // Show option to choose camera or gallery for replacement
+                                await _showReplacePhotoDialog(product);
+                              } else {
+                                // Show add photos dialog
+                                _showAddPhotosDialog(product);
+                              }
                             } else if (value == 'edit') {
                               _showEditProductDialog(product);
                             } else if (value == 'delete') {
@@ -1192,6 +1496,17 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         return Icons.water_drop;
       default:
         return Icons.shopping_basket;
+    }
+  }
+
+  // Helper method to get ImageProvider for both base64 and URL images
+  ImageProvider _getImageProvider(String imageData) {
+    if (imageData.startsWith('data:image')) {
+      // Base64 image
+      return MemoryImage(base64Decode(imageData.split(',')[1]));
+    } else {
+      // URL image
+      return NetworkImage(imageData);
     }
   }
 }
