@@ -112,7 +112,8 @@ class AppOrder {
           : null,
       'deliveryAddress': deliveryAddress,
       'notes': notes,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': Timestamp.now(), // Add createdAt timestamp
+      // Don't include updatedAt on creation - only on updates
     };
   }
 

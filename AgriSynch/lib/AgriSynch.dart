@@ -3,8 +3,6 @@
 // And sorry for our poor coding practices and any confusion it may have caused.
 // You're on your own now, ADIOS!
 
-// ps. don't run this on debug mode or you'll be met with the white screen of death.
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';

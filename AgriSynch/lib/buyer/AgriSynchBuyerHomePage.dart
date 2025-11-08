@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/AgriWeatherPage.dart';
 import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
+import '../shared/currency_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import '../auth/auth_service.dart';
@@ -36,6 +37,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final _themeNotifier = ThemeNotifier();
   
   String userName = '';
+  String _currencySymbol = 'P'; // Will be loaded from settings
 
   // Data for buyer dashboard
   List<Map<String, dynamic>> orders = [];
@@ -47,6 +49,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   void initState() {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+    _loadCurrencySymbol();
     loadUserName();
     loadBuyerData();
     loadUnreadNotifications();
@@ -56,6 +59,15 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyHelper.getCurrentCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
   }
 
   @override
@@ -1051,7 +1063,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '₱${product.price.toStringAsFixed(2)} ${product.unit}',
+                        '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
                         style: const TextStyle(
                           color: Color(0xFF4CAF50),
                           fontWeight: FontWeight.bold,

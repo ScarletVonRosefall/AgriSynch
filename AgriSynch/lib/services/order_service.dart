@@ -15,24 +15,79 @@ class OrderService {
 
   // Create a new order (buyer creates order)
   Future<void> createOrder(AppOrder order) async {
-    // Use a batch to ensure atomic updates
-    final batch = _firestore.batch();
-    
-    // Add the order
-    final orderRef = _firestore.collection('orders').doc(order.id);
-    batch.set(orderRef, order.toFirestore());
-    
-    // Decrement stock for each product in the order
-    for (final item in order.items) {
-      final productRef = _firestore.collection('products').doc(item.productId);
-      batch.update(productRef, {
-        'stock': FieldValue.increment(-item.quantity),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+    try {
+      print('📝 Creating order: ${order.id}');
+      
+      // First, create the order document
+      final orderRef = _firestore.collection('orders').doc(order.id);
+      await orderRef.set(order.toFirestore());
+      print('✅ Order document created');
+      
+      // Then, update stock for each product individually using transactions
+      // This allows security rules to properly validate the stock values
+      for (final item in order.items) {
+        print('📦 Decrementing stock for product: ${item.productId}, quantity: ${item.quantity}');
+        await _decrementProductStock(item.productId, item.quantity);
+        print('✅ Stock decremented for: ${item.productId}');
+      }
+      
+      print('✅ All stocks updated successfully');
+      
+      // Send notifications after successful order creation
+      await _sendOrderNotifications(order);
+      print('✅ Notifications sent');
+    } catch (e) {
+      print('❌ ERROR in createOrder: $e');
+      print('❌ Error type: ${e.runtimeType}');
+      rethrow;
     }
+  }
+  
+  // Helper method to decrement product stock using transaction
+  Future<void> _decrementProductStock(String productId, int quantity) async {
+    final productRef = _firestore.collection('products').doc(productId);
     
-    // Commit all changes atomically
-    await batch.commit();
+    try {
+      return _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(productRef);
+        
+        if (!snapshot.exists) {
+          throw Exception('Product not found');
+        }
+        
+        final data = snapshot.data()!;
+        final currentStock = data['stock'] as int;
+        final newStock = currentStock - quantity;
+        
+        print('  📊 Current stock: $currentStock, Order quantity: $quantity, New stock: $newStock');
+        print('  📊 Current data keys: ${data.keys.toList()}');
+        
+        if (newStock < 0) {
+          throw Exception('Insufficient stock for product $productId');
+        }
+        
+        // Create a complete copy of the document with updated stock
+        final updateData = Map<String, dynamic>.from(data);
+        updateData['stock'] = newStock;
+        updateData['isAvailable'] = newStock > 0;
+        updateData['updatedAt'] = Timestamp.now();
+        
+        print('  📝 Updating with keys: ${updateData.keys.toList()}');
+        
+        // Set the entire document to preserve all fields
+        transaction.set(productRef, updateData, SetOptions(merge: true));
+      });
+    } catch (e) {
+      print('  ❌ ERROR in _decrementProductStock for $productId: $e');
+      if (e.toString().contains('permission-denied')) {
+        print('  ⚠️  PERMISSION DENIED - Check Firestore security rules!');
+      }
+      rethrow;
+    }
+  }
+  
+  // Original createOrder continues here for notifications
+  Future<void> _sendOrderNotifications(AppOrder order) async {
     
     // Notify farmer about new order
     try {

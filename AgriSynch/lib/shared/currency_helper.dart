@@ -24,6 +24,14 @@ class CurrencyHelper {
     {'code': 'INR', 'name': '🇮🇳 Indian Rupee', 'symbol': '₹'},
     {'code': 'CHF', 'name': '🇨🇭 Swiss Franc', 'symbol': 'CHF'},
   ];
+  
+  // Fallback symbols for devices that don't render special currency symbols
+  static const Map<String, String> fallbackSymbols = {
+    'PHP': 'P',  // Fallback for Philippine Peso if ₱ doesn't render
+    'KRW': 'W',  // Fallback for Korean Won if ₩ doesn't render
+    'THB': 'B',  // Fallback for Thai Baht if ฿ doesn't render
+    'INR': 'Rs', // Fallback for Indian Rupee if ₹ doesn't render
+  };
 
   // Default currency
   static const String defaultCurrency = 'PHP';
@@ -48,6 +56,11 @@ class CurrencyHelper {
 
   /// Get currency symbol for a specific currency code
   static String getCurrencySymbol(String currencyCode) {
+    // Use fallback symbol if available (for better device compatibility)
+    if (fallbackSymbols.containsKey(currencyCode)) {
+      return fallbackSymbols[currencyCode]!;
+    }
+    
     final currency = supportedCurrencies.firstWhere(
       (curr) => curr['code'] == currencyCode,
       orElse: () => supportedCurrencies.first,

@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../services/order_service.dart';
-import '../services/product_service.dart';
 import '../models/order.dart';
 import '../shared/theme_helper.dart';
 
@@ -17,7 +16,6 @@ class ShoppingCartPage extends StatefulWidget {
 
 class _ShoppingCartPageState extends State<ShoppingCartPage> {
   final OrderService _orderService = OrderService();
-  final ProductService _productService = ProductService();
   final _themeNotifier = ThemeNotifier();
   List<Map<String, dynamic>> cart = [];
   List<Map<String, dynamic>> orders = [];
@@ -247,17 +245,8 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
         // Save to Firestore
         await _orderService.createOrder(order);
-
-        // Decrease product stock for each item
-        for (var item in farmerItems) {
-          String productId = item['id'];
-          int quantity = item['quantity'];
-          try {
-            await _productService.decreaseStock(productId, quantity);
-          } catch (e) {
-            print('Error updating stock for $productId: $e');
-          }
-        }
+        
+        // Note: Stock is already decremented in createOrder() method
       }
 
       // Clear cart

@@ -8,6 +8,7 @@ import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/error_handler.dart';
 import '../shared/theme_helper.dart';
+import '../shared/currency_helper.dart';
 import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../shared/chat_screen.dart';
@@ -30,6 +31,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   late String selectedCategory;
   List<String> favoriteProducts = [];
   List<Map<String, dynamic>> cart = [];
+  String _currencySymbol = 'P'; // Will be loaded from settings
   
   // Pagination
   final int _pageSize = 20;
@@ -68,6 +70,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     super.initState();
     selectedCategory = widget.initialCategory ?? 'All';
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+    _loadCurrencySymbol();
     loadFavorites();
     loadCart();
     _loadInitialProducts();
@@ -76,6 +79,15 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
 
   void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyHelper.getCurrentCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
   }
 
   @override
@@ -723,7 +735,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    '₱${product.price.toStringAsFixed(2)} ${product.unit}',
+                                    '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
                                     style: const TextStyle(
                                       color: Color(0xFF4CAF50),
                                       fontWeight: FontWeight.bold,
@@ -970,7 +982,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             labelText: 'Min Price',
                             labelStyle: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode)),
                             border: const OutlineInputBorder(),
-                            prefixText: '₱',
+                            prefixText: _currencySymbol,
                             prefixStyle: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                           ),
                           keyboardType: TextInputType.number,
@@ -989,7 +1001,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             labelText: 'Max Price',
                             labelStyle: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode)),
                             border: const OutlineInputBorder(),
-                            prefixText: '₱',
+                            prefixText: _currencySymbol,
                             prefixStyle: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                           ),
                           keyboardType: TextInputType.number,
@@ -1004,7 +1016,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '₱${minPrice.toStringAsFixed(0)} - ₱${maxPrice.toStringAsFixed(0)}',
+                    '$_currencySymbol${minPrice.toStringAsFixed(0)} - $_currencySymbol${maxPrice.toStringAsFixed(0)}',
                     style: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode), fontSize: 12),
                   ),
                 ],
