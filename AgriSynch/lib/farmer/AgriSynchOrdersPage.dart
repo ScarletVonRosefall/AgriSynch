@@ -787,24 +787,27 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
 
           // --- Scrollable Content ---
           Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildFilterAndSortSection(),
-                    const SizedBox(height: 12),
-                    _buildOrdersHeader(),
-                    const SizedBox(height: 8),
-                    // Orders List - Using pagination for performance
-                    SizedBox(
-                      height: 400, // Fixed height for orders list
-                      child: _buildPaginatedOrderList(),
-                    ),
-                    const SizedBox(height: 20), // Bottom padding
-                  ],
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    children: [
+                      _buildFilterAndSortSection(),
+                      const SizedBox(height: 12),
+                      _buildOrdersHeader(),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
-              ),
+                // Orders List - Now takes remaining space
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildPaginatedOrderList(),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
