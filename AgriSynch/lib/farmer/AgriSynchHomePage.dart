@@ -622,14 +622,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildProfileAvatar(),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildGreetingText(),
+                          const SizedBox(height: 8),
                           Text(
                             "Let's Get Tasks Done!",
                             style: ThemeHelper.getSubHeaderTextStyle(
@@ -640,7 +640,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
                     Stack(
                       children: [
                         Container(
@@ -697,12 +696,28 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
-                  style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
+                const SizedBox(height: 16),
+                // Search bar
+                Container(
+                  height: 42,
+                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                          ),
+                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -121,6 +121,13 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                                 isDark: isDarkMode,
                               ),
                             ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Connect with farmers and buyers',
+                              style: ThemeHelper.getSubHeaderTextStyle(
+                                isDark: isDarkMode,
+                              ),
+                            ),
                           ],
                         ),
                       ),

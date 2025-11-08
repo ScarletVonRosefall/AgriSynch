@@ -327,14 +327,14 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildProfileAvatar(),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildGreetingText(),
+                        const SizedBox(height: 8),
                         Text(
                           "Welcome to AgriSynch Marketplace!",
                           style: ThemeHelper.getSubHeaderTextStyle(
@@ -346,7 +346,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
                   // Messages Button
                   Stack(
                       children: [

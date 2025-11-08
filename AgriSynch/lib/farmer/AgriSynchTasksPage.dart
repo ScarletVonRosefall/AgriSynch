@@ -771,17 +771,24 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Tasks',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: 24,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tasks',
+                              style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Manage and track your farm tasks',
+                              style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
                       Stack(
                         children: [
                           Container(
@@ -837,30 +844,15 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage and track your farm tasks',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
-                    ),
-                  ),
                   const SizedBox(height: 16),
                   // Search bar inside header
                   Container(
                     height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                    ),
+                    decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Row(
                       children: [
-                        Icon(Icons.search, color: Colors.white.withOpacity(0.8)),
+                        Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
@@ -868,15 +860,9 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                             decoration: InputDecoration(
                               hintText: 'Search tasks...',
                               border: InputBorder.none,
-                              hintStyle: TextStyle(
-                                fontFamily: 'Poppins',
-                                color: Colors.white.withOpacity(0.6),
-                              ),
+                              hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
                             ),
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              color: Colors.white,
-                            ),
+                            style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                           ),
                         ),
                       ],

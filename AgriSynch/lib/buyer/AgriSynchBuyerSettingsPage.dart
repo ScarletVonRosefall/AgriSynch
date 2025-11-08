@@ -188,40 +188,59 @@ class _AgriSynchBuyerSettingsPageState
                 bottomRight: Radius.circular(28),
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back Button
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Settings',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: 24,
-                        ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Back Button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 24,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Manage account & preferences',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Settings',
+                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Manage account & preferences',
+                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 48), // Placeholder to balance the back button
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  height: 42,
+                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search settings...',
+                            border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                          ),
+                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
                         ),
                       ),
                     ],
@@ -231,14 +250,11 @@ class _AgriSynchBuyerSettingsPageState
             ),
           ),
 
-          const SizedBox(height: 16),
-
           // Main Content
           Expanded(
-            child: Padding(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              child: ListView(
-                children: [
+              children: [
                   // User Profile Section
                   Container(
                     margin: const EdgeInsets.only(bottom: 20),
@@ -579,7 +595,6 @@ class _AgriSynchBuyerSettingsPageState
 
                   const SizedBox(height: 24),
                 ],
-              ),
             ),
           ),
         ],

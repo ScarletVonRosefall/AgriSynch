@@ -318,20 +318,48 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
             padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             width: double.infinity,
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Settings',
-                        style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Settings',
+                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Manage account & preferences',
+                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Manage account & preferences',
-                        style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  height: 42,
+                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search settings...',
+                            border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                          ),
+                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                        ),
                       ),
                     ],
                   ),
@@ -340,14 +368,11 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
             ),
           ),
 
-          const SizedBox(height: 16),
-
           // --- Main Content ---
           Expanded(
-            child: Padding(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              child: ListView(
-                children: [
+              children: [
                   // User Profile Section
                   Container(
                     margin: const EdgeInsets.only(bottom: 20),
@@ -866,7 +891,6 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                     ),
                   ),
                 ],
-              ),
             ),
           ),
         ],
