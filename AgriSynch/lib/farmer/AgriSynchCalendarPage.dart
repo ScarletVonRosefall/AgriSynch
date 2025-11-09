@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
@@ -351,6 +352,9 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                         ),
                       ),
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
                     ),
                   ],
                   // Weather dependency for weather-sensitive activities
@@ -580,6 +584,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                         ),
                       ),
                       headerStyle: HeaderStyle(
+                        formatButtonVisible: false,
                         titleTextStyle: TextStyle(
                           color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
                           fontSize: 17,
@@ -628,11 +633,19 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                             onDismissed: (_) async {
                               try {
                                 await _calendarService.deleteEvent(event.id);
+                                if (!mounted) return;
+                                
+                                // Refresh the events for the selected day
+                                setState(() {
+                                  _eventsStream = _calendarService.getEventsForDate(_selectedDay ?? _focusedDay);
+                                });
+                                
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('${event.type == 'task' ? 'Task' : 'Event'} deleted')),
                                 );
                               } catch (e) {
                                 print('Error deleting event: $e');
+                                if (!mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('Failed to delete ${event.type}: $e')),
                                 );
@@ -667,55 +680,63 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                                       color: getCategoryColor(event.category),
                                     ),
                                   ),
-                                  trailing: PopupMenuButton(
+                                  trailing: PopupMenuButton<String>(
                                     icon: const Icon(Icons.more_vert),
+                                    onSelected: (value) async {
+                                      if (value == 'delete') {
+                                        // Show confirmation dialog
+                                        if (!context.mounted) return;
+                                        
+                                        showDialog(
+                                          context: context,
+                                          builder: (dialogContext) => AlertDialog(
+                                            title: Text('Delete ${event.type == 'task' ? 'Task' : 'Event'}?'),
+                                            content: Text(event.type == 'task' 
+                                                ? 'This will delete the task from your task list.'
+                                                : 'This action cannot be undone.'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(dialogContext),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () async {
+                                                  Navigator.pop(dialogContext);
+                                                  try {
+                                                    await _calendarService.deleteEvent(event.id);
+                                                    if (!context.mounted) return;
+                                                    
+                                                    // Refresh the events for the selected day
+                                                    setState(() {
+                                                      _eventsStream = _calendarService.getEventsForDate(_selectedDay ?? _focusedDay);
+                                                    });
+                                                    
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(content: Text('${event.type == 'task' ? 'Task' : 'Event'} deleted successfully')),
+                                                    );
+                                                  } catch (e) {
+                                                    print('Error deleting: $e');
+                                                    if (!context.mounted) return;
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(content: Text('Failed to delete ${event.type}: $e')),
+                                                    );
+                                                  }
+                                                },
+                                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                    },
                                     itemBuilder: (context) => [
-                                      PopupMenuItem(
+                                      const PopupMenuItem<String>(
+                                        value: 'delete',
                                         child: ListTile(
-                                          leading: const Icon(Icons.delete, color: Colors.red),
-                                          title: const Text('Delete Event'),
+                                          leading: Icon(Icons.delete, color: Colors.red),
+                                          title: Text('Delete Event'),
                                           contentPadding: EdgeInsets.zero,
                                         ),
-                                        onTap: () async {
-                                          // Show confirmation dialog
-                                          await Future.delayed(const Duration(seconds: 0));
-                                          if (!context.mounted) return;
-                                          
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: Text('Delete ${event.type == 'task' ? 'Task' : 'Event'}?'),
-                                              content: Text(event.type == 'task' 
-                                                  ? 'This will delete the task from your task list.'
-                                                  : 'This action cannot be undone.'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: const Text('Cancel'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () async {
-                                                    Navigator.pop(context);
-                                                    try {
-                                                      await _calendarService.deleteEvent(event.id);
-                                                      if (!context.mounted) return;
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        SnackBar(content: Text('${event.type == 'task' ? 'Task' : 'Event'} deleted successfully')),
-                                                      );
-                                                    } catch (e) {
-                                                      print('Error deleting: $e');
-                                                      if (!context.mounted) return;
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        SnackBar(content: Text('Failed to delete ${event.type}: $e')),
-                                                      );
-                                                    }
-                                                  },
-                                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
                                       ),
                                     ],
                                   ),

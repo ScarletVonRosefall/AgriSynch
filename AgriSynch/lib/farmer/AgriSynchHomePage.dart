@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AgriSynchCalendarPage.dart';
@@ -1005,14 +1004,29 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         String displayName = '';
         if (snapshot.hasData) {
           final data = snapshot.data!;
-          displayName = data['name'] ?? data['nickname'] ?? '';
+          final fullName = data['name'] ?? data['nickname'] ?? '';
+          
+          // Extract surname and first name only (first two parts)
+          if (fullName.isNotEmpty) {
+            final nameParts = fullName.split(',').map((e) => e.trim()).toList();
+            if (nameParts.length >= 2) {
+              // Format: "Surname, First Name"
+              displayName = '${nameParts[0]}, ${nameParts[1].split(' ').first}';
+            } else {
+              // If no comma, just take first two words
+              final words = fullName.split(' ').where((w) => w.isNotEmpty).toList();
+              if (words.length >= 2) {
+                displayName = '${words[0]} ${words[1]}';
+              } else {
+                displayName = fullName;
+              }
+            }
+          }
         }
         
         return Text(
           "${_getGreeting()}${displayName.isNotEmpty ? ' $displayName' : ''}!",
-          style: ThemeHelper.getHeaderTextStyle(
-            isDark: isDarkMode,
-          ),
+          style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
         );

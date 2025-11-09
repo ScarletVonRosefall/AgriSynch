@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../AgriSynch.dart';
 import '../buyer/AgriSynchBuyerHomePage.dart';
+import '../shared/profile_page.dart';
+import 'auth_service.dart';
 import 'AgriSynchLogin.dart';
 import 'AgriSynchVerify.dart';
 
@@ -40,20 +42,42 @@ class AuthWrapper extends StatelessWidget {
             return const AgriSynchEmailVerificationPage();
           }
           
-          // If verified, check their role and show appropriate page
-          return FutureBuilder<String>(
-            future: _getUserRole(user.uid),
-            builder: (context, roleSnapshot) {
-              if (roleSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+          // Check if profile is complete
+          return FutureBuilder<bool>(
+            future: AuthService.isProfileComplete(),
+            builder: (context, profileSnapshot) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  backgroundColor: Color(0xFFF2FDE0),
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                    ),
+                  ),
+                );
               }
+              
+              // If profile is incomplete, force profile completion
+              if (profileSnapshot.data == false) {
+                return const ProfilePage(isRequired: true);
+              }
+              
+              // If profile is complete, check their role and show appropriate page
+              return FutureBuilder<String>(
+                future: _getUserRole(user.uid),
+                builder: (context, roleSnapshot) {
+                  if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-              // Navigate based on user role
-              if (roleSnapshot.data == 'Buyer') {
-                return const AgriSynchBuyerHomePage();
-              } else {
-                return const AgriSynchHome(); // Farmer's home
-              }
+                  // Navigate based on user role
+                  if (roleSnapshot.data == 'Buyer') {
+                    return const AgriSynchBuyerHomePage();
+                  } else {
+                    return const AgriSynchHome(); // Farmer's home
+                  }
+                },
+              );
             },
           );
         }

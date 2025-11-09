@@ -51,8 +51,17 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
     durationController = TextEditingController(
       text: (widget.task['estimatedDuration'] ?? 30.0).toString(),
     );
-    selectedDueDate = (widget.task['dueDate'] as Timestamp?)?.toDate() ??
-        DateTime.now().add(const Duration(minutes: 5));
+    
+    // Handle both Timestamp and DateTime types for dueDate
+    final dueDateValue = widget.task['dueDate'];
+    if (dueDateValue is Timestamp) {
+      selectedDueDate = dueDateValue.toDate();
+    } else if (dueDateValue is DateTime) {
+      selectedDueDate = dueDateValue;
+    } else {
+      selectedDueDate = DateTime.now().add(const Duration(minutes: 5));
+    }
+    
     selectedCategory = widget.task['category'] ?? 'Other';
     
     // Initialize priority with exact match from the available priorities
@@ -265,7 +274,6 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
           onPressed: isSaving ? null : () async {
             // Get the scaffold messenger before starting async work
             final scaffoldMessenger = ScaffoldMessenger.of(context);
-            final navigator = Navigator.of(context);
 
             // Validate input
             if (titleController.text.trim().isEmpty) {
@@ -323,19 +331,8 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
               // Check if the widget is still mounted
               if (!mounted) return;
 
-              // Clear the snackbar if there was an error message
-              scaffoldMessenger.hideCurrentSnackBar();
+              // The parent will handle closing the dialog and showing success message
               
-              // Show success message
-              scaffoldMessenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Task updated successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-
-              // Close the dialog
-              navigator.pop();
             } catch (e) {
               print('Error saving task: $e');
               

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +9,9 @@ import 'theme_helper.dart';
 import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final bool isRequired;
+  
+  const ProfilePage({super.key, this.isRequired = false});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -16,9 +19,12 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final _storage = const FlutterSecureStorage();
-  final _nameController = TextEditingController();
+  final _surnameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _middleNameController = TextEditingController();
   final _nicknameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _bioController = TextEditingController();
   final _locationController = TextEditingController();
 
@@ -40,9 +46,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _surnameController.dispose();
+    _firstNameController.dispose();
+    _middleNameController.dispose();
     _nicknameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _bioController.dispose();
     _locationController.dispose();
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
@@ -62,31 +71,48 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (userData != null && userData.exists) {
         final data = userData.data() as Map<String, dynamic>;
+        final fullName = data['name'] ?? '';
+        
+        // Parse the full name into parts
+        _parseFullName(fullName);
+        
         setState(() {
-          _nameController.text = data['name'] ?? '';
           _nicknameController.text = data['nickname'] ?? '';
           _emailController.text = userEmail; // Always use Firebase Auth email
+          _phoneController.text = data['phone'] ?? '';
           _bioController.text = data['bio'] ?? '';
           _locationController.text = data['location'] ?? '';
           _profileImageBase64 = data['profileImage'] ?? '';
           _isLoading = false;
+          // Auto-enable editing if profile is required
+          if (widget.isRequired) {
+            _isEditing = true;
+          }
         });
       } else {
         // Fallback to local storage for offline capability
         final name = await _storage.read(key: 'user_name') ?? '';
         final nickname = await _storage.read(key: 'user_nickname') ?? '';
+        final phone = await _storage.read(key: 'user_phone') ?? '';
         final bio = await _storage.read(key: 'user_bio') ?? '';
         final location = await _storage.read(key: 'user_location') ?? '';
         final profileImage = await _storage.read(key: 'profile_image');
 
+        // Parse the full name into parts
+        _parseFullName(name);
+
         setState(() {
-          _nameController.text = name;
           _nicknameController.text = nickname;
           _emailController.text = userEmail; // Always use Firebase Auth email
+          _phoneController.text = phone;
           _bioController.text = bio;
           _locationController.text = location;
           _profileImageBase64 = profileImage;
           _isLoading = false;
+          // Auto-enable editing if profile is required
+          if (widget.isRequired) {
+            _isEditing = true;
+          }
         });
       }
     } catch (e) {
@@ -99,12 +125,105 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _parseFullName(String fullName) {
+    if (fullName.isEmpty) {
+      _surnameController.text = '';
+      _firstNameController.text = '';
+      _middleNameController.text = '';
+      return;
+    }
+
+    // Check if name is in "Surname, First Name, Middle Name" format
+    if (fullName.contains(',')) {
+      final parts = fullName.split(',').map((e) => e.trim()).toList();
+      _surnameController.text = parts.isNotEmpty ? parts[0] : '';
+      _firstNameController.text = parts.length > 1 ? parts[1] : '';
+      _middleNameController.text = parts.length > 2 ? parts[2] : '';
+    } else {
+      // If no commas, assume space-separated format
+      final words = fullName.split(' ').where((w) => w.isNotEmpty).toList();
+      _surnameController.text = words.isNotEmpty ? words[0] : '';
+      _firstNameController.text = words.length > 1 ? words[1] : '';
+      _middleNameController.text = words.length > 2 ? words.sublist(2).join(' ') : '';
+    }
+  }
+
+  String _buildFullName() {
+    // Combine the three fields into comma-separated format
+    final surname = _surnameController.text.trim();
+    final firstName = _firstNameController.text.trim();
+    final middleName = _middleNameController.text.trim();
+
+    if (surname.isEmpty && firstName.isEmpty && middleName.isEmpty) {
+      return '';
+    }
+
+    final parts = <String>[];
+    if (surname.isNotEmpty) parts.add(surname);
+    if (firstName.isNotEmpty) parts.add(firstName);
+    if (middleName.isNotEmpty) parts.add(middleName);
+
+    return parts.join(', ');
+  }
+
   Future<void> _saveProfileData() async {
+    // Build full name from three fields
+    final fullName = _buildFullName();
+    
+    // Check if required fields are filled when in required mode
+    if (widget.isRequired) {
+      final surname = _surnameController.text.trim();
+      final firstName = _firstNameController.text.trim();
+      final middleName = _middleNameController.text.trim();
+      final nickname = _nicknameController.text.trim();
+      final phone = _phoneController.text.trim();
+      final bio = _bioController.text.trim();
+      final location = _locationController.text.trim();
+      
+      // Check each field and provide specific error message
+      List<String> missingFields = [];
+      if (surname.isEmpty) missingFields.add('Surname');
+      if (firstName.isEmpty) missingFields.add('First Name');
+      if (middleName.isEmpty) missingFields.add('Middle Name');
+      if (nickname.isEmpty) missingFields.add('Nickname');
+      if (phone.isEmpty) missingFields.add('Phone Number');
+      if (bio.isEmpty) missingFields.add('Bio/Description');
+      if (location.isEmpty) missingFields.add('Location');
+      
+      if (missingFields.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please fill in: ${missingFields.join(', ')}'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+    }
+    
     // Validate inputs before saving
-    final nameValidation = ValidationService.validateName(_nameController.text);
+    final nameValidation = ValidationService.validateName(fullName);
     if (nameValidation != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(nameValidation), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final nicknameValidation = ValidationService.validateNickname(_nicknameController.text);
+    if (nicknameValidation != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(nicknameValidation), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    // Phone validation (optional)
+    final phoneValidation = ValidationService.validateOptionalPhoneNumber(_phoneController.text);
+    if (phoneValidation != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(phoneValidation), backgroundColor: Colors.red),
       );
       return;
     }
@@ -117,7 +236,7 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
-    final locationValidation = ValidationService.validateOptionalDescription(_locationController.text);
+    final locationValidation = ValidationService.validateLocation(_locationController.text);
     if (locationValidation != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(locationValidation), backgroundColor: Colors.red),
@@ -126,13 +245,28 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     try {
+      // Check if profile should be marked as complete
+      final surname = _surnameController.text.trim();
+      final firstName = _firstNameController.text.trim();
+      final middleName = _middleNameController.text.trim();
+      final nickname = _nicknameController.text.trim();
+      final phone = _phoneController.text.trim();
+      final bio = _bioController.text.trim();
+      final location = _locationController.text.trim();
+      
+      // Profile is complete when all fields are filled
+      final isComplete = surname.isNotEmpty && firstName.isNotEmpty && middleName.isNotEmpty &&
+                         nickname.isNotEmpty && phone.isNotEmpty && bio.isNotEmpty && location.isNotEmpty;
+      
       // Save to Firebase first
       final success = await AuthService.updateUserProfile(
-        name: ValidationService.sanitizeInput(_nameController.text),
+        name: ValidationService.sanitizeInput(fullName),
         nickname: ValidationService.sanitizeInput(_nicknameController.text),
+        phone: ValidationService.sanitizeInput(_phoneController.text),
         bio: ValidationService.sanitizeInput(_bioController.text),
         location: ValidationService.sanitizeInput(_locationController.text),
         profileImage: _profileImageBase64,
+        profileComplete: isComplete,
       );
 
       if (!success) {
@@ -149,10 +283,14 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       // Also save locally for offline capability
-      await _storage.write(key: 'user_name', value: ValidationService.sanitizeInput(_nameController.text));
+      await _storage.write(key: 'user_name', value: ValidationService.sanitizeInput(fullName));
       await _storage.write(
         key: 'user_nickname',
         value: ValidationService.sanitizeInput(_nicknameController.text),
+      );
+      await _storage.write(
+        key: 'user_phone',
+        value: ValidationService.sanitizeInput(_phoneController.text),
       );
       // Don't save email to local storage - always get from Firebase Auth
       await _storage.write(key: 'user_bio', value: ValidationService.sanitizeInput(_bioController.text));
@@ -174,6 +312,15 @@ class _ProfilePageState extends State<ProfilePage> {
             backgroundColor: Color(0xFF4CAF50),
           ),
         );
+        
+        // If this was required profile completion, navigate to home
+        if (widget.isRequired && isComplete) {
+          // Small delay to show the success message
+          await Future.delayed(const Duration(seconds: 1));
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -219,30 +366,47 @@ class _ProfilePageState extends State<ProfilePage> {
         height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.grey[200],
+          color: Colors.white,
           border: Border.all(color: const Color(0xFF4CAF50), width: 3),
         ),
-        child: _profileImageBase64 != null
-            ? ClipOval(
-                child: Image.memory(
+        child: ClipOval(
+          child: _profileImageBase64 != null && _profileImageBase64!.isNotEmpty
+              ? Image.memory(
                   base64Decode(_profileImageBase64!),
                   width: 120,
                   height: 120,
                   fit: BoxFit.cover,
-                ),
-              )
-            : Icon(Icons.person, size: 60, color: Colors.grey[600]),
+                  errorBuilder: (context, error, stackTrace) {
+                    return _buildDefaultImage();
+                  },
+                )
+              : _buildDefaultImage(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultImage() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Image.asset(
+        'assets/AgriSynchLogoNB-min.png',
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to icon if image fails to load
+          return Icon(Icons.person, size: 60, color: Colors.grey[600]);
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _themeNotifier.isDarkMode;
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Profile', style: TextStyle(
+          automaticallyImplyLeading: !widget.isRequired, // Hide back button if required
+          title: Text(widget.isRequired ? 'Complete Your Profile' : 'Profile', style: const TextStyle(
             fontFamily: 'Poppins',
             color: Colors.white,
           )),
@@ -257,9 +421,10 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    return Scaffold(
+    final scaffold = Scaffold(
       appBar: AppBar(
-        title: Text('Profile', style: TextStyle(
+        automaticallyImplyLeading: !widget.isRequired, // Hide back button if required
+        title: Text(widget.isRequired ? 'Complete Your Profile' : 'Profile', style: const TextStyle(
           fontFamily: 'Poppins',
           color: Colors.white,
         )),
@@ -287,6 +452,54 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
+            // Show info message when profile completion is required
+            if (widget.isRequired) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.orange,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Profile Required',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Please complete all fields in your profile before continuing.',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
             // Profile Image
             Center(
               child: Column(
@@ -308,17 +521,54 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             const SizedBox(height: 40),
-            // Profile Fields
+            // Profile Fields - Name Section
+            const Text(
+              'Full Name',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF4CAF50),
+              ),
+            ),
+            const SizedBox(height: 12),
             _buildProfileField(
-              label: 'Full Name',
-              controller: _nameController,
+              label: 'Surname',
+              controller: _surnameController,
               icon: Icons.person,
+              hintText: 'Enter surname',
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Only letters and spaces
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildProfileField(
+              label: 'First Name',
+              controller: _firstNameController,
+              icon: Icons.person_outline,
+              hintText: 'Enter first name',
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Only letters and spaces
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildProfileField(
+              label: 'Middle Name',
+              controller: _middleNameController,
+              icon: Icons.person_outline,
+              hintText: 'Enter middle name',
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Only letters and spaces
+              ],
             ),
             const SizedBox(height: 20),
             _buildProfileField(
               label: 'Nickname',
               controller: _nicknameController,
               icon: Icons.badge,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Only letters and spaces
+              ],
             ),
             const SizedBox(height: 20),
             _buildProfileField(
@@ -327,6 +577,18 @@ class _ProfilePageState extends State<ProfilePage> {
               icon: Icons.email,
               keyboardType: TextInputType.emailAddress,
               isReadOnly: true, // Email is always read-only
+            ),
+            const SizedBox(height: 20),
+            _buildProfileField(
+              label: 'Phone Number',
+              controller: _phoneController,
+              icon: Icons.phone,
+              keyboardType: TextInputType.phone,
+              hintText: '09171234567',
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')), // Only numbers and plus sign
+                LengthLimitingTextInputFormatter(13), // Maximum 13 characters (for +63 format or 11-digit local)
+              ],
             ),
             const SizedBox(height: 20),
             _buildProfileField(
@@ -375,6 +637,27 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+    
+    // Wrap with PopScope to prevent back navigation when profile completion is required
+    if (widget.isRequired) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, dynamic result) async {
+          if (didPop) return;
+          
+          // Show message that profile must be completed
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please complete your profile before continuing'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        },
+        child: scaffold,
+      );
+    }
+    
+    return scaffold;
   }
 
   Widget _buildProfileField({
@@ -384,6 +667,7 @@ class _ProfilePageState extends State<ProfilePage> {
     TextInputType? keyboardType,
     String? hintText,
     bool isReadOnly = false, // New parameter for read-only fields
+    List<TextInputFormatter>? inputFormatters, // Add input formatters parameter
   }) {
     final bool isFieldEnabled = isReadOnly ? false : _isEditing;
     
@@ -428,6 +712,7 @@ class _ProfilePageState extends State<ProfilePage> {
             enabled: isFieldEnabled,
             readOnly: isReadOnly,
             keyboardType: keyboardType,
+            inputFormatters: inputFormatters, // Apply input formatters
             style: TextStyle(
               fontFamily: 'Poppins', 
               fontSize: 16,

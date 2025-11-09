@@ -48,14 +48,38 @@ class ValidationService {
       return 'Name must be at least 2 characters';
     }
     
-    if (value.trim().length > 50) {
-      return 'Name must not exceed 50 characters';
+    if (value.trim().length > 100) {
+      return 'Name must not exceed 100 characters';
     }
     
-    // Only letters, spaces, hyphens, and apostrophes
-    final nameRegex = RegExp(r"^[a-zA-Z\s\-']+$");
+    // Only letters, spaces, hyphens, apostrophes, and commas (for formatted names)
+    final nameRegex = RegExp(r"^[a-zA-Z\s\-',]+$");
     if (!nameRegex.hasMatch(value.trim())) {
       return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+    }
+    
+    return null;
+  }
+
+  // Nickname validation
+  static String? validateNickname(String? value) {
+    // Nickname is optional
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    
+    if (value.trim().length < 2) {
+      return 'Nickname must be at least 2 characters';
+    }
+    
+    if (value.trim().length > 30) {
+      return 'Nickname must not exceed 30 characters';
+    }
+    
+    // Only letters and spaces - no numbers or special characters
+    final nicknameRegex = RegExp(r'^[a-zA-Z\s]+$');
+    if (!nicknameRegex.hasMatch(value.trim())) {
+      return 'Nickname can only contain letters and spaces';
     }
     
     return null;
@@ -65,6 +89,26 @@ class ValidationService {
   static String? validatePhoneNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Phone number is required';
+    }
+    
+    // Remove spaces, dashes, and parentheses
+    final cleaned = value.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    
+    // Philippine mobile: 09xxxxxxxxx or +639xxxxxxxxx
+    final mobileRegex = RegExp(r'^(09|\+639)\d{9}$');
+    
+    if (!mobileRegex.hasMatch(cleaned)) {
+      return 'Please enter a valid Philippine mobile number (e.g., 09171234567)';
+    }
+    
+    return null;
+  }
+
+  // Optional phone number validation (Philippine format)
+  static String? validateOptionalPhoneNumber(String? value) {
+    // Phone is optional
+    if (value == null || value.trim().isEmpty) {
+      return null;
     }
     
     // Remove spaces, dashes, and parentheses
@@ -234,6 +278,23 @@ class ValidationService {
     
     if (value.trim().length > 200) {
       return 'Address must not exceed 200 characters';
+    }
+    
+    return null;
+  }
+
+  // Location validation (for profile)
+  static String? validateLocation(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Location is required';
+    }
+    
+    if (value.trim().length < 12) {
+      return 'Location must be at least 12 characters';
+    }
+    
+    if (value.trim().length > 200) {
+      return 'Location must not exceed 200 characters';
     }
     
     return null;

@@ -137,7 +137,7 @@ service cloud.firestore {
           && isValidString(request.resource.data.title, 200)
           && isValidString(request.resource.data.description, 1000)
           && request.resource.data.dueDate is timestamp
-          && request.resource.data.priority in ['low', 'medium', 'high']
+          && request.resource.data.priority in ['Low', 'Medium', 'High', 'Urgent']
           && request.resource.data.completed is bool;
         
         allow read: if isOwner(userId);

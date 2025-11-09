@@ -361,23 +361,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   );
                 }
 
-                // Group messages by date
-                final groupedMessages = <String, List<ChatMessage>>{};
-                for (var message in messages) {
-                  final dateKey =
-                      '${message.timestamp.year}-${message.timestamp.month}-${message.timestamp.day}';
-                  groupedMessages.putIfAbsent(dateKey, () => []);
-                  groupedMessages[dateKey]!.add(message);
-                }
-
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,
-                  itemCount: messages.length +
-                      groupedMessages.keys.length, // Add date dividers
+                  itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    // This is simplified - you might want better date divider logic
-                    final message = messages[index % messages.length];
+                    final message = messages[index];
                     final isMe = message.senderId == currentUserId;
 
                     // Show date divider for first message of each day

@@ -492,6 +492,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     'name': sanitizedName,
                                                     'email': sanitizedEmail,
                                                     'accountType': _selectedAccountType,
+                                                    'profileComplete': false,
                                                     'createdAt': FieldValue.serverTimestamp(),
                                                   };
 

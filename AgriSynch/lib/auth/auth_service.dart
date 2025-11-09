@@ -232,9 +232,11 @@ class AuthService {
   static Future<bool> updateUserProfile({
     String? name,
     String? nickname,
+    String? phone,
     String? bio,
     String? location,
     String? profileImage,
+    bool? profileComplete,
   }) async {
     try {
       User? user = _auth.currentUser;
@@ -246,6 +248,7 @@ class AuthService {
       // Sanitize all text inputs before saving to database
       final sanitizedName = name != null ? InputValidator.sanitizeName(name) : null;
       final sanitizedNickname = nickname != null ? InputValidator.sanitizeName(nickname) : null;
+      final sanitizedPhone = phone != null ? phone.trim() : null;
       final sanitizedBio = bio != null ? InputValidator.sanitizeDescription(bio, maxLength: 500) : null;
       final sanitizedLocation = location != null ? InputValidator.sanitizeAddress(location) : null;
 
@@ -265,9 +268,11 @@ class AuthService {
         await user.updateDisplayName(sanitizedName);
       }
       if (sanitizedNickname != null) updateData['nickname'] = sanitizedNickname;
+      if (sanitizedPhone != null) updateData['phone'] = sanitizedPhone;
       if (sanitizedBio != null) updateData['bio'] = sanitizedBio;
       if (sanitizedLocation != null) updateData['location'] = sanitizedLocation;
       if (profileImage != null) updateData['profileImage'] = profileImage;
+      if (profileComplete != null) updateData['profileComplete'] = profileComplete;
 
       updateData['updatedAt'] = FieldValue.serverTimestamp();
 
@@ -316,5 +321,48 @@ class AuthService {
   // Reload user to get updated email verification status
   static Future<void> reloadUser() async {
     await _auth.currentUser?.reload();
+  }
+
+  // Check if user has completed their profile
+  // Required fields: surname, firstName, middleName, nickname, phone, bio, location
+  static Future<bool> isProfileComplete() async {
+    try {
+      DocumentSnapshot? doc = await getUserData();
+      if (doc != null && doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        
+        // Check if profileComplete flag is explicitly set
+        if (data?['profileComplete'] == true) {
+          return true;
+        }
+        
+        // Fallback: check if required fields are filled
+        final name = data?['name'] as String? ?? '';
+        final nickname = data?['nickname'] as String? ?? '';
+        final phone = data?['phone'] as String? ?? '';
+        final bio = data?['bio'] as String? ?? '';
+        final location = data?['location'] as String? ?? '';
+        
+        // Parse name to check for surname, first name, and middle name
+        final nameParts = name.split(',').map((e) => e.trim()).toList();
+        bool hasValidName = false;
+        
+        if (nameParts.length >= 3) {
+          // Format: "Surname, FirstName, MiddleName"
+          final surname = nameParts[0];
+          final firstName = nameParts.length > 1 ? nameParts[1] : '';
+          final middleName = nameParts.length > 2 ? nameParts[2] : '';
+          hasValidName = surname.isNotEmpty && firstName.isNotEmpty && middleName.isNotEmpty;
+        }
+        
+        // Profile is complete if all fields are filled
+        return hasValidName && nickname.isNotEmpty && phone.isNotEmpty && 
+               bio.isNotEmpty && location.isNotEmpty;
+      }
+      return false;
+    } catch (e) {
+      print('Error checking profile completion: $e');
+      return false;
+    }
   }
 }

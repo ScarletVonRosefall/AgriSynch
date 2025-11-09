@@ -36,6 +36,14 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     return '${_dateFormat.format(dateTime)} at ${_timeFormat.format(dateTime)}';
   }
 
+  // Helper function to safely convert dueDate (which can be Timestamp or DateTime)
+  DateTime? getTaskDueDate(dynamic dueDate) {
+    if (dueDate == null) return null;
+    if (dueDate is Timestamp) return dueDate.toDate();
+    if (dueDate is DateTime) return dueDate;
+    return null;
+  }
+
   bool _areTaskListsEqual(List<Map<String, dynamic>> list1, List<Map<String, dynamic>> list2) {
     if (list1.length != list2.length) return false;
     
@@ -273,7 +281,10 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
     try {
       if (snooze) {
         // Get current due date and add 10 minutes
-        final DateTime currentDueDate = (task['dueDate'] as Timestamp).toDate();
+        final DateTime? currentDueDate = getTaskDueDate(task['dueDate']);
+        if (currentDueDate == null) {
+          throw Exception('Invalid due date');
+        }
         final DateTime newDueDate = currentDueDate.add(const Duration(minutes: 10));
         
         // Update the task with new due date
@@ -399,13 +410,18 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
         _loadUnreadNotifications(); // Refresh notification count
       } catch (e) {
         // Handle notification error silently
+        print('Notification error: $e');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      // Log the actual error for debugging
+      print('Error creating task: $e');
+      print('Stack trace: $stackTrace');
+      
       // Show error message to user
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to create task. Please try again.'),
+        SnackBar(
+          content: Text('Failed to create task: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -530,13 +546,19 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
               print('Saving updates for task $taskId: $updates');
 
               try {
+                // Convert DateTime to Timestamp for consistency before optimistic update
+                final processedUpdates = Map<String, dynamic>.from(updates);
+                if (processedUpdates['dueDate'] is DateTime) {
+                  processedUpdates['dueDate'] = Timestamp.fromDate(processedUpdates['dueDate']);
+                }
+                
                 // Update local state first (optimistic update)
                 setState(() {
                   final taskIndex = tasks.indexWhere((t) => t['id'] == taskId);
                   if (taskIndex != -1) {
                     tasks[taskIndex] = {
                       ...tasks[taskIndex],
-                      ...updates,
+                      ...processedUpdates,
                       'id': taskId, // Preserve the ID
                     };
                   }
@@ -617,7 +639,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
       for (var task in tasks) {
         if (task['completed'] == true || (task['alarmCount'] ?? 0) >= 3) continue;
 
-        final taskDate = (task['dueDate'] as Timestamp?)?.toDate();
+        final taskDate = getTaskDueDate(task['dueDate']);
         if (taskDate == null) continue;
 
         if (taskDate.hour == now.hour && taskDate.minute == now.minute) {
@@ -1061,10 +1083,13 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                                       label: 'Undo',
                                       onPressed: () async {
                                         // Re-create the task
+                                        final dueDate = getTaskDueDate(task['dueDate']);
+                                        if (dueDate == null) return;
+                                        
                                         await _taskService.createTask(
                                           title: task['title'],
                                           description: task['description'] ?? '',
-                                          dueDate: (task['dueDate'] as Timestamp).toDate(),
+                                          dueDate: dueDate,
                                           priority: task['priority'] ?? 'Medium',
                                           category: task['category'],
                                           fieldLocation: task['location'],
@@ -1127,7 +1152,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Due: ${formatDateTime((task['dueDate'] as Timestamp?)?.toDate())}',
+                                      'Due: ${formatDateTime(getTaskDueDate(task['dueDate']))}',
                                       style: TextStyle(
                                         fontFamily: 'Poppins',
                                         fontSize: 12,

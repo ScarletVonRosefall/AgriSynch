@@ -2,6 +2,7 @@
   "name": "agrisynch-functions",
   "description": "Cloud Functions for AgriSynch - Push Notifications",
   "scripts": {
+    "lint": "echo 'No linting configured'",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",

@@ -26,6 +26,7 @@ class _AgriSynchBuyerSettingsPageState
   int unreadNotifications = 0;
   String _selectedCurrency = 'PHP';
   final _themeNotifier = ThemeNotifier();
+  int _profileRefreshKey = 0; // Key to force profile widget refresh
 
   String userName = '';
   String userEmail = '';
@@ -290,8 +291,14 @@ class _AgriSynchBuyerSettingsPageState
                                 color: headerColor,
                                 size: 20,
                               ),
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/profile');
+                              onPressed: () async {
+                                await Navigator.pushNamed(context, '/profile');
+                                // Refresh the profile widget after returning
+                                if (mounted) {
+                                  setState(() {
+                                    _profileRefreshKey++; // Increment to force rebuild
+                                  });
+                                }
                               },
                               tooltip: 'Edit Profile',
                             ),
@@ -299,6 +306,7 @@ class _AgriSynchBuyerSettingsPageState
                         ),
                         const SizedBox(height: 12),
                         UserProfileWidget(
+                          key: ValueKey(_profileRefreshKey),
                           showEmail: true,
                           showLocation: true,
                           imageSize: 60,
