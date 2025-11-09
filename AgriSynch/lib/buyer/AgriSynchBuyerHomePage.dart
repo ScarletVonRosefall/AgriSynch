@@ -17,7 +17,6 @@ import 'BrowseProductsPage.dart';
 import 'MyOrdersPage.dart';
 import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'DeliveryTrackingPage.dart';
 import 'dart:convert';
 import '../shared/conversations_list_page.dart';
 import '../services/chat_service.dart';
@@ -1336,49 +1335,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
       default:
         return Icons.shopping_basket;
     }
-  }
-
-  // Build profile avatar widget
-  Widget _buildProfileAvatar() {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
-    return FutureBuilder<Map<String, String?>>(
-      future: _loadUserProfileData(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          final profileImageBase64 = snapshot.data!['profileImage'];
-          if (profileImageBase64 != null && profileImageBase64.isNotEmpty) {
-            return Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: ClipOval(
-                child: Image.memory(
-                  base64Decode(profileImageBase64),
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            );
-          }
-        }
-        
-        // Default avatar
-        return CircleAvatar(
-          backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-          radius: 20,
-          child: Icon(
-            Icons.person,
-            color: Colors.white,
-            size: 24,
-          ),
-        );
-      },
-    );
   }
 
   // Build greeting text widget

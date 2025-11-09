@@ -18,9 +18,6 @@ class InputValidator {
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
   );
   static final RegExp _phonePattern = RegExp(r'^[0-9\+\-\(\)\s]+$');
-  static final RegExp _alphanumericPattern = RegExp(r'^[a-zA-Z0-9\s]+$');
-  static final RegExp _numericPattern = RegExp(r'^[0-9]+$');
-  static final RegExp _decimalPattern = RegExp(r'^[0-9]+\.?[0-9]*$');
   
   // Dangerous characters that could be used for injection
   static final RegExp _dangerousChars = RegExp(r'[<>{};\$\[\]\\`]');

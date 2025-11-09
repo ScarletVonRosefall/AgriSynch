@@ -93,10 +93,12 @@ service cloud.firestore {
         && isPositiveNumber(request.resource.data.totalAmount)
         && request.resource.data.orderDate is timestamp;
       
-      // Both buyer and farmer can read their orders
-      allow read: if isSignedIn() && 
-        (resource.data.buyerId == request.auth.uid || 
-         resource.data.farmerId == request.auth.uid);
+      // Both buyer and farmer can read their orders, OR admins can read all orders
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.farmerId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+      );
       
       // Only farmers can update order status (not buyer or total amount)
       allow update: if isSignedIn() 
@@ -287,6 +289,61 @@ service cloud.firestore {
       // Only the buyer who wrote the review can delete it
       allow delete: if isSignedIn()
         && resource.data.buyerId == request.auth.uid;
+    }
+    
+    // ==================== ADMIN COLLECTIONS ====================
+    
+    // Check if user is admin
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Deletion Requests
+    match /deletionRequests/{requestId} {
+      // Users can create deletion requests for themselves
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Only admins can read and update deletion requests
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Announcements
+    match /announcements/{announcementId} {
+      // All authenticated users can read announcements
+      allow read: if isSignedIn();
+      
+      // Only admins can create, update, and delete announcements
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Reports (Content Flagging)
+    match /reports/{reportId} {
+      // Users can create reports
+      allow create: if isSignedIn() && request.resource.data.reportedBy == request.auth.uid;
+      
+      // Only admins can read, update, and delete reports
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Bans/Suspensions Log
+    match /bans/{banId} {
+      // Only admins can create and read ban records
+      allow create, read: if isAdmin();
+    }
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Admins can create notifications for anyone
+      allow create: if isAdmin();
+      
+      // Users can delete their own notifications
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

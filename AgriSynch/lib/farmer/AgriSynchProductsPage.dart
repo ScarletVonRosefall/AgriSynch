@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import '../models/product.dart';
 import '../services/product_service.dart';
-import '../services/image_upload_service.dart';
 import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
@@ -22,7 +21,6 @@ class AgriSynchProductsPage extends StatefulWidget {
 
 class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
   final ProductService _productService = ProductService();
-  final ImageUploadService _imageUploadService = ImageUploadService();
   final _themeNotifier = ThemeNotifier();
   int unreadNotifications = 0;
   String _searchQuery = '';

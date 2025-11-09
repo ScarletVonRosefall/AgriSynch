@@ -52,7 +52,7 @@ void main() {
       expect(ValidationService.validateName('A'), isNotNull);
       expect(ValidationService.validateName('John123'), isNotNull);
       expect(ValidationService.validateName('Test@Name'), isNotNull);
-      expect(ValidationService.validateName('a' * 51), contains('50 characters'));
+      expect(ValidationService.validateName('a' * 101), contains('100 characters'));
     });
   });
 

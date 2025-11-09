@@ -365,4 +365,49 @@ class AuthService {
       return false;
     }
   }
+
+  // Check if current user is an admin
+  static Future<bool> isCurrentUserAdmin() async {
+    try {
+      final user = currentUser;
+      if (user == null) return false;
+
+      DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        return data?['isAdmin'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
+
+  // Submit account deletion request
+  static Future<bool> submitDeletionRequest(String reason) async {
+    try {
+      final user = currentUser;
+      if (user == null) return false;
+
+      // Get user data for the request
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final userData = userDoc.data() as Map<String, dynamic>?;
+
+      // Create deletion request
+      await _firestore.collection('deletionRequests').add({
+        'userId': user.uid,
+        'userName': userData?['name'] ?? 'Unknown User',
+        'userEmail': user.email ?? '',
+        'reason': reason,
+        'requestDate': FieldValue.serverTimestamp(),
+        'status': 'pending',
+      });
+
+      return true;
+    } catch (e) {
+      print('Error submitting deletion request: $e');
+      return false;
+    }
+  }
 }

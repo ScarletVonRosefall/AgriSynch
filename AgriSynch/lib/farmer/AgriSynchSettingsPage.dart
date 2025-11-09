@@ -10,6 +10,7 @@ import '../shared/theme_helper.dart';
 import '../shared/feedback_service.dart';
 import '../services/review_service.dart';
 import '../shared/farmer_reviews_page.dart';
+import '../auth/auth_service.dart';
 
 final storage = FlutterSecureStorage();
 
@@ -92,6 +93,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   String userRole = '';
 
   bool _isLoading = true;
+  bool _isAdmin = false;
   
   // Feedback form controllers
   final TextEditingController _feedbackController = TextEditingController();
@@ -136,6 +138,9 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
     try {
       // Load user info first
       await loadUserInfo();
+      
+      // Check if user is admin
+      _isAdmin = await AuthService.isCurrentUserAdmin();
       
       // Then load preferences and notifications in parallel
       await Future.wait<void>([
@@ -556,6 +561,21 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                         const SizedBox(height: 16),
                         Column(
                           children: [
+                            // Admin Dashboard Button (only visible to admins)
+                            if (_isAdmin) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: _actionButton(
+                                  "Admin Dashboard",
+                                  icon: Icons.admin_panel_settings,
+                                  isDarkMode: isDarkMode,
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/admin-dashboard');
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
                             SizedBox(
                               width: double.infinity,
                               child: _actionButton(
@@ -564,6 +584,19 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                                 isDarkMode: isDarkMode,
                                 onTap: () {
                                   Navigator.pushNamed(context, '/recover');
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: _actionButton(
+                                "Request Account Deletion",
+                                icon: Icons.delete_forever,
+                                isDarkMode: isDarkMode,
+                                isDestructive: true,
+                                onTap: () {
+                                  _showDeletionRequestDialog();
                                 },
                               ),
                             ),
@@ -1060,6 +1093,126 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _showDeletionRequestDialog() async {
+    final TextEditingController reasonController = TextEditingController();
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          "Request Account Deletion",
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Please provide a reason for deletion:",
+              style: TextStyle(fontFamily: 'Poppins'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: "e.g., No longer need the app, Privacy concerns, etc.",
+                hintStyle: const TextStyle(fontFamily: 'Poppins'),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Note: Your request will be reviewed by an admin. You will be notified of the decision.",
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              reasonController.dispose();
+              Navigator.pop(context, false);
+            },
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, true);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text(
+              'Submit Request',
+              style: TextStyle(fontFamily: 'Poppins'),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      reasonController.dispose();
+      return;
+    }
+
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide a reason for deletion'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Show loading
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await AuthService.submitDeletionRequest(reason);
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Deletion request submitted successfully. An admin will review it shortly.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to submit deletion request. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _showLogoutDialog() async {

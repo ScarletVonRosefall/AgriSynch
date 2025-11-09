@@ -57,6 +57,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
   // State variables for light input validation warnings
   String _invalidCharWarning = '';
   bool _showWarning = false;
+  
+  // Secret admin portal access
+  int _tapCount = 0;
+  Timer? _tapTimer;
 
   @override
   void initState() {
@@ -97,7 +101,25 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _fadeController.dispose();
     _slideController.dispose();
+    _tapTimer?.cancel();
     super.dispose();
+  }
+
+  void _handleSecretTap() {
+    _tapCount++;
+    
+    // Reset timer
+    _tapTimer?.cancel();
+    _tapTimer = Timer(const Duration(seconds: 3), () {
+      _tapCount = 0;
+    });
+    
+    // If 15 taps reached, navigate to admin portal
+    if (_tapCount >= 15) {
+      _tapCount = 0;
+      _tapTimer?.cancel();
+      Navigator.pushNamed(context, '/admin-portal');
+    }
   }
 
   void showError(String message) {
@@ -162,12 +184,16 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                             Center(
                               child: Column(
                                 children: [
-                                  Text(
-                                    "Log in to continue",
-                                    style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 16,
-                                      color: ThemeHelper.getTextColor(isDarkMode),
+                                  GestureDetector(
+                                    onTap: _handleSecretTap,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Text(
+                                      "Log in to continue",
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 16,
+                                        color: ThemeHelper.getTextColor(isDarkMode),
+                                      ),
                                     ),
                                   ),
                                   const Text(
@@ -380,6 +406,26 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         if (!mounted) return;
 
                                                         final data = doc.data();
+                                                        
+                                                        // Check if user is banned or suspended
+                                                        final isBanned = data?['banned'] == true;
+                                                        final suspendedUntil = data?['suspendedUntil'] as Timestamp?;
+                                                        final isSuspended = suspendedUntil != null && 
+                                                                           suspendedUntil.toDate().isAfter(DateTime.now());
+                                                        
+                                                        if (isBanned) {
+                                                          await FirebaseAuth.instance.signOut();
+                                                          showError('Your account has been permanently banned. Reason: ${data?['banReason'] ?? 'Violation of terms'}');
+                                                          return;
+                                                        }
+                                                        
+                                                        if (isSuspended) {
+                                                          await FirebaseAuth.instance.signOut();
+                                                          final suspendedUntilDate = suspendedUntil.toDate();
+                                                          showError('Your account is suspended until ${suspendedUntilDate.day}/${suspendedUntilDate.month}/${suspendedUntilDate.year}. Reason: ${data?['banReason'] ?? 'Policy violation'}');
+                                                          return;
+                                                        }
+                                                        
                                                         final accountType = data?['accountType'] ?? 'Farmer';
                                                         final userName = data?['name'] ?? '';
                                                         
