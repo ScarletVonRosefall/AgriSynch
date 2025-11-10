@@ -797,35 +797,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   ),
                 ),
                 const Spacer(),
-                TextButton.icon(
+                IconButton(
                   onPressed: () => setState(() => _selectedUserIds.clear()),
-                  icon: const Icon(Icons.clear, size: 18),
-                  label: const Text('Clear', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
-                  style: TextButton.styleFrom(
+                  icon: const Icon(Icons.clear, size: 20),
+                  tooltip: 'Clear Selection',
+                  style: IconButton.styleFrom(
                     foregroundColor: Colors.grey.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton.icon(
+                IconButton(
                   onPressed: _bulkBanUsers,
-                  icon: const Icon(Icons.block, size: 18),
-                  label: const Text('Ban Selected', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
-                  style: ElevatedButton.styleFrom(
+                  icon: const Icon(Icons.block, size: 20),
+                  tooltip: 'Ban Selected',
+                  style: IconButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton.icon(
+                IconButton(
                   onPressed: _bulkDeleteUsers,
-                  icon: const Icon(Icons.delete, size: 18),
-                  label: const Text('Delete Selected', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
-                  style: ElevatedButton.styleFrom(
+                  icon: const Icon(Icons.delete, size: 20),
+                  tooltip: 'Delete Selected',
+                  style: IconButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
               ],
