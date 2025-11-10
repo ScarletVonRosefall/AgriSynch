@@ -434,10 +434,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      ),
+                      const SizedBox(width: 16),
                       const SizedBox(width: 8),
                       const Text(
                         'Finances',

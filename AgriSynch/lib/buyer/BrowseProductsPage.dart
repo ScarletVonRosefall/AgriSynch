@@ -416,10 +416,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                    const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
                         'Browse Products',
@@ -646,7 +643,6 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         }
 
         final product = filteredProducts[index];
-        final isFavorite = favoriteProducts.contains(product.id);
 
                     return Card(
                       elevation: 2,
@@ -680,19 +676,6 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                         color: _getCategoryColor(product.category),
                                       )
                                     : null,
-                              ),
-                              // Favorite Button
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: IconButton(
-                                  icon: Icon(
-                                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                                    color: isFavorite ? Colors.red : Colors.white,
-                                    shadows: const [Shadow(blurRadius: 2)],
-                                  ),
-                                  onPressed: () => toggleFavorite(product.id),
-                                ),
                               ),
                               // Stock badge
                               if (product.stock < 10)

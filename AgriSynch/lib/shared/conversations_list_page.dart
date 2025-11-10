@@ -96,22 +96,10 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back Button (conditionally shown)
-                    if (widget.showBackButton) ...[
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Padding(
-                        padding: EdgeInsets.only(left: widget.showBackButton ? 12 : 0),
+                        padding: const EdgeInsets.only(left: 0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

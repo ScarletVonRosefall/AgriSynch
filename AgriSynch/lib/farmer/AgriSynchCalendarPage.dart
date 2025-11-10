@@ -463,10 +463,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                    const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
                         'Farm Calendar',

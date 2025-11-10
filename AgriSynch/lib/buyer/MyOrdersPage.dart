@@ -602,10 +602,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             ),
             child: Row(
               children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                ),
+                const SizedBox(width: 16),
                 const Expanded(
                   child: Text(
                     'My Orders',
@@ -652,10 +649,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                 ),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                    const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
                         'My Orders',

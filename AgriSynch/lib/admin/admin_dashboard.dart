@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/theme_helper.dart';
+import '../farmer/AgriSynchHomePage.dart';
+import '../buyer/AgriSynchBuyerHomePage.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -75,6 +78,45 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         ),
         centerTitle: true,
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.science, color: Colors.white),
+            tooltip: 'Test Mode',
+            onSelected: (value) {
+              if (value == 'farmer') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AgriSynchHomePage()),
+                );
+              } else if (value == 'buyer') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AgriSynchBuyerHomePage()),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'farmer',
+                child: Row(
+                  children: [
+                    Icon(Icons.agriculture, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Test as Farmer'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'buyer',
+                child: Row(
+                  children: [
+                    Icon(Icons.shopping_cart, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('Test as Buyer'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
@@ -647,64 +689,86 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               const SizedBox(height: 12),
               // Filter chips with Select All
               Container(
-                height: 56,
-                color: Colors.white,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // Select All button
-                    ElevatedButton.icon(
-                      onPressed: _toggleSelectAllUsers,
-                      icon: Icon(_selectedUserIds.isEmpty ? Icons.check_box_outline_blank : Icons.check_box),
-                      label: const Text('Select All'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    FilterChip(
-                      label: const Text('All', style: TextStyle(fontFamily: 'Poppins')),
-                      selected: _userTypeFilter == 'all',
-                      selectedColor: const Color(0xFF00A862),
-                      labelStyle: TextStyle(
-                        color: _userTypeFilter == 'all' ? Colors.white : Colors.black,
-                      ),
-                      onSelected: (selected) => setState(() => _userTypeFilter = 'all'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      label: const Text('Farmers', style: TextStyle(fontFamily: 'Poppins')),
-                      selected: _userTypeFilter == 'Farmer',
-                      selectedColor: const Color(0xFF00A862),
-                      labelStyle: TextStyle(
-                        color: _userTypeFilter == 'Farmer' ? Colors.white : Colors.black,
-                      ),
-                      onSelected: (selected) => setState(() => _userTypeFilter = 'Farmer'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      label: const Text('Buyers', style: TextStyle(fontFamily: 'Poppins')),
-                      selected: _userTypeFilter == 'Buyer',
-                      selectedColor: const Color(0xFF00A862),
-                      labelStyle: TextStyle(
-                        color: _userTypeFilter == 'Buyer' ? Colors.white : Colors.black,
-                      ),
-                      onSelected: (selected) => setState(() => _userTypeFilter = 'Buyer'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      label: const Text('Admins', style: TextStyle(fontFamily: 'Poppins')),
-                      selected: _userTypeFilter == 'Admin',
-                      selectedColor: Colors.red,
-                      labelStyle: TextStyle(
-                        color: _userTypeFilter == 'Admin' ? Colors.white : Colors.black,
-                      ),
-                      onSelected: (selected) => setState(() => _userTypeFilter = 'Admin'),
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
                   ],
+                ),
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {
+                      PointerDeviceKind.touch,
+                      PointerDeviceKind.mouse,
+                    },
+                  ),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    children: [
+                      // Select All button
+                      ElevatedButton.icon(
+                        onPressed: _toggleSelectAllUsers,
+                        icon: Icon(_selectedUserIds.isEmpty ? Icons.check_box_outline_blank : Icons.check_box),
+                        label: const Text('Select All', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      FilterChip(
+                        label: const Text('All', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
+                        selected: _userTypeFilter == 'all',
+                        selectedColor: const Color(0xFF00A862),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        labelStyle: TextStyle(
+                          color: _userTypeFilter == 'all' ? Colors.white : Colors.black,
+                        ),
+                        onSelected: (selected) => setState(() => _userTypeFilter = 'all'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        label: const Text('Farmers', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
+                        selected: _userTypeFilter == 'Farmer',
+                        selectedColor: const Color(0xFF00A862),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        labelStyle: TextStyle(
+                          color: _userTypeFilter == 'Farmer' ? Colors.white : Colors.black,
+                        ),
+                        onSelected: (selected) => setState(() => _userTypeFilter = 'Farmer'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        label: const Text('Buyers', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
+                        selected: _userTypeFilter == 'Buyer',
+                        selectedColor: const Color(0xFF00A862),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        labelStyle: TextStyle(
+                          color: _userTypeFilter == 'Buyer' ? Colors.white : Colors.black,
+                        ),
+                        onSelected: (selected) => setState(() => _userTypeFilter = 'Buyer'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        label: const Text('Admins', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
+                        selected: _userTypeFilter == 'Admin',
+                        selectedColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        labelStyle: TextStyle(
+                          color: _userTypeFilter == 'Admin' ? Colors.white : Colors.black,
+                        ),
+                        onSelected: (selected) => setState(() => _userTypeFilter = 'Admin'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1048,17 +1112,34 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       children: [
         // Filter bar
         Container(
-          height: 56,
-          color: Colors.white,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            children: [
+          height: 70,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+              },
+            ),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              children: [
               FilterChip(
-                label: const Text('All', style: TextStyle(fontFamily: 'Poppins')),
+                label: const Text('All', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'all',
                 selectedColor: const Color(0xFF00A862),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
                   color: _orderStatusFilter == 'all' ? Colors.white : Colors.black,
                 ),
@@ -1066,9 +1147,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: const Text('Pending', style: TextStyle(fontFamily: 'Poppins')),
+                label: const Text('Pending', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'pending',
                 selectedColor: Colors.orange,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
                   color: _orderStatusFilter == 'pending' ? Colors.white : Colors.black,
                 ),
@@ -1076,9 +1158,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: const Text('Confirmed', style: TextStyle(fontFamily: 'Poppins')),
+                label: const Text('Confirmed', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'confirmed',
                 selectedColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
                   color: _orderStatusFilter == 'confirmed' ? Colors.white : Colors.black,
                 ),
@@ -1086,9 +1169,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: const Text('Delivered', style: TextStyle(fontFamily: 'Poppins')),
+                label: const Text('Delivered', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'delivered',
                 selectedColor: Colors.green,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
                   color: _orderStatusFilter == 'delivered' ? Colors.white : Colors.black,
                 ),
@@ -1096,9 +1180,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: const Text('Cancelled', style: TextStyle(fontFamily: 'Poppins')),
+                label: const Text('Cancelled', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'cancelled',
                 selectedColor: Colors.red,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
                   color: _orderStatusFilter == 'cancelled' ? Colors.white : Colors.black,
                 ),
@@ -1106,6 +1191,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               ),
             ],
           ),
+        ),
         ),
         
         // Orders list
@@ -1143,11 +1229,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 itemBuilder: (context, index) {
                   final order = orders[index];
                   final data = order.data() as Map<String, dynamic>;
-                  final productName = data['productName'] ?? 'Unknown';
+                  
+                  // Extract product names from items array
+                  String productName = 'Unknown';
+                  if (data['items'] != null && data['items'] is List && (data['items'] as List).isNotEmpty) {
+                    final items = data['items'] as List;
+                    final productNames = items.map((item) => item['name'] ?? 'Unknown').toList();
+                    productName = productNames.join(', ');
+                  }
+                  
                   final buyerName = data['buyerName'] ?? 'Unknown';
-                  final sellerName = data['sellerName'] ?? 'Unknown';
+                  final sellerName = data['farmerName'] ?? 'Unknown';
                   final status = data['status'] ?? 'pending';
-                  final total = data['totalPrice'] ?? 0.0;
+                  final total = data['totalAmount'] ?? 0.0;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),

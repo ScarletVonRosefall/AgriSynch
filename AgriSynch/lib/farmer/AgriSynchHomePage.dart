@@ -5,7 +5,6 @@ import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
 import '../shared/AgriWeatherPage.dart';
-import 'AgriSynchProductionLogPage.dart';
 import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
@@ -889,23 +888,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const AgriFinances(),
-                                ),
-                              );
-                              if (mounted) {
-                                _needsReload = true;
-                              }
-                            } catch (e) {}
-                          },
-                        ),
-                        _homeTile(
-                          icon: Icons.engineering,
-                          title: "Production Log",
-                          onTap: () async {
-                            try {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AgriSynchProductionLog(),
                                 ),
                               );
                               if (mounted) {

@@ -123,11 +123,7 @@ class _NewMessagePageState extends State<NewMessagePage> {
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     Text(
                       'New Message',
                       style: ThemeHelper.getHeaderTextStyle(

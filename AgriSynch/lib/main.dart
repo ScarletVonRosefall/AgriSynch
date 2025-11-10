@@ -17,7 +17,6 @@ import 'farmer/AgriFinances.dart';
 import 'shared/AgriNotificationPage.dart';
 import 'farmer/AgriSynchCalendarPage.dart';
 import 'farmer/AgriSynchOrdersPage.dart';
-import 'farmer/AgriSynchProductionLogPage.dart';
 import 'auth/AgriSynchRecover.dart';
 import 'farmer/AgriSynchSettingsPage.dart';
 import 'farmer/AgriSynchTasksPage.dart';
@@ -89,7 +88,6 @@ class AgriSynchApp extends StatelessWidget {
         '/notifications': (context) => const AgriNotificationPage(),
         '/calendar': (context) => const AgriSynchCalendarPage(),
         '/orders': (context) => const AgriSynchOrdersPage(),
-        '/production': (context) => const AgriSynchProductionLog(),
         '/recover': (context) => const AgriSynchRecoverPage(),
         '/settings': (context) => const AgriSynchSettingsPage(),
         '/tasks': (context) => const AgriSynchTasksPage(),

@@ -17,6 +17,7 @@ class Product {
   final bool isAvailable;
   final double? rating; // Average rating from buyers
   final int? reviewCount;
+  final bool isAdminOnly; // If true, only visible to admin users
 
   Product({
     required this.id,
@@ -35,6 +36,7 @@ class Product {
     this.isAvailable = true,
     this.rating,
     this.reviewCount,
+    this.isAdminOnly = false,
   });
 
   factory Product.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -66,6 +68,7 @@ class Product {
       isAvailable: data['isAvailable'] ?? true,
       rating: (data['rating'] as num?)?.toDouble(),
       reviewCount: data['reviewCount'],
+      isAdminOnly: data['isAdminOnly'] ?? false,
     );
   }
 
@@ -86,6 +89,7 @@ class Product {
       'isAvailable': isAvailable,
       'rating': rating,
       'reviewCount': reviewCount,
+      'isAdminOnly': isAdminOnly,
     };
   }
 
@@ -106,6 +110,7 @@ class Product {
     bool? isAvailable,
     double? rating,
     int? reviewCount,
+    bool? isAdminOnly,
   }) {
     return Product(
       id: id ?? this.id,
@@ -124,6 +129,7 @@ class Product {
       isAvailable: isAvailable ?? this.isAvailable,
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
+      isAdminOnly: isAdminOnly ?? this.isAdminOnly,
     );
   }
 }
