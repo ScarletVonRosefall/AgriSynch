@@ -307,15 +307,6 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
     
-    // Announcements
-    match /announcements/{announcementId} {
-      // All authenticated users can read announcements
-      allow read: if isSignedIn();
-      
-      // Only admins can create, update, and delete announcements
-      allow create, update, delete: if isAdmin();
-    }
-    
     // Reports (Content Flagging)
     match /reports/{reportId} {
       // Users can create reports
