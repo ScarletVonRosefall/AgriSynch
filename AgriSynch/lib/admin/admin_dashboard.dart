@@ -32,7 +32,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this); // Changed from 7 to 8
+    _tabController = TabController(length: 7, vsync: this);
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
   }
 
@@ -149,7 +149,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               Tab(icon: Icon(Icons.shopping_bag), text: 'Products'),
               Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
               Tab(icon: Icon(Icons.message), text: 'Messages'),
-              Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
               Tab(icon: Icon(Icons.flag), text: 'Reports'),
             ],
           ),
@@ -179,7 +178,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 _buildProductsTab(),
                 _buildOrdersTab(),
                 _buildMessagesTab(),
-                _buildAnnouncementsTab(),
                 _buildReportsTab(),
               ],
             ),
@@ -658,6 +656,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   // Tab 3: Users Management
   Widget _buildUsersTab() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
     return Column(
       children: [
         // Search and Filter Bar
@@ -778,33 +778,58 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         // Bulk action bar
         if (_selectedUserIds.isNotEmpty)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.blue.shade100,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              border: Border(
+                top: BorderSide(color: Colors.blue.shade200, width: 1),
+                bottom: BorderSide(color: Colors.blue.shade200, width: 1),
+              ),
+            ),
             child: Row(
               children: [
+                Icon(Icons.check_circle, color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
                 Text(
                   '${_selectedUserIds.length} selected',
-                  style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.blue.shade900,
+                  ),
                 ),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () => setState(() => _selectedUserIds.clear()),
-                  icon: const Icon(Icons.clear),
-                  label: const Text('Clear'),
+                  icon: const Icon(Icons.clear, size: 18),
+                  label: const Text('Clear', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: _bulkBanUsers,
-                  icon: const Icon(Icons.block),
-                  label: const Text('Ban Selected'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  icon: const Icon(Icons.block, size: 18),
+                  label: const Text('Ban Selected', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: _bulkDeleteUsers,
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Delete Selected'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  icon: const Icon(Icons.delete, size: 18),
+                  label: const Text('Delete Selected', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 ),
               ],
             ),
@@ -882,9 +907,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         width: isBanned || isSuspended ? 2 : 1,
                       ),
                     ),
-                    child: ListTile(
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
                         children: [
                           Checkbox(
                             value: _selectedUserIds.contains(user.id),
@@ -909,83 +934,107 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                               color: Colors.white,
                             ),
                           ),
-                        ],
-                      ),
-                      title: Text(
-                        name,
-                        style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        '$email\nType: $accountType${isAdmin ? ' • Admin' : ''}${isBanned ? ' • BANNED' : ''}${isSuspended ? ' • SUSPENDED' : ''}',
-                        style: const TextStyle(fontFamily: 'Poppins', fontSize: 12),
-                      ),
-                      isThreeLine: true,
-                      trailing: PopupMenuButton(
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'view',
-                            child: Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
-                          ),
-                          if (!isBanned && !isSuspended) ...[
-                            const PopupMenuItem(
-                              value: 'ban',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.block, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'suspend',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.timelapse, color: Colors.orange),
-                                  SizedBox(width: 8),
-                                  Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (isBanned || isSuspended)
-                            const PopupMenuItem(
-                              value: 'unban',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_circle, color: Colors.green),
-                                  SizedBox(width: 8),
-                                  Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
-                                ],
-                              ),
-                            ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$email\nType: $accountType${isAdmin ? ' • Admin' : ''}${isBanned ? ' • BANNED' : ''}${isSuspended ? ' • SUSPENDED' : ''}',
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 12,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 3,
+                                ),
                               ],
                             ),
                           ),
+                          PopupMenuButton(
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                            ),
+                            tooltip: 'User actions',
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'view',
+                                child: Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
+                              ),
+                              if (!isBanned && !isSuspended) ...[
+                                const PopupMenuItem(
+                                  value: 'ban',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.block, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'suspend',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.timelapse, color: Colors.orange),
+                                      SizedBox(width: 8),
+                                      Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (isBanned || isSuspended)
+                                const PopupMenuItem(
+                                  value: 'unban',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.green),
+                                      SizedBox(width: 8),
+                                      Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
+                                    ],
+                                  ),
+                                ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'ban':
+                                  _showBanUserDialog(user.id, name, permanent: true);
+                                  break;
+                                case 'suspend':
+                                  _showBanUserDialog(user.id, name, permanent: false);
+                                  break;
+                                case 'unban':
+                                  _unbanUser(user.id, name);
+                                  break;
+                                case 'delete':
+                                  _showDeleteUserConfirmation(user.id, name);
+                                  break;
+                              }
+                            },
+                          ),
                         ],
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'ban':
-                              _showBanUserDialog(user.id, name, permanent: true);
-                              break;
-                            case 'suspend':
-                              _showBanUserDialog(user.id, name, permanent: false);
-                              break;
-                            case 'unban':
-                              _unbanUser(user.id, name);
-                              break;
-                            case 'delete':
-                              _showDeleteUserConfirmation(user.id, name);
-                              break;
-                          }
-                        },
                       ),
                     ),
                   );
