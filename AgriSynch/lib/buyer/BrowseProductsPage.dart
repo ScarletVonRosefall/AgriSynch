@@ -808,6 +808,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                   ),
                                   const Spacer(),
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       // Contact Farmer Button
                                       Expanded(
@@ -828,12 +829,13 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                                             side: BorderSide(color: ThemeHelper.getHeaderColor(isDarkMode)),
-                                            padding: const EdgeInsets.symmetric(vertical: 6),
+                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                            minimumSize: const Size(0, 36),
                                           ),
-                                          child: const Icon(Icons.message, size: 16),
+                                          child: const Icon(Icons.message, size: 14),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                       // Add to Cart Button
                                       Expanded(
                                         flex: 2,
@@ -844,9 +846,10 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                                             foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 6),
+                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                            minimumSize: const Size(0, 36),
                                           ),
-                                          child: const Text('Add to Cart', style: TextStyle(fontSize: 11)),
+                                          child: const Text('Add to Cart', style: TextStyle(fontSize: 10)),
                                         ),
                                       ),
                                     ],

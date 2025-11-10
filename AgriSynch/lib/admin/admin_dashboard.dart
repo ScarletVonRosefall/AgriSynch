@@ -31,7 +31,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
   }
 
@@ -148,7 +148,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               Tab(icon: Icon(Icons.shopping_bag), text: 'Products'),
               Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
               Tab(icon: Icon(Icons.message), text: 'Messages'),
-              Tab(icon: Icon(Icons.flag), text: 'Reports'),
             ],
           ),
         ),
@@ -177,7 +176,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 _buildProductsTab(),
                 _buildOrdersTab(),
                 _buildMessagesTab(),
-                _buildReportsTab(),
               ],
             ),
     );
@@ -1709,122 +1707,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
-  // Tab 7: Reports (Content Flagging)
-  Widget _buildReportsTab() {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('reports')
-          .where('status', isEqualTo: 'pending')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
-        }
-
-        final reports = snapshot.data?.docs ?? [];
-
-        if (reports.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, size: 80, color: Colors.green.shade400),
-                const SizedBox(height: 16),
-                const Text(
-                  'No pending reports',
-                  style: TextStyle(fontFamily: 'Poppins', fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'All reports have been reviewed',
-                  style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: reports.length,
-          itemBuilder: (context, index) {
-            final report = reports[index];
-            final data = report.data() as Map<String, dynamic>;
-            final reportType = data['type'] ?? 'Unknown';
-            final reason = data['reason'] ?? '';
-            final reportedBy = data['reportedBy'] ?? 'Unknown';
-            final reportedItem = data['reportedItem'] ?? '';
-            final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              elevation: 2,
-              color: ThemeHelper.getCardColor(isDarkMode),
-              child: ExpansionTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.red,
-                  child: const Icon(Icons.flag, color: Colors.white),
-                ),
-                title: Text(
-                  'Report: $reportType',
-                  style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  'Reported by: $reportedBy\n${timestamp != null ? _formatDate(timestamp) : 'Recently'}',
-                  style: const TextStyle(fontFamily: 'Poppins', fontSize: 12),
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Reason: $reason',
-                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Reported Item: $reportedItem',
-                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton.icon(
-                              onPressed: () => _resolveReport(report.id, 'ignored'),
-                              icon: const Icon(Icons.close, color: Colors.orange),
-                              label: const Text('Ignore', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon(
-                              onPressed: () => _resolveReport(report.id, 'resolved'),
-                              icon: const Icon(Icons.check),
-                              label: const Text('Resolve', style: TextStyle(fontFamily: 'Poppins')),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   // Ban/Suspend System Methods
   Future<void> _showBanUserDialog(String userId, String userName, {required bool permanent}) async {
     final reasonController = TextEditingController();
@@ -2084,21 +1966,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       });
       
       _showSuccess('Bulk deletion completed');
-    }
-  }
-
-  // Content Flagging Methods
-  Future<void> _resolveReport(String reportId, String status) async {
-    try {
-      await FirebaseFirestore.instance.collection('reports').doc(reportId).update({
-        'status': status,
-        'resolvedAt': FieldValue.serverTimestamp(),
-        'resolvedBy': FirebaseAuth.instance.currentUser?.uid,
-      });
-
-      _showSuccess('Report ${status == 'resolved' ? 'resolved' : 'ignored'}');
-    } catch (e) {
-      _showError('Error: $e');
     }
   }
 }

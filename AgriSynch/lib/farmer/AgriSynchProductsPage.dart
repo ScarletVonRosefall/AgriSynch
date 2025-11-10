@@ -1457,19 +1457,11 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                   const SizedBox(height: 6),
                                   // Availability Toggle
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text(
-                                        'Available:',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: isDarkMode ? Colors.white70 : Colors.black87,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
                                       Transform.scale(
-                                        scale: 0.75,
+                                        scale: 0.7,
                                         child: Switch(
                                           value: product.isAvailable,
                                           onChanged: (value) async {
@@ -1494,18 +1486,21 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                           activeColor: const Color(0xFF4CAF50),
                                         ),
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: product.isAvailable ? Colors.green : Colors.grey,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          product.isAvailable ? 'Available' : 'Unavailable',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: product.isAvailable ? Colors.green : Colors.grey,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            product.isAvailable ? 'Available' : 'Unavailable',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ),
