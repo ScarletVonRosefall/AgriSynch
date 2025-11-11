@@ -54,10 +54,36 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
         if (cartDoc.exists && cartDoc.data() != null) {
           final cartData = cartDoc.data()!['items'] as List<dynamic>?;
           if (cartData != null) {
+            final loadedCart = List<Map<String, dynamic>>.from(
+              cartData.map((item) => Map<String, dynamic>.from(item))
+            );
+            
+            // Fetch product images for items that don't have imageUrl
+            for (var item in loadedCart) {
+              if (item['imageUrl'] == null || item['imageUrl'].toString().isEmpty) {
+                try {
+                  final productDoc = await FirebaseFirestore.instance
+                      .collection('products')
+                      .doc(item['id'])
+                      .get();
+                  
+                  if (productDoc.exists) {
+                    final productData = productDoc.data();
+                    if (productData != null && productData['images'] != null) {
+                      final images = productData['images'] as List<dynamic>;
+                      if (images.isNotEmpty) {
+                        item['imageUrl'] = images[0];
+                      }
+                    }
+                  }
+                } catch (e) {
+                  print('Error fetching image for product ${item['id']}: $e');
+                }
+              }
+            }
+            
             setState(() {
-              cart = List<Map<String, dynamic>>.from(
-                cartData.map((item) => Map<String, dynamic>.from(item))
-              );
+              cart = loadedCart;
             });
             // Also save to local storage as backup
             final prefs = await SharedPreferences.getInstance();
@@ -74,9 +100,37 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     final prefs = await SharedPreferences.getInstance();
     final cartString = prefs.getString('buyer_cart');
     if (cartString != null) {
+      final loadedCart = List<Map<String, dynamic>>.from(json.decode(cartString));
+      
+      // Fetch product images for items that don't have imageUrl
+      for (var item in loadedCart) {
+        if (item['imageUrl'] == null || item['imageUrl'].toString().isEmpty) {
+          try {
+            final productDoc = await FirebaseFirestore.instance
+                .collection('products')
+                .doc(item['id'])
+                .get();
+            
+            if (productDoc.exists) {
+              final productData = productDoc.data();
+              if (productData != null && productData['images'] != null) {
+                final images = productData['images'] as List<dynamic>;
+                if (images.isNotEmpty) {
+                  item['imageUrl'] = images[0];
+                }
+              }
+            }
+          } catch (e) {
+            print('Error fetching image for product ${item['id']}: $e');
+          }
+        }
+      }
+      
       setState(() {
-        cart = List<Map<String, dynamic>>.from(json.decode(cartString));
+        cart = loadedCart;
       });
+      // Save updated cart with images
+      await prefs.setString('buyer_cart', json.encode(cart));
     }
   }
 
@@ -505,7 +559,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                             padding: const EdgeInsets.all(12),
                             child: Row(
                               children: [
-                                // Product Icon
+                                // Product Image
                                 Container(
                                   width: 60,
                                   height: 60,
@@ -513,10 +567,15 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                     color: Colors.grey[300],
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Icon(
-                                    _getProductIcon(item['category']),
-                                    color: const Color(0xFF4CAF50),
-                                    size: 30,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: item['imageUrl'] != null && item['imageUrl'].toString().isNotEmpty
+                                        ? _buildProductImage(item['imageUrl'], item['category'])
+                                        : Icon(
+                                            _getProductIcon(item['category']),
+                                            color: const Color(0xFF4CAF50),
+                                            size: 30,
+                                          ),
                                   ),
                                 ),
 
@@ -646,6 +705,49 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildProductImage(String imageUrl, String category) {
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        // Base64 image
+        final base64String = imageUrl.split(',')[1];
+        return Image.memory(
+          base64Decode(base64String),
+          width: 60,
+          height: 60,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              _getProductIcon(category),
+              color: const Color(0xFF4CAF50),
+              size: 30,
+            );
+          },
+        );
+      } else {
+        // Network URL image
+        return Image.network(
+          imageUrl,
+          width: 60,
+          height: 60,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              _getProductIcon(category),
+              color: const Color(0xFF4CAF50),
+              size: 30,
+            );
+          },
+        );
+      }
+    } catch (e) {
+      return Icon(
+        _getProductIcon(category),
+        color: const Color(0xFF4CAF50),
+        size: 30,
+      );
+    }
   }
 
   IconData _getProductIcon(String category) {

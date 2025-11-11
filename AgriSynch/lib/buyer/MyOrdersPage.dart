@@ -239,23 +239,27 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   List<Map<String, dynamic>> getFilteredOrders(List<Map<String, dynamic>> allOrders) {
     if (selectedFilter == 'All') return allOrders;
     
-    // For "Pending", include all active/in-progress statuses
-    if (selectedFilter == 'Pending') {
-      return allOrders.where((order) {
-        final status = order['status'].toLowerCase();
-        return status == 'pending' || 
-               status == 'confirmed' || 
-               status == 'preparing';
-      }).toList();
-    }
-    
-    // For other filters, do exact match
-    return allOrders
-        .where(
-          (order) =>
-              order['status'].toLowerCase() == selectedFilter.toLowerCase(),
-        )
-        .toList();
+    // Map filter names to actual statuses
+    return allOrders.where((order) {
+      final status = order['status'].toLowerCase();
+      
+      switch (selectedFilter) {
+        case 'Pending':
+          return status == 'pending';
+        case 'Processing':
+          // "Processing" includes confirmed and preparing
+          return status == 'confirmed' || status == 'preparing';
+        case 'Shipped':
+          // "Shipped" means delivering
+          return status == 'delivering';
+        case 'Delivered':
+          return status == 'delivered';
+        case 'Cancelled':
+          return status == 'cancelled';
+        default:
+          return false;
+      }
+    }).toList();
   }
 
   Color getStatusColor(String status) {

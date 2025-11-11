@@ -37,16 +37,17 @@ class AuthWrapper extends StatelessWidget {
         if (snapshot.hasData && snapshot.data != null) {
           final user = snapshot.data!;
           
-          // Check if email is verified
-          if (!user.emailVerified) {
-            return const AgriSynchEmailVerificationPage();
-          }
-          
-          // Check if profile is complete
-          return FutureBuilder<bool>(
-            future: AuthService.isProfileComplete(),
-            builder: (context, profileSnapshot) {
-              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+          // Reload user to get latest verification status (with timeout)
+          return FutureBuilder(
+            future: user.reload()
+                .timeout(const Duration(seconds: 5))
+                .then((_) => FirebaseAuth.instance.currentUser)
+                .catchError((e) {
+                  print('Error reloading user: $e');
+                  return user; // Return original user on error
+                }),
+            builder: (context, userSnapshot) {
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   backgroundColor: Color(0xFFF2FDE0),
                   body: Center(
@@ -57,27 +58,14 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
               
-              // If profile is incomplete, force profile completion
-              if (profileSnapshot.data == false) {
-                return const ProfilePage(isRequired: true);
+              final refreshedUser = userSnapshot.data ?? user;
+              
+              // Check if email is verified
+              if (!refreshedUser.emailVerified) {
+                return const AgriSynchEmailVerificationPage();
               }
               
-              // If profile is complete, check their role and show appropriate page
-              return FutureBuilder<String>(
-                future: _getUserRole(user.uid),
-                builder: (context, roleSnapshot) {
-                  if (roleSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  // Navigate based on user role
-                  if (roleSnapshot.data == 'Buyer') {
-                    return const AgriSynchBuyerHomePage();
-                  } else {
-                    return const AgriSynchHome(); // Farmer's home
-                  }
-                },
-              );
+              return _buildAuthenticatedView(refreshedUser);
             },
           );
         }
@@ -86,6 +74,51 @@ class AuthWrapper extends StatelessWidget {
         return snapshot.hasError 
           ? _buildErrorScreen(context, snapshot.error.toString())
           : const AgriSynchLoginPage();
+      },
+    );
+  }
+
+  Widget _buildAuthenticatedView(User user) {
+    return Builder(
+      builder: (context) {
+        // Check if profile is complete
+        return FutureBuilder<bool>(
+          future: AuthService.isProfileComplete(),
+          builder: (context, profileSnapshot) {
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                backgroundColor: Color(0xFFF2FDE0),
+                body: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                  ),
+                ),
+              );
+            }
+            
+            // If profile is incomplete, force profile completion
+            if (profileSnapshot.data == false) {
+              return const ProfilePage(isRequired: true);
+            }
+            
+            // If profile is complete, check their role and show appropriate page
+            return FutureBuilder<String>(
+              future: _getUserRole(user.uid),
+              builder: (context, roleSnapshot) {
+                if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Navigate based on user role
+                if (roleSnapshot.data == 'Buyer') {
+                  return const AgriSynchBuyerHomePage();
+                } else {
+                  return const AgriSynchHome(); // Farmer's home
+                }
+              },
+            );
+          },
+        );
       },
     );
   }

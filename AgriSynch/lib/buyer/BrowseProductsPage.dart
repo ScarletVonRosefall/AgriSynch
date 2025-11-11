@@ -302,6 +302,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
             'farmer': product.farmerName,
             'farmerId': product.farmerId,
             'location': product.location,
+            'imageUrl': product.images.isNotEmpty ? product.images[0] : '',
             'quantity': 1,
             'dateAdded': DateTime.now().toIso8601String(),
           });
@@ -711,7 +712,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     product.name,
                                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontSize: 15,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -806,6 +807,18 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       ),
                                     ],
                                   ),
+                                  if (product.description.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      product.description,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                   const Spacer(),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -917,6 +930,11 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
 
   void _showFilterDialog() {
     final isDarkMode = _themeNotifier.isDarkMode;
+    // Use local variables to track changes
+    String tempLocation = selectedLocation;
+    double tempMinPrice = minPrice;
+    double tempMaxPrice = maxPrice;
+    
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -938,6 +956,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                   )),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: TextEditingController(text: tempLocation == 'All' ? '' : tempLocation),
                     style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                     decoration: InputDecoration(
                       hintText: 'Enter location...',
@@ -947,7 +966,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     ),
                     onChanged: (value) {
                       setDialogState(() {
-                        selectedLocation = value.isEmpty ? 'All' : value;
+                        tempLocation = value.isEmpty ? 'All' : value;
                       });
                     },
                   ),
@@ -963,6 +982,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     children: [
                       Expanded(
                         child: TextField(
+                          controller: TextEditingController(text: tempMinPrice.toStringAsFixed(0)),
                           style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                           decoration: InputDecoration(
                             labelText: 'Min Price',
@@ -974,7 +994,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
                             setDialogState(() {
-                              minPrice = double.tryParse(value) ?? 0;
+                              tempMinPrice = double.tryParse(value) ?? 0;
                             });
                           },
                         ),
@@ -982,6 +1002,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
+                          controller: TextEditingController(text: tempMaxPrice.toStringAsFixed(0)),
                           style: TextStyle(color: ThemeHelper.getTextColor(isDarkMode)),
                           decoration: InputDecoration(
                             labelText: 'Max Price',
@@ -993,7 +1014,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
                             setDialogState(() {
-                              maxPrice = double.tryParse(value) ?? 10000;
+                              tempMaxPrice = double.tryParse(value) ?? 10000;
                             });
                           },
                         ),
@@ -1002,7 +1023,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '$_currencySymbol${minPrice.toStringAsFixed(0)} - $_currencySymbol${maxPrice.toStringAsFixed(0)}',
+                    '$_currencySymbol${tempMinPrice.toStringAsFixed(0)} - $_currencySymbol${tempMaxPrice.toStringAsFixed(0)}',
                     style: TextStyle(color: ThemeHelper.getSecondaryTextColor(isDarkMode), fontSize: 12),
                   ),
                 ],
@@ -1012,16 +1033,21 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
               TextButton(
                 onPressed: () {
                   setDialogState(() {
-                    selectedLocation = 'All';
-                    minPrice = 0;
-                    maxPrice = 10000;
+                    tempLocation = 'All';
+                    tempMinPrice = 0;
+                    tempMaxPrice = 10000;
                   });
                 },
                 child: const Text('Reset'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  setState(() {}); // Refresh main UI
+                  setState(() {
+                    // Apply the temporary values to the parent widget state
+                    selectedLocation = tempLocation;
+                    minPrice = tempMinPrice;
+                    maxPrice = tempMaxPrice;
+                  });
                   Navigator.pop(context);
                 },
                 child: const Text('Apply'),

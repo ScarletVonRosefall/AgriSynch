@@ -2,9 +2,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
+import 'dart:async';
 
 class NotificationHelper {
   static const String _notificationsKey = 'notifications';
+  static int? _cachedUnreadCount;
+  static DateTime? _lastCacheUpdate;
 
   // Notification types
   static const String taskReminder = 'task_reminder';
@@ -67,6 +70,7 @@ class NotificationHelper {
     }
 
     await prefs.setStringList(_notificationsKey, notificationsJson);
+    clearCache(); // Clear cache so count is updated
   }
 
   static Future<void> markAllAsRead() async {
@@ -82,6 +86,7 @@ class NotificationHelper {
     }
 
     await prefs.setStringList(_notificationsKey, notificationsJson);
+    clearCache(); // Clear cache so count is updated
   }
 
   static Future<void> deleteNotification(String notificationId) async {
@@ -102,27 +107,69 @@ class NotificationHelper {
   }
 
   static Future<int> getUnreadCount() async {
+    // Use cached value if it's less than 5 seconds old
+    if (_cachedUnreadCount != null && _lastCacheUpdate != null) {
+      final now = DateTime.now();
+      if (now.difference(_lastCacheUpdate!).inSeconds < 5) {
+        return _cachedUnreadCount!;
+      }
+    }
+
     try {
       // Get local notifications
       final localNotifications = await getNotifications();
       final localUnread = localNotifications.where((n) => n['isRead'] == false).length;
 
-      // Get Firestore notifications
+      // Get Firestore notifications with timeout
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return localUnread;
+      if (user == null) {
+        _cachedUnreadCount = localUnread;
+        _lastCacheUpdate = DateTime.now();
+        return localUnread;
+      }
 
       final firestoreSnapshot = await FirebaseFirestore.instance
           .collection('notifications')
           .where('userId', isEqualTo: user.uid)
           .where('isRead', isEqualTo: false)
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              // If timeout, return cached or empty result
+              print('Firestore notification fetch timed out');
+              throw TimeoutException('Firestore timeout');
+            },
+          );
 
-      return localUnread + firestoreSnapshot.docs.length;
+      final totalCount = localUnread + firestoreSnapshot.docs.length;
+      _cachedUnreadCount = totalCount;
+      _lastCacheUpdate = DateTime.now();
+      return totalCount;
     } catch (e) {
       print('Error getting unread count: $e');
-      final notifications = await getNotifications();
-      return notifications.where((n) => n['isRead'] == false).length;
+      // Return cached value if available
+      if (_cachedUnreadCount != null) {
+        return _cachedUnreadCount!;
+      }
+      // Fallback to local notifications only
+      try {
+        final notifications = await getNotifications();
+        final count = notifications.where((n) => n['isRead'] == false).length;
+        _cachedUnreadCount = count;
+        _lastCacheUpdate = DateTime.now();
+        return count;
+      } catch (e2) {
+        print('Error getting local notifications: $e2');
+        return 0;
+      }
     }
+  }
+
+  // Clear cache when notifications are marked as read
+  static void clearCache() {
+    _cachedUnreadCount = null;
+    _lastCacheUpdate = null;
   }
 
   // Helper method to create task-related notifications
