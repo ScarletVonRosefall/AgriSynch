@@ -4,8 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../shared/theme_helper.dart';
-import '../farmer/AgriSynchHomePage.dart';
-import '../buyer/AgriSynchBuyerHomePage.dart';
+import '../AgriSynch.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -85,12 +84,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               if (value == 'farmer') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AgriSynchHomePage()),
+                  MaterialPageRoute(builder: (_) => const AgriSynchHome()),
                 );
               } else if (value == 'buyer') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AgriSynchBuyerHomePage()),
+                  MaterialPageRoute(builder: (_) => const AgriSynchBuyerHome()),
                 );
               }
             },
@@ -206,12 +205,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('users').snapshots(),
             builder: (context, usersSnapshot) {
-              final totalUsers = usersSnapshot.data?.docs.length ?? 0;
-              final farmers = usersSnapshot.data?.docs.where((doc) {
+              final allDocs = usersSnapshot.data?.docs ?? [];
+              final totalUsers = allDocs.length;
+              final farmers = allDocs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>?;
-                return data?['accountType'] == 'Farmer';
-              }).length ?? 0;
-              final buyers = totalUsers - farmers;
+                final accountType = data?['accountType'];
+                final isAdmin = data?['isAdmin'] == true;
+                return accountType == 'Farmer' && !isAdmin;
+              }).length;
+              final buyers = allDocs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>?;
+                final accountType = data?['accountType'];
+                final isAdmin = data?['isAdmin'] == true;
+                return accountType == 'Buyer' && !isAdmin;
+              }).length;
 
               return Column(
                 children: [
@@ -859,7 +866,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         children: [
                           Checkbox(
                             value: _selectedUserIds.contains(user.id),
-                            onChanged: (selected) {
+                            onChanged: (isAdmin || name.toLowerCase() == 'name') ? null : (selected) {
                               setState(() {
                                 if (selected == true) {
                                   _selectedUserIds.add(user.id);
@@ -914,55 +921,61 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                               color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
                             ),
                             tooltip: 'User actions',
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'view',
-                                child: Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
-                              ),
-                              if (!isBanned && !isSuspended) ...[
+                            itemBuilder: (context) {
+                              // Check if this is a protected account (admin or "name" account)
+                              final isProtected = isAdmin || name.toLowerCase() == 'name';
+                              
+                              return [
                                 const PopupMenuItem(
-                                  value: 'ban',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.block, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                                    ],
+                                  value: 'view',
+                                  child: Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
+                                ),
+                                if (!isProtected && !isBanned && !isSuspended) ...[
+                                  const PopupMenuItem(
+                                    value: 'ban',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.block, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'suspend',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.timelapse, color: Colors.orange),
-                                      SizedBox(width: 8),
-                                      Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
-                                    ],
+                                  const PopupMenuItem(
+                                    value: 'suspend',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.timelapse, color: Colors.orange),
+                                        SizedBox(width: 8),
+                                        Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                              if (isBanned || isSuspended)
-                                const PopupMenuItem(
-                                  value: 'unban',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.check_circle, color: Colors.green),
-                                      SizedBox(width: 8),
-                                      Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
-                                    ],
+                                ],
+                                if (!isProtected && (isBanned || isSuspended))
+                                  const PopupMenuItem(
+                                    value: 'unban',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.check_circle, color: Colors.green),
+                                        SizedBox(width: 8),
+                                        Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
+                                if (!isProtected)
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                              ];
+                            },
                             onSelected: (value) {
                               switch (value) {
                                 case 'view':
@@ -1087,9 +1100,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         style: const TextStyle(fontFamily: 'Poppins', fontSize: 12),
                       ),
                       isThreeLine: true,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteProduct(product.id, name),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Color(0xFF00A862)),
+                            onPressed: () => _editProduct(product.id, data),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteProduct(product.id, name),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -1702,6 +1724,118 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         _showError('Error: $e');
       }
     }
+  }
+
+  Future<void> _editProduct(String productId, Map<String, dynamic> currentData) async {
+    final nameController = TextEditingController(text: currentData['name'] ?? '');
+    final descController = TextEditingController(text: currentData['description'] ?? '');
+    final priceController = TextEditingController(text: (currentData['price'] ?? 0.0).toString());
+    final quantityController = TextEditingController(text: (currentData['quantity'] ?? 0).toString());
+    final categoryController = TextEditingController(text: currentData['category'] ?? '');
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Product', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Product Name',
+                  labelStyle: TextStyle(fontFamily: 'Poppins'),
+                  border: OutlineInputBorder(),
+                ),
+                style: const TextStyle(fontFamily: 'Poppins'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(fontFamily: 'Poppins'),
+                  border: OutlineInputBorder(),
+                ),
+                style: const TextStyle(fontFamily: 'Poppins'),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Price (₱)',
+                  labelStyle: TextStyle(fontFamily: 'Poppins'),
+                  border: OutlineInputBorder(),
+                  prefixText: '₱',
+                ),
+                style: const TextStyle(fontFamily: 'Poppins'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: quantityController,
+                decoration: const InputDecoration(
+                  labelText: 'Quantity',
+                  labelStyle: TextStyle(fontFamily: 'Poppins'),
+                  border: OutlineInputBorder(),
+                ),
+                style: const TextStyle(fontFamily: 'Poppins'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(fontFamily: 'Poppins'),
+                  border: OutlineInputBorder(),
+                ),
+                style: const TextStyle(fontFamily: 'Poppins'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00A862)),
+            child: const Text('Save', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      try {
+        final price = double.tryParse(priceController.text) ?? 0.0;
+        final quantity = int.tryParse(quantityController.text) ?? 0;
+
+        await FirebaseFirestore.instance.collection('products').doc(productId).update({
+          'name': nameController.text.trim(),
+          'description': descController.text.trim(),
+          'price': price,
+          'quantity': quantity,
+          'category': categoryController.text.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        _showSuccess('Product updated successfully');
+      } catch (e) {
+        _showError('Error updating product: $e');
+      }
+    }
+
+    nameController.dispose();
+    descController.dispose();
+    priceController.dispose();
+    quantityController.dispose();
+    categoryController.dispose();
   }
 
   Future<void> _deleteMessage(String messageId) async {

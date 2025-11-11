@@ -240,8 +240,26 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         }
       });
 
+      // Mark local notifications as read
       await NotificationHelper.markAllAsRead()
           .timeout(const Duration(seconds: 5));
+      
+      // Mark Firestore notifications as read
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final firestoreNotifications = await FirebaseFirestore.instance
+            .collection('notifications')
+            .where('userId', isEqualTo: user.uid)
+            .where('isRead', isEqualTo: false)
+            .get();
+
+        // Batch update all unread Firestore notifications
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in firestoreNotifications.docs) {
+          batch.update(doc.reference, {'isRead': true});
+        }
+        await batch.commit();
+      }
           
       if (!_mounted) return;
       
@@ -279,15 +297,43 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await NotificationHelper.clearAllNotifications();
-              await loadNotifications();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All notifications cleared'),
-                  backgroundColor: Color(0xFF00C853),
-                ),
-              );
+              try {
+                // Clear local notifications
+                await NotificationHelper.clearAllNotifications();
+                
+                // Clear Firestore notifications
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final firestoreNotifications = await FirebaseFirestore.instance
+                      .collection('notifications')
+                      .where('userId', isEqualTo: user.uid)
+                      .get();
+
+                  // Batch delete all Firestore notifications
+                  final batch = FirebaseFirestore.instance.batch();
+                  for (var doc in firestoreNotifications.docs) {
+                    batch.delete(doc.reference);
+                  }
+                  await batch.commit();
+                }
+                
+                await loadNotifications();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All notifications cleared'),
+                    backgroundColor: Color(0xFF00C853),
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error clearing notifications: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text(
