@@ -49,25 +49,6 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
-    // Check rate limit (simplified - client-side handles most checking)
-    // This is a backup validation layer
-    function withinRateLimit(operationType, maxOps, windowMinutes) {
-      let rateLimitDoc = get(/databases/$(database)/documents/rateLimits/$(request.auth.uid + '_' + operationType));
-      
-      // If no rate limit record exists, allow (first operation)
-      if (!rateLimitDoc.exists) {
-        return true;
-      }
-      
-      let timestamps = rateLimitDoc.data.timestamps;
-      let cutoffTime = request.time.toMillis() - (windowMinutes * 60 * 1000);
-      
-      // Count operations within the time window
-      let recentOps = timestamps.filter(ts => ts > cutoffTime).size();
-      
-      return recentOps < maxOps;
-    }
-    
     // ==================== PRODUCTS COLLECTION ====================
     
     match /products/{productId} {
@@ -266,42 +247,30 @@ service cloud.firestore {
         && request.resource.data.timestamp is timestamp
         && request.resource.data.status == 'submitted';
       
-      // Users can only read their own feedback
+      // Users can read their own feedback, admins can read all feedback
       allow read: if isSignedIn() 
-        && (resource.data.userId == request.auth.uid 
-            || request.auth.token.email == 'admin@agrisynch.com'); // Admin access
+        && (resource.data.userId == request.auth.uid || isAdmin());
       
       // Only admins can update feedback status or add responses
-      allow update: if isSignedIn() 
-        && request.auth.token.email == 'admin@agrisynch.com';
+      allow update: if isAdmin();
       
       // Only admins can delete feedback
-      allow delete: if isSignedIn() 
-        && request.auth.token.email == 'admin@agrisynch.com';
+      allow delete: if isAdmin();
     }
     
     // ==================== CHAT COLLECTIONS ====================
     
     // Messages collection - Simplified rules
     match /messages/{messageId} {
-      // Check if a user is banned or suspended
-      function isUserBannedOrSuspended(userId) {
-        let userData = get(/databases/$(database)/documents/users/$(userId)).data;
-        return userData.get('banned', false) == true || userData.get('suspended', false) == true;
-      }
-      
       // Any authenticated user can read messages
       allow read: if isSignedIn();
       
-      // Users can create messages only if neither sender nor receiver is banned/suspended
+      // Users can create messages (sender must be authenticated user)
       allow create: if isSignedIn() 
-        && request.resource.data.senderId == request.auth.uid
-        && !isUserBannedOrSuspended(request.resource.data.senderId)
-        && !isUserBannedOrSuspended(request.resource.data.receiverId);
+        && request.resource.data.senderId == request.auth.uid;
       
-      // Users can update their own messages if not banned/suspended
-      allow update: if isSignedIn() 
-        && !isUserBannedOrSuspended(request.auth.uid);
+      // Users can update messages if authenticated
+      allow update: if isSignedIn();
       
       // Anyone can delete messages (for chat cleanup) OR admins can delete any message
       allow delete: if isSignedIn();
@@ -346,7 +315,16 @@ service cloud.firestore {
     
     // ==================== ADMIN COLLECTIONS ====================
     
-    // Deletion Requests
+    // Account Action Requests (Suspension & Deletion)
+    match /accountActionRequests/{requestId} {
+      // Users can create account action requests for themselves
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Only admins can read and update action requests
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Legacy: Deletion Requests (kept for backwards compatibility)
     match /deletionRequests/{requestId} {
       // Users can create deletion requests for themselves
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;

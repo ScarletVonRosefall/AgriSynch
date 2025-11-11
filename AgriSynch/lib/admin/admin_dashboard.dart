@@ -143,7 +143,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             physics: const BouncingScrollPhysics(),
             tabs: const [
               Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-              Tab(icon: Icon(Icons.delete_forever), text: 'Deletions'),
+              Tab(icon: Icon(Icons.help_outline), text: 'Support'),
               Tab(icon: Icon(Icons.people), text: 'Users'),
               Tab(icon: Icon(Icons.shopping_bag), text: 'Products'),
               Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
@@ -171,7 +171,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               physics: const BouncingScrollPhysics(),
               children: [
                 _buildOverviewTab(),
-                _buildDeletionRequestsTab(),
+                _buildSupportTab(),
                 _buildUsersTab(),
                 _buildProductsTab(),
                 _buildOrdersTab(),
@@ -314,10 +314,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           
           const SizedBox(height: 20),
           
-          // Pending Deletion Requests Alert
+          // Pending Account Action Requests Alert
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
-                .collection('deletionRequests')
+                .collection('accountActionRequests')
                 .where('status', isEqualTo: 'pending')
                 .snapshots(),
             builder: (context, snapshot) {
@@ -340,7 +340,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Pending Deletion Requests',
+                              'Pending Account Action Requests',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w600,
@@ -425,13 +425,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     );
   }
 
-  // Tab 2: Deletion Requests
-  Widget _buildDeletionRequestsTab() {
+  // Tab 2: Support & Feedback
+  Widget _buildSupportTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('deletionRequests')
-          .where('status', isEqualTo: 'pending')
-          .orderBy('requestDate', descending: true)
+          .collection('feedback')
+          .where('status', isEqualTo: 'submitted')
+          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -463,7 +463,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No pending deletion requests',
+                  'No pending support requests',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 18,
@@ -481,11 +481,36 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           itemBuilder: (context, index) {
             final request = requests[index];
             final data = request.data() as Map<String, dynamic>;
-            final userId = data['userId'] ?? '';
-            final userName = data['userName'] ?? 'Unknown User';
-            final userEmail = data['userEmail'] ?? '';
-            final reason = data['reason'] ?? 'No reason provided';
-            final requestDate = (data['requestDate'] as Timestamp?)?.toDate();
+            final userName = data['userName'] ?? 'Anonymous';
+            final userEmail = data['userEmail'] ?? 'No email provided';
+            final category = data['category'] ?? 'General';
+            final feedback = data['feedback'] ?? 'No message provided';
+            final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+            
+            // Category colors and icons
+            Color categoryColor;
+            IconData categoryIcon;
+            switch (category) {
+              case 'Bug Report':
+                categoryColor = Colors.red;
+                categoryIcon = Icons.bug_report;
+                break;
+              case 'Feature Request':
+                categoryColor = Colors.blue;
+                categoryIcon = Icons.lightbulb_outline;
+                break;
+              case 'Account Issues':
+                categoryColor = Colors.orange;
+                categoryIcon = Icons.account_circle;
+                break;
+              case 'Technical Support':
+                categoryColor = Colors.purple;
+                categoryIcon = Icons.build;
+                break;
+              default:
+                categoryColor = Colors.green;
+                categoryIcon = Icons.help_outline;
+            }
 
             return Card(
               margin: const EdgeInsets.only(bottom: 16),
@@ -493,6 +518,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               color: ThemeHelper.getCardColor(_themeNotifier.isDarkMode),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: categoryColor.withOpacity(0.3), width: 2),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -502,28 +528,42 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: const Color(0xFF00A862),
-                          child: Text(
-                            userName[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
+                          backgroundColor: categoryColor,
+                          child: Icon(categoryIcon, color: Colors.white),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                userName,
-                                style: const TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    userName,
+                                    style: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: categoryColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      category.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               Text(
                                 userEmail,
@@ -540,7 +580,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     ),
                     const Divider(height: 24),
                     const Text(
-                      'Reason:',
+                      'Message:',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.bold,
@@ -549,7 +589,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      reason,
+                      feedback,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,
@@ -557,7 +597,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Requested: ${requestDate != null ? _formatDate(requestDate) : 'Unknown'}',
+                      'Submitted: ${timestamp != null ? _formatDate(timestamp) : 'Unknown'}',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
@@ -569,11 +609,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => _denyRequest(request.id, userId, userName),
-                            icon: const Icon(Icons.close),
-                            label: const Text('Deny'),
+                            onPressed: () => _resolveFeedback(request.id, 'resolved'),
+                            icon: const Icon(Icons.check_circle),
+                            label: const Text('Resolve'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
+                              backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
@@ -585,11 +625,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => _approveRequest(request.id, userId, userName),
-                            icon: const Icon(Icons.check),
-                            label: const Text('Approve'),
+                            onPressed: () => _resolveFeedback(request.id, 'dismissed'),
+                            icon: const Icon(Icons.cancel),
+                            label: const Text('Dismiss'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
+                              backgroundColor: Colors.grey,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
@@ -1847,16 +1887,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
-  Future<void> _approveRequest(String requestId, String userId, String userName) async {
+  Future<void> _resolveFeedback(String feedbackId, String status) async {
+    final statusLabel = status == 'resolved' ? 'Resolved' : 'Dismissed';
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'Approve Deletion Request',
-          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+        title: Text(
+          'Mark as $statusLabel',
+          style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Approve deletion request for "$userName"?\n\nThis will notify the user that their request has been approved and their account is scheduled for deletion.',
+          'Are you sure you want to mark this feedback as $statusLabel?',
           style: const TextStyle(fontFamily: 'Poppins'),
         ),
         actions: [
@@ -1866,8 +1908,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Approve', style: TextStyle(fontFamily: 'Poppins')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: status == 'resolved' ? Colors.green : Colors.grey,
+            ),
+            child: Text('Confirm', style: const TextStyle(fontFamily: 'Poppins')),
           ),
         ],
       ),
@@ -1878,94 +1922,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     setState(() => _isProcessing = true);
 
     try {
-      // Update request status
+      // Update feedback status
       await FirebaseFirestore.instance
-          .collection('deletionRequests')
-          .doc(requestId)
+          .collection('feedback')
+          .doc(feedbackId)
           .update({
-        'status': 'approved',
-        'approvedAt': FieldValue.serverTimestamp(),
-        'approvedBy': FirebaseAuth.instance.currentUser?.uid,
-      });
-
-      // Send notification to user
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'userId': userId,
-        'title': '✅ Account Deletion Approved',
-        'message': 'Your account deletion request has been approved. Your account is now scheduled for deletion and will be removed within 24-48 hours. Thank you for using AgriSynch.',
-        'type': 'account_deletion',
-        'isRead': false,
-        'timestamp': FieldValue.serverTimestamp(),
+        'status': status,
+        'resolvedAt': FieldValue.serverTimestamp(),
+        'resolvedBy': FirebaseAuth.instance.currentUser?.uid,
       });
 
       if (!mounted) return;
-      _showSuccess('Deletion request approved! User has been notified.');
+      _showSuccess('Feedback marked as $statusLabel');
     } catch (e) {
       if (!mounted) return;
-      _showError('Error approving request: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
-    }
-  }
-
-  Future<void> _denyRequest(String requestId, String userId, String userName) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Deny Deletion Request',
-          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Are you sure you want to deny the deletion request for "$userName"?\n\nThis will notify the user that their request has been denied.',
-          style: const TextStyle(fontFamily: 'Poppins'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Deny Request', style: TextStyle(fontFamily: 'Poppins')),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() => _isProcessing = true);
-
-    try {
-      // Update request status
-      await FirebaseFirestore.instance
-          .collection('deletionRequests')
-          .doc(requestId)
-          .update({
-        'status': 'denied',
-        'deniedAt': FieldValue.serverTimestamp(),
-        'deniedBy': FirebaseAuth.instance.currentUser?.uid,
-      });
-
-      // Send notification to user
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'userId': userId,
-        'title': '❌ Account Deletion Denied',
-        'message': 'Your account deletion request has been reviewed and denied. If you have questions or concerns, please contact support. Your account remains active.',
-        'type': 'account_deletion',
-        'isRead': false,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      if (!mounted) return;
-      _showSuccess('Deletion request denied. User has been notified.');
-    } catch (e) {
-      if (!mounted) return;
-      _showError('Error denying request: $e');
+      _showError('Error updating feedback: $e');
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);

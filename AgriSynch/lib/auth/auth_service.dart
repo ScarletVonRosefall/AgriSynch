@@ -385,11 +385,17 @@ class AuthService {
     }
   }
 
-  // Submit account deletion request
-  static Future<bool> submitDeletionRequest(String reason) async {
+  // Submit account action request (suspension or deletion)
+  static Future<bool> submitAccountActionRequest(String reason, String requestType) async {
     try {
       final user = currentUser;
       if (user == null) return false;
+
+      // Validate request type
+      if (requestType != 'suspension' && requestType != 'deletion') {
+        print('❌ Invalid request type: $requestType');
+        return false;
+      }
 
       // Check rate limit
       final canRequest = await RateLimitService.checkRateLimit(
@@ -406,20 +412,28 @@ class AuthService {
       DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
       final userData = userDoc.data() as Map<String, dynamic>?;
 
-      // Create deletion request
-      await _firestore.collection('deletionRequests').add({
+      // Create account action request
+      await _firestore.collection('accountActionRequests').add({
         'userId': user.uid,
         'userName': userData?['name'] ?? 'Unknown User',
         'userEmail': user.email ?? '',
+        'requestType': requestType, // 'suspension' or 'deletion'
         'reason': reason,
         'requestDate': FieldValue.serverTimestamp(),
         'status': 'pending',
       });
 
+      print('✅ Account action request submitted: $requestType for user ${user.uid}');
       return true;
     } catch (e) {
-      print('Error submitting deletion request: $e');
+      print('❌ Error submitting account action request: $e');
       return false;
     }
+  }
+
+  // Legacy method - kept for backwards compatibility
+  @deprecated
+  static Future<bool> submitDeletionRequest(String reason) async {
+    return submitAccountActionRequest(reason, 'deletion');
   }
 }
