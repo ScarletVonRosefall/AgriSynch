@@ -54,15 +54,22 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     setState(() => isLoading = true);
     
     try {
+      print('📢 Initializing notification data...');
+      
       // Load notifications from both SharedPreferences and Firestore
       final localNotifications = await NotificationHelper.getNotifications();
+      print('📢 Loaded ${localNotifications.length} local notifications');
+      
       final firestoreNotifications = await _loadFirestoreNotifications();
+      print('📢 Loaded ${firestoreNotifications.length} Firestore notifications');
 
       // Combine and sort by timestamp
       final allNotifications = [...localNotifications, ...firestoreNotifications];
       allNotifications.sort((a, b) => 
         DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp']))
       );
+
+      print('📢 Total notifications: ${allNotifications.length}');
 
       if (!_mounted) return;
 
@@ -71,6 +78,7 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         isLoading = false;
       });
     } catch (e) {
+      print('❌ Error initializing data: $e');
       if (!_mounted) return;
       setState(() {
         notifications = [];
@@ -82,16 +90,24 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
   Future<List<Map<String, dynamic>>> _loadFirestoreNotifications() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return [];
+      if (user == null) {
+        print('📢 No authenticated user for notifications');
+        return [];
+      }
 
+      print('📢 Loading Firestore notifications for user: ${user.uid}');
+      
       final snapshot = await FirebaseFirestore.instance
           .collection('notifications')
           .where('userId', isEqualTo: user.uid)
           .orderBy('timestamp', descending: true)
           .get();
 
-      return snapshot.docs.map((doc) {
+      print('📢 Found ${snapshot.docs.length} Firestore notifications');
+      
+      final notifications = snapshot.docs.map((doc) {
         final data = doc.data();
+        print('📢 Notification: ${data['title']} - isRead: ${data['isRead']}');
         return {
           'id': doc.id,
           'title': data['title'] ?? '',
@@ -103,8 +119,12 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
           'source': 'firestore', // Mark as Firestore notification
         };
       }).toList();
+      
+      print('📢 Returning ${notifications.length} notifications');
+      return notifications;
     } catch (e) {
-      print('Error loading Firestore notifications: $e');
+      print('❌ Error loading Firestore notifications: $e');
+      print('❌ Error type: ${e.runtimeType}');
       return [];
     }
   }

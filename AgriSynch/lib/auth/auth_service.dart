@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/input_validator.dart';
+import '../services/rate_limit_service.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -389,6 +390,17 @@ class AuthService {
     try {
       final user = currentUser;
       if (user == null) return false;
+
+      // Check rate limit
+      final canRequest = await RateLimitService.checkRateLimit(
+        'deletion_request',
+        userId: user.uid,
+      );
+      if (!canRequest) {
+        final errorMessage = RateLimitService.getRateLimitMessage('deletion_request');
+        print('🚫 AuthService: $errorMessage');
+        throw Exception(errorMessage);
+      }
 
       // Get user data for the request
       DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();

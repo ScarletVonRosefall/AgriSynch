@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart' show AppOrder;
 import 'notification_service.dart';
 import '../shared/notification_helper.dart';
+import 'rate_limit_service.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,6 +15,17 @@ class OrderService {
 
   Future<void> createOrder(AppOrder order) async {
     try {
+      // Check rate limit
+      final canCreate = await RateLimitService.checkRateLimit(
+        'order_create',
+        userId: order.buyerId,
+      );
+      if (!canCreate) {
+        final errorMessage = RateLimitService.getRateLimitMessage('order_create');
+        print('🚫 OrderService: $errorMessage');
+        throw Exception(errorMessage);
+      }
+
       print('📝 Creating order: ${order.id}');
       
       final orderRef = _firestore.collection('orders').doc(order.id);

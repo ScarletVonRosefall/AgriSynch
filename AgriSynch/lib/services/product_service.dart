@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product.dart';
+import 'rate_limit_service.dart';
 
 class ProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -117,6 +118,17 @@ class ProductService {
   Future<String> addProduct(Product product) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
+    // Check rate limit
+    final canCreate = await RateLimitService.checkRateLimit(
+      'product_create',
+      userId: currentUserId,
+    );
+    if (!canCreate) {
+      final errorMessage = RateLimitService.getRateLimitMessage('product_create');
+      print('🚫 ProductService: $errorMessage');
+      throw Exception(errorMessage);
+    }
+
     final docRef = await _productsCollection.add(product.toFirestore());
     print('✅ Product added: ${docRef.id}');
     return docRef.id;
@@ -124,6 +136,17 @@ class ProductService {
 
   Future<void> updateProduct(String productId, Map<String, dynamic> updates) async {
     if (currentUserId == null) throw Exception('User not authenticated');
+
+    // Check rate limit
+    final canUpdate = await RateLimitService.checkRateLimit(
+      'product_update',
+      userId: currentUserId,
+    );
+    if (!canUpdate) {
+      final errorMessage = RateLimitService.getRateLimitMessage('product_update');
+      print('🚫 ProductService: $errorMessage');
+      throw Exception(errorMessage);
+    }
 
     updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
 

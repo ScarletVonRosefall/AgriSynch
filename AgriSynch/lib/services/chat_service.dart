@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message.dart';
 import 'dart:math';
+import 'rate_limit_service.dart';
 
 class ChatService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -33,6 +34,17 @@ class ChatService {
       if (currentUser == null) {
         print('❌ ChatService: No authenticated user');
         return false;
+      }
+
+      // Check rate limit
+      final canSend = await RateLimitService.checkRateLimit(
+        'message_send',
+        userId: currentUser.uid,
+      );
+      if (!canSend) {
+        final errorMessage = RateLimitService.getRateLimitMessage('message_send');
+        print('🚫 ChatService: $errorMessage');
+        throw Exception(errorMessage);
       }
 
       final senderId = currentUser.uid;

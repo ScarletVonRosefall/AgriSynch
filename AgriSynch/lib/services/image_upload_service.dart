@@ -2,6 +2,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'rate_limit_service.dart';
 
 class ImageUploadService {
   // Try to use default instance first, will auto-detect bucket
@@ -76,6 +77,17 @@ class ImageUploadService {
     if (currentUserId == null) {
       print('❌ Error: User not authenticated');
       throw Exception('User not authenticated. Please login again.');
+    }
+
+    // Check rate limit
+    final canUpload = await RateLimitService.checkRateLimit(
+      'image_upload',
+      userId: currentUserId,
+    );
+    if (!canUpload) {
+      final errorMessage = RateLimitService.getRateLimitMessage('image_upload');
+      print('🚫 ImageUploadService: $errorMessage');
+      throw Exception(errorMessage);
     }
 
     try {
