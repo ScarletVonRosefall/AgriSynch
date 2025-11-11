@@ -1,4 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 
 class NotificationHelper {
@@ -9,6 +11,7 @@ class NotificationHelper {
   static const String orderUpdate = 'order_update';
   static const String systemNotification = 'system';
   static const String taskDeadline = 'task_deadline';
+  static const String accountDeletion = 'account_deletion';
 
   static Future<List<Map<String, dynamic>>> getNotifications() async {
     final prefs = await SharedPreferences.getInstance();
@@ -99,8 +102,27 @@ class NotificationHelper {
   }
 
   static Future<int> getUnreadCount() async {
-    final notifications = await getNotifications();
-    return notifications.where((n) => n['isRead'] == false).length;
+    try {
+      // Get local notifications
+      final localNotifications = await getNotifications();
+      final localUnread = localNotifications.where((n) => n['isRead'] == false).length;
+
+      // Get Firestore notifications
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return localUnread;
+
+      final firestoreSnapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      return localUnread + firestoreSnapshot.docs.length;
+    } catch (e) {
+      print('Error getting unread count: $e');
+      final notifications = await getNotifications();
+      return notifications.where((n) => n['isRead'] == false).length;
+    }
   }
 
   // Helper method to create task-related notifications
@@ -193,6 +215,8 @@ class NotificationHelper {
         return '⏰';
       case systemNotification:
         return '🔔';
+      case accountDeletion:
+        return '🗑️';
       default:
         return '📢';
     }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../firebase_options.dart';
 import '../shared/theme_helper.dart';
 
 class AgriSynchRecoverPage extends StatefulWidget {
@@ -187,84 +185,6 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
                     _inputField("Email", emailController),
                     const SizedBox(height: 24),
                     // Debug info text
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Debug Info:",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          StreamBuilder<User?>(
-                            stream: FirebaseAuth.instance.authStateChanges(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasError) {
-                                return Text(
-                                  "Firebase Error: ${snapshot.error}",
-                                  style: const TextStyle(color: Colors.red),
-                                );
-                              }
-                              
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Text(
-                                  "Checking Firebase status...",
-                                  style: TextStyle(color: Colors.white),
-                                );
-                              }
-
-                              final auth = FirebaseAuth.instance;
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Firebase Status:",
-                                    style: TextStyle(color: Colors.white70),
-                                  ),
-                                  const Text(
-                                    "- Connection: Active",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  Text(
-                                    "- Auth State: ${auth.currentUser != null ? 'Signed In' : 'Not Signed In'}",
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  if (emailController.text.isNotEmpty) Text(
-                                    "- Checking Email: ${emailController.text}",
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  Text(
-                                    "- Platform: ${defaultTargetPlatform.toString()}",
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  Text(
-                                    "- Project ID: ${DefaultFirebaseOptions.currentPlatform.projectId}",
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  if (auth.currentUser != null) ...[
-                                    Text(
-                                      "- Current User: ${auth.currentUser?.email}",
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                    Text(
-                                      "- Email Verified: ${auth.currentUser?.emailVerified}",
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                  ],
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
                     const SizedBox(height: 24),
                     Center(
                       child: ElevatedButton(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../shared/theme_helper.dart';
 import '../farmer/AgriSynchHomePage.dart';
 import '../buyer/AgriSynchBuyerHomePage.dart';
@@ -417,55 +418,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: ThemeHelper.getCardColor(isDarkMode),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: ThemeHelper.getTextColor(isDarkMode),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: ThemeHelper.getSecondaryTextColor(isDarkMode),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Tab 2: Deletion Requests
   Widget _buildDeletionRequestsTab() {
     return StreamBuilder<QuerySnapshot>(
@@ -610,7 +562,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => _denyRequest(request.id, userName),
+                            onPressed: () => _denyRequest(request.id, userId, userName),
                             icon: const Icon(Icons.close),
                             label: const Text('Deny'),
                             style: ElevatedButton.styleFrom(
@@ -1013,6 +965,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                             ],
                             onSelected: (value) {
                               switch (value) {
+                                case 'view':
+                                  _showUserDetailsDialog(user.id, data);
+                                  break;
                                 case 'ban':
                                   _showBanUserDialog(user.id, name, permanent: true);
                                   break;
@@ -1455,6 +1410,146 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
+  Future<void> _showUserDetailsDialog(String userId, Map<String, dynamic> data) async {
+    final name = data['name'] ?? 'Unknown';
+    final email = data['email'] ?? 'N/A';
+    final accountType = data['accountType'] ?? 'Unknown';
+    final location = data['location'] ?? 'N/A';
+    final isAdmin = data['isAdmin'] == true;
+    final isBanned = data['banned'] == true;
+    final isSuspended = data['suspended'] == true;
+    final banReason = data['banReason'] ?? '';
+    final suspendedUntil = data['suspendedUntil'] as Timestamp?;
+    final averageRating = data['averageRating'] ?? 0.0;
+    final reviewCount = data['reviewCount'] ?? 0;
+    
+    // Get user's product count (if farmer)
+    int productCount = 0;
+    if (accountType == 'Farmer') {
+      final products = await FirebaseFirestore.instance
+          .collection('products')
+          .where('farmerId', isEqualTo: userId)
+          .get();
+      productCount = products.docs.length;
+    }
+    
+    // Get user's order count
+    final buyerOrders = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('buyerId', isEqualTo: userId)
+        .get();
+    final sellerOrders = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('farmerId', isEqualTo: userId)
+        .get();
+    final totalOrders = buyerOrders.docs.length + sellerOrders.docs.length;
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: isBanned 
+                  ? Colors.red 
+                  : (isAdmin ? Colors.purple : const Color(0xFF00A862)),
+              child: Icon(
+                isBanned 
+                    ? Icons.block 
+                    : (isAdmin ? Icons.admin_panel_settings : Icons.person),
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _detailRow(Icons.email, 'Email', email),
+              _detailRow(Icons.person_outline, 'Account Type', accountType),
+              _detailRow(Icons.location_on, 'Location', location),
+              if (isAdmin)
+                _detailRow(Icons.admin_panel_settings, 'Role', 'Administrator', color: Colors.purple),
+              if (isBanned || isSuspended) ...[
+                const Divider(height: 24),
+                _detailRow(
+                  Icons.block,
+                  isBanned ? 'Status' : 'Suspended Until',
+                  isBanned 
+                      ? 'PERMANENTLY BANNED' 
+                      : (suspendedUntil != null 
+                          ? _formatDate(suspendedUntil.toDate())
+                          : 'Unknown'),
+                  color: Colors.red,
+                ),
+                if (banReason.isNotEmpty)
+                  _detailRow(Icons.info_outline, 'Reason', banReason, color: Colors.red),
+              ],
+              const Divider(height: 24),
+              _detailRow(Icons.star, 'Average Rating', '${averageRating.toStringAsFixed(1)} ⭐ ($reviewCount reviews)'),
+              if (accountType == 'Farmer')
+                _detailRow(Icons.inventory, 'Products', '$productCount'),
+              _detailRow(Icons.shopping_bag, 'Orders', '$totalOrders'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color ?? Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showDeleteUserConfirmation(String userId, String userName) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1483,72 +1578,92 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
+  // Helper method to delete user data (used by both ban and delete functions)
+  Future<void> _deleteUserData(String userId) async {
+    final messagesQuery = await FirebaseFirestore.instance
+        .collection('messages')
+        .where('senderId', isEqualTo: userId)
+        .get();
+    
+    for (var doc in messagesQuery.docs) {
+      await doc.reference.delete();
+    }
+
+    final receivedMessagesQuery = await FirebaseFirestore.instance
+        .collection('messages')
+        .where('receiverId', isEqualTo: userId)
+        .get();
+    
+    for (var doc in receivedMessagesQuery.docs) {
+      await doc.reference.delete();
+    }
+
+    final notificationsQuery = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .get();
+    
+    for (var doc in notificationsQuery.docs) {
+      await doc.reference.delete();
+    }
+
+    final productsQuery = await FirebaseFirestore.instance
+        .collection('products')
+        .where('farmerId', isEqualTo: userId)
+        .get();
+    
+    for (var doc in productsQuery.docs) {
+      await doc.reference.delete();
+    }
+
+    final ordersAsBuyerQuery = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('buyerId', isEqualTo: userId)
+        .get();
+    
+    for (var doc in ordersAsBuyerQuery.docs) {
+      await doc.reference.delete();
+    }
+
+    final ordersAsSellerQuery = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: userId)
+        .get();
+    
+    for (var doc in ordersAsSellerQuery.docs) {
+      await doc.reference.delete();
+    }
+  }
+
   Future<void> _performFullUserDeletion(String userId) async {
     setState(() => _isProcessing = true);
 
     try {
-      // Delete all user data (same as deletion request approval)
-      final messagesQuery = await FirebaseFirestore.instance
-          .collection('messages')
-          .where('senderId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in messagesQuery.docs) {
-        await doc.reference.delete();
-      }
-
-      final receivedMessagesQuery = await FirebaseFirestore.instance
-          .collection('messages')
-          .where('receiverId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in receivedMessagesQuery.docs) {
-        await doc.reference.delete();
-      }
-
-      final notificationsQuery = await FirebaseFirestore.instance
-          .collection('notifications')
-          .where('userId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in notificationsQuery.docs) {
-        await doc.reference.delete();
-      }
-
-      final productsQuery = await FirebaseFirestore.instance
-          .collection('products')
-          .where('farmerId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in productsQuery.docs) {
-        await doc.reference.delete();
-      }
-
-      final ordersAsBuyerQuery = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('buyerId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in ordersAsBuyerQuery.docs) {
-        await doc.reference.delete();
-      }
-
-      final ordersAsSellerQuery = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('sellerId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in ordersAsSellerQuery.docs) {
-        await doc.reference.delete();
-      }
-
-      await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+      // Call Cloud Function to delete user from Auth + Firestore
+      final callable = FirebaseFunctions.instance.httpsCallable('deleteUserAccount');
+      final result = await callable.call({'userId': userId});
 
       if (!mounted) return;
-      _showSuccess('User deleted successfully');
+      
+      if (result.data['success'] == true) {
+        _showSuccess('User and all associated data deleted successfully');
+      } else {
+        _showError('Failed to delete user: ${result.data['message']}');
+      }
     } catch (e) {
-      if (!mounted) return;
-      _showError('Error deleting user: $e');
+      print('Error calling deleteUserAccount: $e');
+      
+      // Fallback to local deletion (only Firestore, not Auth)
+      try {
+        await _deleteUserData(userId);
+        await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+
+        if (!mounted) return;
+        _showSuccess('User data deleted (Auth account may still exist - contact system admin)');
+      } catch (fallbackError) {
+        if (!mounted) return;
+        _showError('Error deleting user: $fallbackError');
+      }
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -1603,11 +1718,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(
-          'Confirm Deletion',
+          'Approve Deletion Request',
           style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to permanently delete the account for "$userName"?\n\nThis will delete:\n• User profile\n• All messages\n• All notifications\n• All products\n• All orders\n• Authentication account\n\nThis action cannot be undone!',
+          'Approve deletion request for "$userName"?\n\nThis will notify the user that their request has been approved and their account is scheduled for deletion.',
           style: const TextStyle(fontFamily: 'Poppins'),
         ),
         actions: [
@@ -1617,8 +1732,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete Account', style: TextStyle(fontFamily: 'Poppins')),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Approve', style: TextStyle(fontFamily: 'Poppins')),
           ),
         ],
       ),
@@ -1629,8 +1744,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     setState(() => _isProcessing = true);
 
     try {
-      await _performFullUserDeletion(userId);
-
+      // Update request status
       await FirebaseFirestore.instance
           .collection('deletionRequests')
           .doc(requestId)
@@ -1640,11 +1754,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         'approvedBy': FirebaseAuth.instance.currentUser?.uid,
       });
 
+      // Send notification to user
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'userId': userId,
+        'title': '✅ Account Deletion Approved',
+        'message': 'Your account deletion request has been approved. Your account is now scheduled for deletion and will be removed within 24-48 hours. Thank you for using AgriSynch.',
+        'type': 'account_deletion',
+        'isRead': false,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
       if (!mounted) return;
-      _showSuccess('Account deleted successfully!');
+      _showSuccess('Deletion request approved! User has been notified.');
     } catch (e) {
       if (!mounted) return;
-      _showError('Error deleting account: $e');
+      _showError('Error approving request: $e');
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -1652,7 +1776,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
-  Future<void> _denyRequest(String requestId, String userName) async {
+  Future<void> _denyRequest(String requestId, String userId, String userName) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1661,7 +1785,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to deny the deletion request for "$userName"?',
+          'Are you sure you want to deny the deletion request for "$userName"?\n\nThis will notify the user that their request has been denied.',
           style: const TextStyle(fontFamily: 'Poppins'),
         ),
         actions: [
@@ -1683,6 +1807,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     setState(() => _isProcessing = true);
 
     try {
+      // Update request status
       await FirebaseFirestore.instance
           .collection('deletionRequests')
           .doc(requestId)
@@ -1692,8 +1817,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         'deniedBy': FirebaseAuth.instance.currentUser?.uid,
       });
 
+      // Send notification to user
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'userId': userId,
+        'title': '❌ Account Deletion Denied',
+        'message': 'Your account deletion request has been reviewed and denied. If you have questions or concerns, please contact support. Your account remains active.',
+        'type': 'account_deletion',
+        'isRead': false,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
       if (!mounted) return;
-      _showSuccess('Deletion request denied');
+      _showSuccess('Deletion request denied. User has been notified.');
     } catch (e) {
       if (!mounted) return;
       _showError('Error denying request: $e');
@@ -1708,64 +1843,89 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   Future<void> _showBanUserDialog(String userId, String userName, {required bool permanent}) async {
     final reasonController = TextEditingController();
     int? suspendDays;
+    bool deleteData = false;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          permanent ? 'Ban User Permanently' : 'Suspend User Temporarily',
-          style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              permanent 
-                  ? 'Permanently ban "$userName"? They will not be able to log in.'
-                  : 'Temporarily suspend "$userName"?',
-              style: const TextStyle(fontFamily: 'Poppins'),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                labelStyle: TextStyle(fontFamily: 'Poppins'),
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            if (!permanent) ...[
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(
-                  labelText: 'Suspend Duration',
-                  labelStyle: TextStyle(fontFamily: 'Poppins'),
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            permanent ? 'Ban User Permanently' : 'Suspend User Temporarily',
+            style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  permanent 
+                      ? 'Permanently ban "$userName"? They will not be able to log in.'
+                      : 'Temporarily suspend "$userName"?',
+                  style: const TextStyle(fontFamily: 'Poppins'),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('1 day')),
-                  DropdownMenuItem(value: 3, child: Text('3 days')),
-                  DropdownMenuItem(value: 7, child: Text('7 days')),
-                  DropdownMenuItem(value: 14, child: Text('14 days')),
-                  DropdownMenuItem(value: 30, child: Text('30 days')),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    labelStyle: TextStyle(fontFamily: 'Poppins'),
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                if (!permanent) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Suspend Duration',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('1 day')),
+                      DropdownMenuItem(value: 3, child: Text('3 days')),
+                      DropdownMenuItem(value: 7, child: Text('7 days')),
+                      DropdownMenuItem(value: 14, child: Text('14 days')),
+                      DropdownMenuItem(value: 30, child: Text('30 days')),
+                    ],
+                    onChanged: (value) => suspendDays = value,
+                  ),
                 ],
-                onChanged: (value) => suspendDays = value,
-              ),
-            ],
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  title: const Text(
+                    'Delete all user data',
+                    style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, color: Colors.red),
+                  ),
+                  subtitle: const Text(
+                    'This will permanently delete:\n• Messages & conversations\n• Products & orders\n• Notifications\n• All user content',
+                    style: TextStyle(fontFamily: 'Poppins', fontSize: 12),
+                  ),
+                  value: deleteData,
+                  onChanged: (value) {
+                    setDialogState(() => deleteData = value ?? false);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text(permanent ? 'Ban' : 'Suspend', style: const TextStyle(fontFamily: 'Poppins')),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(permanent ? 'Ban' : 'Suspend', style: const TextStyle(fontFamily: 'Poppins')),
-          ),
-        ],
       ),
     );
 
@@ -1775,15 +1935,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         reasonController.dispose();
         return;
       }
-      await _banUser(userId, userName, reasonController.text, permanent, suspendDays);
+      await _banUser(userId, userName, reasonController.text, permanent, suspendDays, deleteData);
     }
     reasonController.dispose();
   }
 
-  Future<void> _banUser(String userId, String userName, String reason, bool permanent, int? days) async {
+  Future<void> _banUser(String userId, String userName, String reason, bool permanent, int? days, bool deleteData) async {
     setState(() => _isProcessing = true);
 
     try {
+      // If deleteData is true, delete all user data first
+      if (deleteData) {
+        await _deleteUserData(userId);
+      }
+
       final banData = <String, dynamic>{
         'banned': permanent,
         'banReason': reason,
@@ -1908,7 +2073,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       
       for (final userId in _selectedUserIds) {
         try {
-          await _banUser(userId, 'User', 'Bulk ban by admin', true, null);
+          await _banUser(userId, 'User', 'Bulk ban by admin', true, null, false);
         } catch (e) {
           print('Error banning user $userId: $e');
         }

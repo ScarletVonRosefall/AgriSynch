@@ -44,6 +44,11 @@ service cloud.firestore {
       return status in ['pending', 'confirmed', 'preparing', 'delivering', 'delivered', 'cancelled'];
     }
     
+    // Check if user is admin
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
     // ==================== PRODUCTS COLLECTION ====================
     
     match /products/{productId} {
@@ -63,6 +68,7 @@ service cloud.firestore {
       
       // Only the farmer who created can update their product
       // OR buyers can update ONLY the stock field (when placing orders)
+      // OR admins can update any product
       allow update: if isSignedIn() && (
         // Farmer updating their own product
         (resource.data.farmerId == request.auth.uid
@@ -76,10 +82,16 @@ service cloud.firestore {
         // Allow any authenticated user to decrease stock
         (request.resource.data.stock <= resource.data.stock 
           && request.resource.data.stock >= 0)
+        ||
+        // Admin can update any product
+        isAdmin()
       );
       
-      // Only the farmer who created can delete their product
-      allow delete: if isSignedIn() && resource.data.farmerId == request.auth.uid;
+      // Only the farmer who created can delete their product OR admins can delete any product
+      allow delete: if isSignedIn() && (
+        resource.data.farmerId == request.auth.uid
+        || isAdmin()
+      );
     }
     
     // ==================== ORDERS COLLECTION ====================
@@ -97,7 +109,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && (
         resource.data.buyerId == request.auth.uid || 
         resource.data.farmerId == request.auth.uid ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        isAdmin()
       );
       
       // Only farmers can update order status (not buyer or total amount)
@@ -108,10 +120,11 @@ service cloud.firestore {
         && request.resource.data.totalAmount == resource.data.totalAmount // Prevent price change
         && isValidOrderStatus(request.resource.data.status);
       
-      // Only buyers can cancel pending orders
-      allow delete: if isSignedIn() 
-        && resource.data.buyerId == request.auth.uid 
-        && resource.data.status == 'pending';
+      // Only buyers can cancel pending orders OR admins can delete any order
+      allow delete: if isSignedIn() && (
+        (resource.data.buyerId == request.auth.uid && resource.data.status == 'pending')
+        || isAdmin()
+      );
     }
     
     // ==================== USERS COLLECTION ====================
@@ -123,13 +136,15 @@ service cloud.firestore {
       // Users can create their own profile
       allow create: if isOwner(userId);
       
-      // Users can update their own profile, OR anyone can update rating fields
+      // Users can update their own profile, OR anyone can update rating fields, OR admins can update ban status
       allow update: if isOwner(userId) 
         || (isSignedIn() 
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'reviewCount']));
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'reviewCount']))
+        || isAdmin();
       
-      // Users can only delete their own profile
-      allow delete: if isOwner(userId);
+      // Users can delete their own profile OR admins can delete any user
+      allow delete: if isOwner(userId) 
+        || isAdmin();
       
       // ========== TASKS SUBCOLLECTION ==========
       match /tasks/{taskId} {
@@ -250,8 +265,27 @@ service cloud.firestore {
     
     // Messages collection - Simplified rules
     match /messages/{messageId} {
-      // Any authenticated user can create, read, update messages
-      allow read, write: if isSignedIn();
+      // Check if a user is banned or suspended
+      function isUserBannedOrSuspended(userId) {
+        let userData = get(/databases/$(database)/documents/users/$(userId)).data;
+        return userData.get('banned', false) == true || userData.get('suspended', false) == true;
+      }
+      
+      // Any authenticated user can read messages
+      allow read: if isSignedIn();
+      
+      // Users can create messages only if neither sender nor receiver is banned/suspended
+      allow create: if isSignedIn() 
+        && request.resource.data.senderId == request.auth.uid
+        && !isUserBannedOrSuspended(request.resource.data.senderId)
+        && !isUserBannedOrSuspended(request.resource.data.receiverId);
+      
+      // Users can update their own messages if not banned/suspended
+      allow update: if isSignedIn() 
+        && !isUserBannedOrSuspended(request.auth.uid);
+      
+      // Anyone can delete messages (for chat cleanup) OR admins can delete any message
+      allow delete: if isSignedIn();
     }
     
     // Conversations collection - Simplified rules
@@ -293,11 +327,6 @@ service cloud.firestore {
     
     // ==================== ADMIN COLLECTIONS ====================
     
-    // Check if user is admin
-    function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
     // Deletion Requests
     match /deletionRequests/{requestId} {
       // Users can create deletion requests for themselves
@@ -324,17 +353,17 @@ service cloud.firestore {
     
     // Notifications
     match /notifications/{notificationId} {
-      // Users can read their own notifications
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can read their own notifications OR admins can read all
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Users can update their own notifications (mark as read)
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can update their own notifications (mark as read) OR admins can update any
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
       // Admins can create notifications for anyone
       allow create: if isAdmin();
       
-      // Users can delete their own notifications
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can delete their own notifications OR admins can delete any
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

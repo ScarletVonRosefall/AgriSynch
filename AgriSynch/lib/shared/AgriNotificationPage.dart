@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'notification_helper.dart';
 import 'theme_helper.dart';
 
@@ -52,13 +54,20 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     setState(() => isLoading = true);
     
     try {
-      // Load notifications
-      final newNotifications = await NotificationHelper.getNotifications();
+      // Load notifications from both SharedPreferences and Firestore
+      final localNotifications = await NotificationHelper.getNotifications();
+      final firestoreNotifications = await _loadFirestoreNotifications();
+
+      // Combine and sort by timestamp
+      final allNotifications = [...localNotifications, ...firestoreNotifications];
+      allNotifications.sort((a, b) => 
+        DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp']))
+      );
 
       if (!_mounted) return;
 
       setState(() {
-        notifications = newNotifications;
+        notifications = allNotifications;
         isLoading = false;
       });
     } catch (e) {
@@ -70,19 +79,57 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _loadFirestoreNotifications() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return [];
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'title': data['title'] ?? '',
+          'message': data['message'] ?? '',
+          'type': data['type'] ?? 'system',
+          'timestamp': (data['timestamp'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
+          'isRead': data['isRead'] ?? false,
+          'data': data['data'] ?? {},
+          'source': 'firestore', // Mark as Firestore notification
+        };
+      }).toList();
+    } catch (e) {
+      print('Error loading Firestore notifications: $e');
+      return [];
+    }
+  }
+
   Future<void> loadNotifications() async {
     if (!_mounted) return;
     
     setState(() => isLoading = true);
     
     try {
-      final newNotifications = await NotificationHelper.getNotifications()
+      final localNotifications = await NotificationHelper.getNotifications()
           .timeout(const Duration(seconds: 5));
+      final firestoreNotifications = await _loadFirestoreNotifications()
+          .timeout(const Duration(seconds: 5));
+
+      // Combine and sort by timestamp
+      final allNotifications = [...localNotifications, ...firestoreNotifications];
+      allNotifications.sort((a, b) => 
+        DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp']))
+      );
           
       if (!_mounted) return;
       
       setState(() {
-        notifications = newNotifications;
+        notifications = allNotifications;
         isLoading = false;
       });
     } catch (e) {
@@ -106,8 +153,17 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         }
       });
 
-      await NotificationHelper.markAsRead(notificationId)
-          .timeout(const Duration(seconds: 5));
+      // Check if it's a Firestore notification
+      final notification = notifications.firstWhere((n) => n['id'] == notificationId);
+      if (notification['source'] == 'firestore') {
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(notificationId)
+            .update({'isRead': true});
+      } else {
+        await NotificationHelper.markAsRead(notificationId)
+            .timeout(const Duration(seconds: 5));
+      }
           
       if (!_mounted) return;
       await loadNotifications();
@@ -128,8 +184,16 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         notifications.removeWhere((n) => n['id'] == notificationId);
       });
 
-      await NotificationHelper.deleteNotification(notificationId)
-          .timeout(const Duration(seconds: 5));
+      // Check if it's a Firestore notification
+      if (deletedNotification['source'] == 'firestore') {
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(notificationId)
+            .delete();
+      } else {
+        await NotificationHelper.deleteNotification(notificationId)
+            .timeout(const Duration(seconds: 5));
+      }
           
       if (!_mounted) return;
       
@@ -506,6 +570,8 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         return Colors.red;
       case NotificationHelper.systemNotification:
         return Colors.green;
+      case NotificationHelper.accountDeletion:
+        return Colors.purple;
       default:
         return Colors.grey;
     }

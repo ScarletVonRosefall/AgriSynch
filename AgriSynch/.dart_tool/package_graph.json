@@ -9,6 +9,7 @@
       "dependencies": [
         "cached_network_image",
         "cloud_firestore",
+        "cloud_functions",
         "cupertino_icons",
         "device_info_plus",
         "firebase_analytics",
@@ -107,6 +108,17 @@
         "flutter",
         "flutter_cache_manager",
         "octo_image"
+      ]
+    },
+    {
+      "name": "cloud_functions",
+      "version": "5.6.2",
+      "dependencies": [
+        "cloud_functions_platform_interface",
+        "cloud_functions_web",
+        "firebase_core",
+        "firebase_core_platform_interface",
+        "flutter"
       ]
     },
     {
@@ -502,6 +514,28 @@
       "dependencies": [
         "flutter",
         "flutter_cache_manager"
+      ]
+    },
+    {
+      "name": "cloud_functions_web",
+      "version": "4.11.5",
+      "dependencies": [
+        "cloud_functions_platform_interface",
+        "firebase_core",
+        "firebase_core_web",
+        "flutter",
+        "flutter_web_plugins",
+        "web"
+      ]
+    },
+    {
+      "name": "cloud_functions_platform_interface",
+      "version": "5.8.2",
+      "dependencies": [
+        "firebase_core",
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
       ]
     },
     {

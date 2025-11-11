@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
@@ -13,9 +16,7 @@ import '../shared/AgriCurrencyPage.dart';
 import '../auth/auth_service.dart';
 import '../services/task_service.dart';
 import '../services/order_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
-import 'dart:async';
 
 class AgriSynchHomePage extends StatefulWidget {
   const AgriSynchHomePage({super.key});
@@ -43,16 +44,60 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   
   StreamSubscription? _tasksSubscription;
   StreamSubscription? _ordersSubscription;
+  StreamSubscription? _banCheckSubscription;
 
   @override
   void initState() {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+    _setupBanListener();
     _initializeData();
   }
 
   void _onThemeChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _setupBanListener() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    _banCheckSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .snapshots()
+        .listen((snapshot) async {
+      if (!snapshot.exists || !mounted) return;
+
+      final data = snapshot.data();
+      final isBanned = data?['banned'] == true;
+      final suspendedUntil = data?['suspendedUntil'] as Timestamp?;
+      final isSuspended = suspendedUntil != null && 
+                         suspendedUntil.toDate().isAfter(DateTime.now());
+
+      if (isBanned || isSuspended) {
+        // User has been banned/suspended, sign them out
+        await FirebaseAuth.instance.signOut();
+        
+        if (!mounted) return;
+        
+        // Show message and redirect to login
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isBanned 
+                ? 'Your account has been banned. Reason: ${data?['banReason'] ?? 'Terms violation'}'
+                : 'Your account has been suspended until ${suspendedUntil?.toDate().toString().split(' ')[0]}',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+
+        // Navigate to login
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    });
   }
 
   @override
@@ -62,6 +107,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     _reloadTimer?.cancel();
     _tasksSubscription?.cancel();
     _ordersSubscription?.cancel();
+    _banCheckSubscription?.cancel();
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
