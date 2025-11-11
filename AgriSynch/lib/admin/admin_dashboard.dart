@@ -119,6 +119,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
+              await ThemeNotifier().resetTheme();
               await FirebaseAuth.instance.signOut();
               if (!mounted) return;
               Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);

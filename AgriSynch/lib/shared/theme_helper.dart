@@ -44,6 +44,12 @@ class ThemeNotifier {
       print('Error saving theme: $e');
     }
   }
+
+  /// Reset theme to light mode (used on logout)
+  Future<void> resetTheme() async {
+    _darkModeNotifier.value = false;
+    await _saveTheme();
+  }
 }
 
 class ThemeHelper {

@@ -102,6 +102,7 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
 
         if (!isAdmin) {
           // Not an admin - sign them out
+          await ThemeNotifier().resetTheme();
           await FirebaseAuth.instance.signOut();
           _showError("Access denied: This is not an admin account");
           return;
@@ -203,11 +204,14 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
         await storage.write(key: 'name', value: name);
         await storage.write(key: 'is_admin', value: 'true');
 
-        if (!mounted) return;
-        _showSuccess("Admin account created successfully!");
+        // Send email verification
+        await user.sendEmailVerification();
 
-        // Navigate to admin dashboard
-        Navigator.pushReplacementNamed(context, '/admin-dashboard');
+        if (!mounted) return;
+        _showSuccess("Admin account created! Please verify your email.");
+
+        // Navigate to email verification page
+        Navigator.pushReplacementNamed(context, '/verify', arguments: email);
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Sign-up failed';

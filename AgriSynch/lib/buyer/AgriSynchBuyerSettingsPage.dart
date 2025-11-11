@@ -214,28 +214,6 @@ class _AgriSynchBuyerSettingsPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 42,
-                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search settings...',
-                            border: InputBorder.none,
-                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
-                          ),
-                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -781,6 +759,9 @@ class _AgriSynchBuyerSettingsPageState
                 
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.clear();
+                
+                // Reset theme to light mode
+                await ThemeNotifier().resetTheme();
                 
                 // Sign out from Firebase
                 await FirebaseAuth.instance.signOut();
