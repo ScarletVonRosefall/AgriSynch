@@ -177,13 +177,9 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   Future<void> _loadNonCriticalData() async {
     if (!mounted) return;
 
-    try {
-      await Future.wait([
-        loadWeather(),
-        checkAndCreateSampleNotifications(),
-      ]).timeout(const Duration(seconds: 10));
-    } catch (e) {
-    }
+    // Load these independently without blocking each other
+    loadWeather().catchError((e) => print('Weather load failed: $e'));
+    checkAndCreateSampleNotifications().catchError((e) => print('Notifications check failed: $e'));
   }
 
   Future<void> loadTheme() async {
@@ -308,23 +304,24 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     if (!mounted) return;
 
     try {
-      final weather = await WeatherHelper.getCurrentWeather().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw TimeoutException('Weather data load timeout'),
-      );
-      
-      if (!mounted) return;
-      
-      setState(() {
-        currentWeather = weather;
+      // Don't block UI - fire and forget with callback
+      WeatherHelper.getCurrentWeather().then((weather) {
+        if (mounted) {
+          setState(() {
+            currentWeather = weather;
+          });
+        }
+      }).catchError((e) {
+        print('Weather load error: $e');
+        if (mounted) {
+          setState(() {
+            currentWeather = null;
+          });
+        }
       });
     } catch (e) {
       // Silently fail - weather is optional
-      if (mounted) {
-        setState(() {
-          currentWeather = null;
-        });
-      }
+      print('Weather init error: $e');
     }
   }
 
@@ -333,10 +330,16 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
-        );
+        if (currentWeather == null) {
+          // Retry loading weather if it failed
+          loadWeather();
+        } else {
+          // Navigate to weather page if already loaded
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
+          );
+        }
       },
       child: Container(
         width: double.infinity,
@@ -412,12 +415,22 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       ),
                     ),
                   ] else ...[
-                    Text(
-                      'Loading...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Tap to load',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.refresh,
+                          size: 14,
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
+                        ),
+                      ],
                     ),
                   ],
                 ],

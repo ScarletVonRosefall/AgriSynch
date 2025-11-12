@@ -6,8 +6,38 @@ class WeatherHelper {
   // Open-Meteo API - No API key required! 🎉
   static const String _baseUrl = 'https://api.open-meteo.com/v1/forecast';
   static const String _geocodingUrl = 'https://geocoding-api.open-meteo.com/v1/search';
+  
+  // Cache to prevent repeated API calls
+  static WeatherData? _cachedWeather;
+  static DateTime? _cacheTime;
+  static const Duration _cacheDuration = Duration(minutes: 10);
 
   static Future<WeatherData?> getCurrentWeather({
+    double? lat,
+    double? lon,
+    String? cityName,
+  }) async {
+    // Return cached data if still fresh
+    if (_cachedWeather != null && 
+        _cacheTime != null && 
+        DateTime.now().difference(_cacheTime!) < _cacheDuration) {
+      print('Returning cached weather data');
+      return _cachedWeather;
+    }
+    
+    try {
+      final weather = await _fetchWeather(lat: lat, lon: lon, cityName: cityName);
+      _cachedWeather = weather;
+      _cacheTime = DateTime.now();
+      return weather;
+    } catch (e) {
+      print('Weather fetch error: $e');
+      // Return cached data even if expired, if available
+      return _cachedWeather;
+    }
+  }
+
+  static Future<WeatherData?> _fetchWeather({
     double? lat,
     double? lon,
     String? cityName,
@@ -46,10 +76,10 @@ class WeatherHelper {
 
       print('Making Open-Meteo API request to: $url');
 
-      // Make API request (no API key needed!)
+      // Make API request (no API key needed!) with shorter timeout
       final response = await http
           .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 5));
 
       print('Weather API response status: ${response.statusCode}');
 
@@ -122,11 +152,11 @@ class WeatherHelper {
   // Get location name from coordinates
   static Future<String?> _getLocationName(double lat, double lon) async {
     try {
-      // Use Open-Meteo's reverse geocoding (correct endpoint)
+      // Use Open-Meteo's reverse geocoding (correct endpoint) with shorter timeout
       final url = 'https://geocoding-api.open-meteo.com/v1/reverse?latitude=$lat&longitude=$lon&count=1';
       print('Requesting location name from: $url');
       
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 3));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

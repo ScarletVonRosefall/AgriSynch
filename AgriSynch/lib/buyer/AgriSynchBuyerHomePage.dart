@@ -171,15 +171,27 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Fetch current weather data
   Future<void> loadWeather() async {
+    if (!mounted) return;
+
     try {
-      final weather = await WeatherHelper.getCurrentWeather();
-      setState(() {
-        currentWeather = weather;
+      // Don't block UI - fire and forget with callback
+      WeatherHelper.getCurrentWeather().then((weather) {
+        if (mounted) {
+          setState(() {
+            currentWeather = weather;
+          });
+        }
+      }).catchError((e) {
+        print('Weather load error: $e');
+        if (mounted) {
+          setState(() {
+            currentWeather = null;
+          });
+        }
       });
     } catch (e) {
-      setState(() {
-        currentWeather = null;
-      });
+      // Silently fail - weather is optional
+      print('Weather init error: $e');
     }
   }
 
@@ -219,10 +231,16 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
-        );
+        if (currentWeather == null) {
+          // Retry loading weather if it failed
+          loadWeather();
+        } else {
+          // Navigate to weather page if already loaded
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
+          );
+        }
       },
       child: Container(
         width: double.infinity,
@@ -295,12 +313,22 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       ),
                     ),
                   ] else ...[
-                    Text(
-                      'Loading...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Tap to load',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.refresh,
+                          size: 14,
+                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
+                        ),
+                      ],
                     ),
                   ],
                 ],
