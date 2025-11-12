@@ -66,6 +66,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         .collection('users')
         .doc(currentUser.uid)
         .snapshots()
+        .timeout(const Duration(seconds: 10))
         .listen((snapshot) async {
       if (!snapshot.exists || !mounted) return;
 
@@ -97,6 +98,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         // Navigate to login
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
+    }, onError: (error) {
+      print('Ban check subscription error: $error');
     });
   }
 
@@ -193,69 +196,75 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       _tasksSubscription?.cancel();
       _ordersSubscription?.cancel();
 
-      _tasksSubscription = _taskService.getTasks(limit: 100).listen((snapshot) {
-        if (!mounted) return;
-        
-        final newTasks = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'id': doc.id,
-            'title': data['title'] ?? '',
-            'description': data['description'] ?? '',
-            'completed': data['completed'] ?? false,
-            'dueDate': data['dueDate'],
-            'priority': data['priority'] ?? 'Medium',
-            'category': data['category'] ?? '',
-            'createdAt': data['createdAt'],
-          };
-        }).toList();
-        
-        if (mounted && !_areListsEqual(tasks, newTasks)) {
-          setState(() {
-            tasks = newTasks;
-          });
-        }
-      }, onError: (error) {
-        print('Error loading tasks: $error');
-        if (mounted) {
-          setState(() {
-            tasks = [];
-          });
-        }
-      });
+      // Add timeout wrapper for task stream
+      _tasksSubscription = _taskService.getTasks(limit: 100)
+        .timeout(const Duration(seconds: 10))
+        .listen((snapshot) {
+          if (!mounted) return;
+          
+          final newTasks = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'id': doc.id,
+              'title': data['title'] ?? '',
+              'description': data['description'] ?? '',
+              'completed': data['completed'] ?? false,
+              'dueDate': data['dueDate'],
+              'priority': data['priority'] ?? 'Medium',
+              'category': data['category'] ?? '',
+              'createdAt': data['createdAt'],
+            };
+          }).toList();
+          
+          if (mounted && !_areListsEqual(tasks, newTasks)) {
+            setState(() {
+              tasks = newTasks;
+            });
+          }
+        }, onError: (error) {
+          print('Error loading tasks: $error');
+          if (mounted) {
+            setState(() {
+              tasks = [];
+            });
+          }
+        });
 
-      _ordersSubscription = _orderService.getMyFarmerOrders().listen((ordersList) {
-        if (!mounted) return;
-        
-        final newOrders = ordersList.map((order) {
-          return {
-            'id': order.id,
-            'buyerName': order.buyerName,
-            'status': order.status,
-            'totalAmount': order.totalAmount,
-            'createdAt': Timestamp.fromDate(order.orderDate),
-            'items': order.items.map((item) => {
-              'productId': item.productId,
-              'name': item.name,
-              'quantity': item.quantity,
-              'price': item.price,
-            }).toList(),
-          };
-        }).toList();
-        
-        if (mounted && !_areListsEqual(orders, newOrders)) {
-          setState(() {
-            orders = newOrders;
-          });
-        }
-      }, onError: (error) {
-        print('Error loading orders: $error');
-        if (mounted) {
-          setState(() {
-            orders = [];
-          });
-        }
-      });
+      // Add timeout wrapper for orders stream
+      _ordersSubscription = _orderService.getMyFarmerOrders()
+        .timeout(const Duration(seconds: 10))
+        .listen((ordersList) {
+          if (!mounted) return;
+          
+          final newOrders = ordersList.map((order) {
+            return {
+              'id': order.id,
+              'buyerName': order.buyerName,
+              'status': order.status,
+              'totalAmount': order.totalAmount,
+              'createdAt': Timestamp.fromDate(order.orderDate),
+              'items': order.items.map((item) => {
+                'productId': item.productId,
+                'name': item.name,
+                'quantity': item.quantity,
+                'price': item.price,
+              }).toList(),
+            };
+          }).toList();
+          
+          if (mounted && !_areListsEqual(orders, newOrders)) {
+            setState(() {
+              orders = newOrders;
+            });
+          }
+        }, onError: (error) {
+          print('Error loading orders: $error');
+          if (mounted) {
+            setState(() {
+              orders = [];
+            });
+          }
+        });
 
     } catch (e) {
       print('Error setting up task/order streams: $e');

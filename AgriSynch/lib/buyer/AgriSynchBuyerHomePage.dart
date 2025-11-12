@@ -73,6 +73,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         .collection('users')
         .doc(currentUser.uid)
         .snapshots()
+        .timeout(const Duration(seconds: 10))
         .listen((snapshot) async {
       if (!snapshot.exists || !mounted) return;
 
@@ -104,6 +105,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         // Navigate to login
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
+    }, onError: (error) {
+      print('Ban check subscription error: $error');
     });
   }
 
