@@ -404,9 +404,11 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
     
-    return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      body: Column(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+          backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+          body: Column(
         children: [
           // Header
           Container(
@@ -581,6 +583,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                 : _buildProductGrid(),
           ),
         ],
+      ),
       ),
     );
   }

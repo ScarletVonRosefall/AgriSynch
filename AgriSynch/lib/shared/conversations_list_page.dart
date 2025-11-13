@@ -81,9 +81,11 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
     
-    return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      body: Column(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+        body: Column(
         children: [
           // --- Fixed Top Green Header ---
           Container(
@@ -409,6 +411,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
         },
         backgroundColor: const Color(0xFF00C853),
         child: const Icon(Icons.add, color: Colors.white),
+      ),
       ),
     );
   }

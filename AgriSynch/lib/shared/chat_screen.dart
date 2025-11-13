@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
+import '../services/review_service.dart';
 import 'theme_helper.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -271,30 +273,90 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.white,
                           size: 24,
                         ),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Conversation Info'),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('With: ${widget.otherUserName}'),
-                                  if (widget.productName != null)
-                                    Text('Product: ${widget.productName}'),
-                                  if (widget.orderId != null)
-                                    Text('Order ID: ${widget.orderId}'),
+                        onPressed: () async {
+                          // Fetch user information
+                          final userDoc = await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(widget.otherUserId)
+                              .get();
+                          
+                          final userData = userDoc.data();
+                          final userType = userData?['accountType'] ?? userData?['userType'] ?? userData?['role'] ?? 'User';
+                          final email = userData?['email'] ?? 'N/A';
+                          final phone = userData?['phone'] ?? 'N/A';
+                          final bio = userData?['bio'] ?? '';
+                          final location = userData?['location'] ?? 'N/A';
+                          final barangay = userData?['barangay'] ?? '';
+                          final municipality = userData?['municipality'] ?? '';
+                          final province = userData?['province'] ?? '';
+                          
+                          String fullLocation = location;
+                          if (barangay.isNotEmpty || municipality.isNotEmpty || province.isNotEmpty) {
+                            List<String> locationParts = [];
+                            if (barangay.isNotEmpty) locationParts.add(barangay);
+                            if (municipality.isNotEmpty) locationParts.add(municipality);
+                            if (province.isNotEmpty) locationParts.add(province);
+                            if (locationParts.isNotEmpty) {
+                              fullLocation = locationParts.join(', ');
+                            }
+                          }
+                          
+                          // Get rating stats if other user is a farmer
+                          Map<String, dynamic>? ratingStats;
+                          if (userType.toLowerCase() == 'farmer') {
+                            ratingStats = await ReviewService.getFarmerRatingStats(widget.otherUserId);
+                          }
+                          
+                          if (mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('User Info'),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildInfoRow(Icons.person, 'Name', widget.otherUserName),
+                                      const SizedBox(height: 12),
+                                      _buildInfoRow(Icons.badge, 'Type', userType),
+                                      if (ratingStats != null) ...[
+                                        const SizedBox(height: 12),
+                                        _buildRatingRow(
+                                          ratingStats['averageRating'] ?? 0.0,
+                                          ratingStats['reviewCount'] ?? 0,
+                                        ),
+                                      ],
+                                      const SizedBox(height: 12),
+                                      _buildInfoRow(Icons.email, 'Email', email),
+                                      const SizedBox(height: 12),
+                                      _buildInfoRow(Icons.phone, 'Phone', phone),
+                                      const SizedBox(height: 12),
+                                      _buildInfoRow(Icons.location_on, 'Location', fullLocation),
+                                      if (bio.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        _buildInfoRow(Icons.description, 'Bio', bio),
+                                      ],
+                                      if (widget.productName != null) ...[
+                                        const SizedBox(height: 12),
+                                        _buildInfoRow(Icons.shopping_bag, 'Product', widget.productName!),
+                                      ],
+                                      if (widget.orderId != null) ...[
+                                        const SizedBox(height: 12),
+                                        _buildInfoRow(Icons.receipt, 'Order ID', widget.orderId!),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Close'),
+                                  ),
                                 ],
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Close'),
-                                ),
-                              ],
-                            ),
-                          );
+                            );
+                          }
                         },
                       ),
                     ),
@@ -449,6 +511,86 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRatingRow(double averageRating, int reviewCount) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.star, size: 20, color: Colors.amber[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Rating',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  ...List.generate(5, (index) {
+                    if (index < averageRating.floor()) {
+                      return Icon(Icons.star, size: 16, color: Colors.amber[700]);
+                    } else if (index < averageRating && averageRating % 1 >= 0.5) {
+                      return Icon(Icons.star_half, size: 16, color: Colors.amber[700]);
+                    } else {
+                      return Icon(Icons.star_border, size: 16, color: Colors.grey[400]);
+                    }
+                  }),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${averageRating.toStringAsFixed(1)} ($reviewCount ${reviewCount == 1 ? 'review' : 'reviews'})',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
