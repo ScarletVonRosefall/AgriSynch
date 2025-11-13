@@ -46,6 +46,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   List<Map<String, dynamic>> cart = [];
   int unreadNotifications = 0;
   WeatherData? currentWeather;
+  bool _isLoadingWeather = false;
   StreamSubscription? _banCheckSubscription;
 
   @override
@@ -174,27 +175,25 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
   // Fetch current weather data
   Future<void> loadWeather() async {
-    if (!mounted) return;
+    if (!mounted || _isLoadingWeather) return;
+    
+    _isLoadingWeather = true;
 
     try {
-      // Don't block UI - fire and forget with callback
-      WeatherHelper.getCurrentWeather().then((weather) {
-        if (mounted) {
-          setState(() {
-            currentWeather = weather;
-          });
-        }
-      }).catchError((e) {
-        print('Weather load error: $e');
-        if (mounted) {
-          setState(() {
-            currentWeather = null;
-          });
-        }
-      });
+      final weather = await WeatherHelper.getCurrentWeather();
+      if (mounted) {
+        setState(() {
+          currentWeather = weather;
+          _isLoadingWeather = false;
+        });
+      }
     } catch (e) {
-      // Silently fail - weather is optional
-      print('Weather init error: $e');
+      print('Weather load error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingWeather = false;
+        });
+      }
     }
   }
 
@@ -233,11 +232,17 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     final isDarkMode = _themeNotifier.isDarkMode;
     
     return GestureDetector(
-      onTap: () {
-        if (currentWeather == null) {
-          // Retry loading weather if it failed
-          loadWeather();
-        } else {
+      onTap: () async {
+        if (currentWeather == null && !_isLoadingWeather) {
+          // Retry loading weather without full page rebuild
+          await loadWeather();
+          if (currentWeather != null && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
+            );
+          }
+        } else if (currentWeather != null) {
           // Navigate to weather page if already loaded
           Navigator.push(
             context,
@@ -314,6 +319,29 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                         fontSize: 14,
                         color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
                       ),
+                    ),
+                  ] else if (_isLoadingWeather) ...[
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600]!,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Loading...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ] else ...[
                     Row(
