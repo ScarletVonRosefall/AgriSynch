@@ -24,6 +24,7 @@ class _AgriFinancesState extends State<AgriFinances> {
   String currencySymbol = '₱';
 
   List<Map<String, dynamic>> transactions = [];
+  List<Map<String, dynamic>> _cachedFilteredTransactions = [];
   double totalIncome = 0.0;
   double totalExpenses = 0.0;
   double profit = 0.0;
@@ -98,12 +99,13 @@ class _AgriFinancesState extends State<AgriFinances> {
     }
 
     try {
-      // Load from Firestore with timeout
+      // Load from Firestore with timeout - limit to recent 100 transactions for performance
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
           .collection('transactions')
           .orderBy('date', descending: true)
+          .limit(100)
           .get()
           .timeout(const Duration(seconds: 10));
 
@@ -183,11 +185,13 @@ class _AgriFinancesState extends State<AgriFinances> {
   }
 
   void _calculateTotals() {
-    final filteredTransactions = _getFilteredTransactions();
-    totalIncome = filteredTransactions
+    // Cache filtered transactions to avoid recalculating multiple times
+    _cachedFilteredTransactions = _getFilteredTransactions();
+    
+    totalIncome = _cachedFilteredTransactions
         .where((t) => t['type'] == 'income')
         .fold(0.0, (sum, t) => sum + (t['amount'] ?? 0.0));
-    totalExpenses = filteredTransactions
+    totalExpenses = _cachedFilteredTransactions
         .where((t) => t['type'] == 'expense')
         .fold(0.0, (sum, t) => sum + (t['amount'] ?? 0.0));
     profit = totalIncome - totalExpenses;
@@ -301,7 +305,8 @@ class _AgriFinancesState extends State<AgriFinances> {
   List<BarChartGroupData> _getBarChartData() {
     final categoryTotals = <String, double>{};
 
-    for (var transaction in _getFilteredTransactions()) {
+    // Use cached filtered transactions for better performance
+    for (var transaction in _cachedFilteredTransactions) {
       final category = transaction['category'] as String;
       final amount = transaction['amount'] as double;
 
@@ -347,7 +352,8 @@ class _AgriFinancesState extends State<AgriFinances> {
     final incomeByCategory = <String, double>{};
     final expenseByCategory = <String, double>{};
 
-    for (var transaction in _getFilteredTransactions()) {
+    // Use cached filtered transactions for better performance
+    for (var transaction in _cachedFilteredTransactions) {
       final category = transaction['category'] as String;
       final amount = transaction['amount'] as double;
       final type = transaction['type'] as String;
@@ -419,7 +425,8 @@ class _AgriFinancesState extends State<AgriFinances> {
   List<String> _getBarChartLabels() {
     final categoryTotals = <String, double>{};
 
-    for (var transaction in _getFilteredTransactions()) {
+    // Use cached filtered transactions for better performance
+    for (var transaction in _cachedFilteredTransactions) {
       final category = transaction['category'] as String;
       final amount = transaction['amount'] as double;
 
@@ -950,7 +957,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                         ),
                       ),
                       Text(
-                        '${_getFilteredTransactions().length} items',
+                        '${_cachedFilteredTransactions.length} items',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 14,
@@ -960,7 +967,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _getFilteredTransactions().isEmpty
+                  _cachedFilteredTransactions.isEmpty
                       ? SizedBox(
                           height: 200,
                           child: Center(
@@ -1004,10 +1011,9 @@ class _AgriFinancesState extends State<AgriFinances> {
                       : ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _getFilteredTransactions().length,
+                          itemCount: _cachedFilteredTransactions.length,
                           itemBuilder: (context, index) {
-                            final transaction =
-                                _getFilteredTransactions()[index];
+                            final transaction = _cachedFilteredTransactions[index];
                             return _buildTransactionCard(transaction);
                           },
                         ),
