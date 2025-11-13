@@ -11,6 +11,46 @@ import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
 import '../shared/currency_helper.dart';
 
+// Custom formatter for decimal numbers - more efficient than regex
+class DecimalTextInputFormatter extends TextInputFormatter {
+  final int decimalRange;
+
+  DecimalTextInputFormatter({this.decimalRange = 2});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String newText = newValue.text;
+
+    // Allow empty string
+    if (newText.isEmpty) {
+      return newValue;
+    }
+
+    // Quick validation - only allow digits and one decimal point
+    if (!RegExp(r'^[\d.]*$').hasMatch(newText)) {
+      return oldValue;
+    }
+
+    // Check for multiple decimal points
+    if (newText.indexOf('.') != newText.lastIndexOf('.')) {
+      return oldValue;
+    }
+
+    // Check decimal places
+    if (newText.contains('.')) {
+      final parts = newText.split('.');
+      if (parts[1].length > decimalRange) {
+        return oldValue;
+      }
+    }
+
+    return newValue;
+  }
+}
+
 class AgriFinances extends StatefulWidget {
   const AgriFinances({super.key});
 
@@ -1382,9 +1422,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         decimal: true,
                       ),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d+\.?\d{0,2}'),
-                        ),
+                        DecimalTextInputFormatter(decimalRange: 2),
                       ],
                       decoration: InputDecoration(
                         labelText: 'Amount (₱)',
