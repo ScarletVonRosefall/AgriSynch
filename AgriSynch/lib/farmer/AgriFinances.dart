@@ -272,7 +272,27 @@ class _AgriFinancesState extends State<AgriFinances> {
   }
 
   void _deleteTransaction(String id) async {
+    // Remove from local list
     transactions.removeWhere((t) => t['id'] == id);
+    
+    // Delete from Firestore
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('transactions')
+            .doc(id)
+            .delete()
+            .timeout(const Duration(seconds: 10));
+        print('✅ Deleted transaction $id from Firestore');
+      } catch (e) {
+        print('❌ Error deleting from Firestore: $e');
+      }
+    }
+    
+    // Update local storage
     _saveTransactions();
     _calculateTotals();
     setState(() {});
