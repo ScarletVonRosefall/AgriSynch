@@ -15,8 +15,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 // Custom formatter for decimal numbers - more efficient than regex
 class DecimalTextInputFormatter extends TextInputFormatter {
   final int decimalRange;
+  final int maxDigits;
 
-  DecimalTextInputFormatter({this.decimalRange = 2});
+  DecimalTextInputFormatter({
+    this.decimalRange = 2,
+    this.maxDigits = 10, // Max 10 digits before decimal (9,999,999,999.99)
+  });
 
   @override
   TextEditingValue formatEditUpdate(
@@ -44,6 +48,15 @@ class DecimalTextInputFormatter extends TextInputFormatter {
     if (newText.contains('.')) {
       final parts = newText.split('.');
       if (parts[1].length > decimalRange) {
+        return oldValue;
+      }
+      // Check digits before decimal
+      if (parts[0].length > maxDigits) {
+        return oldValue;
+      }
+    } else {
+      // Check total digits
+      if (newText.length > maxDigits) {
         return oldValue;
       }
     }
@@ -166,7 +179,10 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                           controller: priceController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
-                            DecimalTextInputFormatter(decimalRange: 2),
+                            DecimalTextInputFormatter(
+                              decimalRange: 2,
+                              maxDigits: 8, // Max 99,999,999.99 (99 million)
+                            ),
                           ],
                           decoration: InputDecoration(
                             labelText: 'Price ($_currencySymbol)*',
