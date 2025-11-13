@@ -1476,9 +1476,22 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                       inputFormatters: [
                         DecimalTextInputFormatter(
                           decimalRange: 2,
-                          maxDigits: 8, // Max 99,999,999.99 (99 million)
+                          maxDigits: 6, // Max 200,000.00 (200k)
                         ),
                       ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter an amount';
+                        }
+                        final amount = double.tryParse(value);
+                        if (amount == null || amount <= 0) {
+                          return 'Please enter a valid amount';
+                        }
+                        if (amount > 200000) {
+                          return 'Maximum amount is ₱200,000';
+                        }
+                        return null;
+                      },
                       decoration: InputDecoration(
                         labelText: 'Amount (₱)',
                         prefixIcon: Icon(
@@ -1509,15 +1522,6 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         color: isDarkMode ? Colors.white : Colors.black,
                         fontFamily: 'Poppins',
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter an amount';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

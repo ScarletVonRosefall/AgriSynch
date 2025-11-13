@@ -1030,20 +1030,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                     },
                   ),
 
-                  const SizedBox(height: 20),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      "Explore Marketplace!",
-                      style: ThemeHelper.getTextStyle(
-                        isDark: isDarkMode,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
                   const SizedBox(height: 24),
                 ],
               ),

@@ -58,9 +58,11 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
   String _invalidCharWarning = '';
   bool _showWarning = false;
   
-  // Secret admin portal access
-  int _tapCount = 0;
-  Timer? _tapTimer;
+  // Secret admin portal access - sequence pattern
+  int _logoTapCount = 0;
+  int _textTapCount = 0;
+  bool _logoSequenceComplete = false;
+  Timer? _sequenceTimer;
 
   @override
   void initState() {
@@ -101,23 +103,53 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _fadeController.dispose();
     _slideController.dispose();
-    _tapTimer?.cancel();
+    _sequenceTimer?.cancel();
     super.dispose();
   }
 
-  void _handleSecretTap() {
-    _tapCount++;
+  void _resetSequence() {
+    _logoTapCount = 0;
+    _textTapCount = 0;
+    _logoSequenceComplete = false;
+  }
+
+  void _handleLogoTap() {
+    if (_logoSequenceComplete) return; // Already completed logo sequence
+    
+    _logoTapCount++;
     
     // Reset timer
-    _tapTimer?.cancel();
-    _tapTimer = Timer(const Duration(seconds: 3), () {
-      _tapCount = 0;
+    _sequenceTimer?.cancel();
+    _sequenceTimer = Timer(const Duration(seconds: 5), () {
+      _resetSequence();
     });
     
-    // If 15 taps reached, navigate to admin portal
-    if (_tapCount >= 15) {
-      _tapCount = 0;
-      _tapTimer?.cancel();
+    // If 5 logo taps reached, mark first step complete
+    if (_logoTapCount >= 5) {
+      _logoSequenceComplete = true;
+      _logoTapCount = 0;
+    }
+  }
+
+  void _handleTextTap() {
+    if (!_logoSequenceComplete) {
+      // If logo sequence not complete, this resets everything
+      _resetSequence();
+      return;
+    }
+    
+    _textTapCount++;
+    
+    // Reset timer
+    _sequenceTimer?.cancel();
+    _sequenceTimer = Timer(const Duration(seconds: 5), () {
+      _resetSequence();
+    });
+    
+    // If 5 text taps reached after logo sequence, open admin portal
+    if (_textTapCount >= 5) {
+      _sequenceTimer?.cancel();
+      _resetSequence();
       Navigator.pushNamed(context, '/admin-portal');
     }
   }
@@ -185,7 +217,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                               child: Column(
                                 children: [
                                   GestureDetector(
-                                    onTap: _handleSecretTap,
+                                    onTap: _handleTextTap,
                                     behavior: HitTestBehavior.opaque,
                                     child: Text(
                                       "Log in to continue",
@@ -206,23 +238,27 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  TweenAnimationBuilder<double>(
-                                    duration: const Duration(
-                                      milliseconds: 1200,
-                                    ),
-                                    tween: Tween<double>(begin: 0.0, end: 1.0),
-                                    builder: (context, value, child) {
-                                      return Transform.scale(
-                                        scale: value,
-                                        child: Opacity(
-                                          opacity: value,
-                                          child: Image.asset(
-                                            'assets/AgriSynchLogoNB2.png',
-                                            height: 100,
+                                  GestureDetector(
+                                    onTap: _handleLogoTap,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: TweenAnimationBuilder<double>(
+                                      duration: const Duration(
+                                        milliseconds: 1200,
+                                      ),
+                                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                                      builder: (context, value, child) {
+                                        return Transform.scale(
+                                          scale: value,
+                                          child: Opacity(
+                                            opacity: value,
+                                            child: Image.asset(
+                                              'assets/AgriSynchLogoNB2.png',
+                                              height: 100,
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ],
                               ),

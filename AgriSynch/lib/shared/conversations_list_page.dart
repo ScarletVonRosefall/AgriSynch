@@ -82,7 +82,11 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
     final isDarkMode = _themeNotifier.isDarkMode;
     
     return PopScope(
-      canPop: true,
+      canPop: false,
+      onPopInvoked: (bool didPop) async {
+        if (didPop) return;
+        Navigator.of(context).pop();
+      },
       child: Scaffold(
         backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
         body: Column(

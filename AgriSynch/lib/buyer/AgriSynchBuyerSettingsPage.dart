@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../auth/auth_service.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
@@ -31,6 +32,7 @@ class _AgriSynchBuyerSettingsPageState
   String userName = '';
   String userEmail = '';
   String userRole = '';
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -38,8 +40,18 @@ class _AgriSynchBuyerSettingsPageState
     loadUserInfo();
     loadPreferences();
     _loadUnreadNotifications();
+    _checkAdminStatus();
     // Listen to theme changes
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await AuthService.isCurrentUserAdmin();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+      });
+    }
   }
 
   void _onThemeChanged() {
@@ -313,6 +325,20 @@ class _AgriSynchBuyerSettingsPageState
                         const SizedBox(height: 16),
                         Column(
                           children: [
+                            if (_isAdmin) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: _actionButton(
+                                  "Admin Dashboard",
+                                  icon: Icons.admin_panel_settings,
+                                  isDarkMode: isDarkMode,
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/admin-dashboard');
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
                             SizedBox(
                               width: double.infinity,
                               child: _actionButton(
