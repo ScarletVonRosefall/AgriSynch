@@ -98,13 +98,14 @@ class _AgriFinancesState extends State<AgriFinances> {
     }
 
     try {
-      // Load from Firestore
+      // Load from Firestore with timeout
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
           .collection('transactions')
           .orderBy('date', descending: true)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       transactions = snapshot.docs.map((doc) {
         final data = doc.data();
@@ -151,7 +152,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     }
 
     try {
-      // Save to Firestore - update or create each transaction
+      // Save to Firestore - update or create each transaction with timeout
       for (var transaction in transactions) {
         await FirebaseFirestore.instance
             .collection('users')
@@ -167,7 +168,8 @@ class _AgriFinancesState extends State<AgriFinances> {
               'date': transaction['date'],
               'orderId': transaction['orderId'],
               'updatedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
+            }, SetOptions(merge: true))
+            .timeout(const Duration(seconds: 10));
       }
       
       print('✅ Saved ${transactions.length} transactions to Firestore');

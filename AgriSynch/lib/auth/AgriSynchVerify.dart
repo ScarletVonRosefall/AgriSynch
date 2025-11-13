@@ -21,7 +21,7 @@ class _AgriSynchEmailVerificationPageState
   bool _navigating = false;
 
   int _checkAttempts = 0;
-  static const int _maxAttempts = 60; // 3 minutes maximum (60 * 3 seconds)
+  static const int _maxAttempts = 10; // 10 checks maximum (10 * 15 seconds = 2.5 minutes)
 
   @override
   void initState() {
@@ -38,7 +38,8 @@ class _AgriSynchEmailVerificationPageState
       final user = auth.currentUser;
       if (user != null && !user.emailVerified) {
         await user.sendEmailVerification();
-        startVerificationCheck();
+        // Don't start auto-check immediately - let user click the button
+        // startVerificationCheck();
       }
     } catch (e) {
       if (mounted) {
@@ -59,13 +60,14 @@ class _AgriSynchEmailVerificationPageState
   void startVerificationCheck() {
     _timer?.cancel();
     _checkAttempts = 0;
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
+    // Check every 15 seconds instead of 3 seconds to avoid rate limits
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (_checkAttempts >= _maxAttempts) {
         _timer?.cancel();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Verification timeout. Please try again.'),
+              content: Text('Auto-check stopped. Please use "Check Verification Status" button.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -245,6 +247,8 @@ class _AgriSynchEmailVerificationPageState
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 24),
+            
+            // Manual check button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -265,10 +269,45 @@ class _AgriSynchEmailVerificationPageState
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Check Verification Status',
-                        style: TextStyle(fontSize: 16)),
+                    : const Text('I\'ve Verified - Check Now',
+                        style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ),
+            
+            const SizedBox(height: 12),
+            
+            // Auto-check button (optional)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: (_timer?.isActive ?? false) ? null : () {
+                  startVerificationCheck();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Auto-checking every 15 seconds...'),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  (_timer?.isActive ?? false) ? Icons.check_circle : Icons.autorenew,
+                  color: const Color(0xFF00C853),
+                ),
+                label: Text(
+                  (_timer?.isActive ?? false) ? 'Auto-Check Running...' : 'Start Auto-Check',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF00C853)),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: Color(0xFF00C853)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            
             const SizedBox(height: 16),
             Center(
               child: TextButton(
@@ -279,6 +318,17 @@ class _AgriSynchEmailVerificationPageState
                 ),
               ),
             ),
+            
+            if (_timer?.isActive ?? false)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Center(
+                  child: Text(
+                    'Auto-checking... (${_checkAttempts}/${_maxAttempts})',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
