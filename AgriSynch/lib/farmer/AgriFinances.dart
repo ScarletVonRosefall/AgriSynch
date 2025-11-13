@@ -1083,14 +1083,11 @@ class _AgriFinancesState extends State<AgriFinances> {
                             ),
                           ),
                         )
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _cachedFilteredTransactions.length,
-                          itemBuilder: (context, index) {
-                            final transaction = _cachedFilteredTransactions[index];
-                            return _buildTransactionCard(transaction);
-                          },
+                      : Column(
+                          children: _cachedFilteredTransactions
+                              .take(20) // Show only 20 most recent to improve performance
+                              .map((transaction) => _buildTransactionCard(transaction))
+                              .toList(),
                         ),
                 ],
               ),
@@ -1156,34 +1153,53 @@ class _AgriFinancesState extends State<AgriFinances> {
   Widget _buildTransactionCard(Map<String, dynamic> transaction) {
     final isDarkMode = _themeNotifier.isDarkMode;
     final isIncome = transaction['type'] == 'income';
-    final date = DateTime.parse(transaction['date']);
+    
+    // Cache these expensive operations
+    final amount = transaction['amount'] as double;
+    final description = transaction['description'] ?? 'No description';
+    final category = transaction['category'] as String;
+    
+    // Parse date once
+    DateTime? date;
+    try {
+      date = DateTime.parse(transaction['date']);
+    } catch (_) {
+      date = DateTime.now();
+    }
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: isIncome
-              ? Colors.green.withOpacity(0.1)
-              : Colors.red.withOpacity(0.1),
+              ? const Color(0x1A4CAF50)
+              : const Color(0x1AF44336),
           child: Icon(
             isIncome ? Icons.trending_up : Icons.trending_down,
             color: isIncome ? Colors.green : Colors.red,
+            size: 20,
           ),
         ),
         title: Text(
-          transaction['description'] ?? 'No description',
+          description,
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w500,
+            fontSize: 14,
             color: isDarkMode ? Colors.white : Colors.black,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          '${transaction['category']} • ${DateFormat.MMMd().format(date)}',
+          '$category • ${DateFormat.MMMd().format(date)}',
           style: TextStyle(
             fontFamily: 'Poppins',
+            fontSize: 12,
             color: isDarkMode ? Colors.white70 : Colors.black54,
           ),
         ),
@@ -1191,18 +1207,19 @@ class _AgriFinancesState extends State<AgriFinances> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${isIncome ? '+' : '-'}$currencySymbol${transaction['amount'].toStringAsFixed(2)}',
+              '${isIncome ? '+' : '-'}$currencySymbol${amount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.bold,
                 color: isIncome ? Colors.green : Colors.red,
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
             IconButton(
               icon: Icon(
                 Icons.delete_outline,
                 color: isDarkMode ? Colors.white54 : Colors.grey,
+                size: 20,
               ),
               onPressed: () => _deleteTransaction(transaction['id']),
             ),
