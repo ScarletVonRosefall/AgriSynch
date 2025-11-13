@@ -68,6 +68,11 @@ class _AgriFinancesState extends State<AgriFinances> {
   double totalIncome = 0.0;
   double totalExpenses = 0.0;
   double profit = 0.0;
+  
+  // Cache chart data to avoid recalculation on every build
+  List<BarChartGroupData> _cachedBarChartData = [];
+  List<PieChartSectionData> _cachedPieChartData = [];
+  List<String> _cachedBarChartLabels = [];
 
   String selectedFilter = 'All';
   String selectedTimeRange = 'This Month';
@@ -235,6 +240,11 @@ class _AgriFinancesState extends State<AgriFinances> {
         .where((t) => t['type'] == 'expense')
         .fold(0.0, (sum, t) => sum + (t['amount'] ?? 0.0));
     profit = totalIncome - totalExpenses;
+    
+    // Cache chart data to prevent expensive recalculations during build
+    _cachedBarChartData = _generateBarChartData();
+    _cachedBarChartLabels = _generateBarChartLabels();
+    _cachedPieChartData = _generatePieChartData();
   }
 
   List<Map<String, dynamic>> _getFilteredTransactions() {
@@ -342,7 +352,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     setState(() {});
   }
 
-  List<BarChartGroupData> _getBarChartData() {
+  List<BarChartGroupData> _generateBarChartData() {
     final categoryTotals = <String, double>{};
 
     // Use cached filtered transactions for better performance
@@ -375,6 +385,10 @@ class _AgriFinancesState extends State<AgriFinances> {
       );
     }).toList();
   }
+  
+  List<BarChartGroupData> _getBarChartData() {
+    return _cachedBarChartData;
+  }
 
   Color _getBarColor(int index) {
     final colors = [
@@ -388,7 +402,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     return colors[index % colors.length];
   }
 
-  List<PieChartSectionData> _getPieChartData() {
+  List<PieChartSectionData> _generatePieChartData() {
     final incomeByCategory = <String, double>{};
     final expenseByCategory = <String, double>{};
 
@@ -445,6 +459,10 @@ class _AgriFinancesState extends State<AgriFinances> {
 
     return sections;
   }
+  
+  List<PieChartSectionData> _getPieChartData() {
+    return _cachedPieChartData;
+  }
 
   Color _getPieColor(int index) {
     final colors = [
@@ -462,7 +480,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     return colors[index % colors.length];
   }
 
-  List<String> _getBarChartLabels() {
+  List<String> _generateBarChartLabels() {
     final categoryTotals = <String, double>{};
 
     // Use cached filtered transactions for better performance
@@ -481,6 +499,10 @@ class _AgriFinancesState extends State<AgriFinances> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return sortedCategories.take(6).map((entry) => entry.key).toList();
+  }
+  
+  List<String> _getBarChartLabels() {
+    return _cachedBarChartLabels;
   }
 
   @override
@@ -705,12 +727,12 @@ class _AgriFinancesState extends State<AgriFinances> {
                         child: BarChart(
                           BarChartData(
                             alignment: BarChartAlignment.spaceAround,
-                            maxY: _getBarChartData().isEmpty
-                                ? 100
-                                : _getBarChartData()
-                                          .map((e) => e.barRods.first.toY)
-                                          .reduce((a, b) => a > b ? a : b) *
-                                      1.2,
+                            maxY: () {
+                              final data = _getBarChartData();
+                              if (data.isEmpty) return 100.0;
+                              final maxValue = data.map((e) => e.barRods.first.toY).reduce((a, b) => a > b ? a : b);
+                              return (maxValue * 1.2).toDouble();
+                            }(),
                             barTouchData: BarTouchData(
                               touchTooltipData: BarTouchTooltipData(
                                 getTooltipColor: (_) => isDarkMode
