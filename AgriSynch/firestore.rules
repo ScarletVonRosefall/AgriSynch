@@ -335,11 +335,28 @@ service cloud.firestore {
     
     // Reports (Content Flagging)
     match /reports/{reportId} {
-      // Users can create reports
-      allow create: if isSignedIn() && request.resource.data.reportedBy == request.auth.uid;
+      // Users can create reports with proper validation
+      allow create: if isSignedIn() 
+        && request.resource.data.reporterId == request.auth.uid
+        && isValidString(request.resource.data.reporterName, 100)
+        && isValidString(request.resource.data.reporterEmail, 200)
+        && request.resource.data.reportType in ['product', 'user']
+        && isValidString(request.resource.data.reportedItemId, 100)
+        && isValidString(request.resource.data.reportedItemName, 200)
+        && isValidString(request.resource.data.category, 100)
+        && isValidString(request.resource.data.description, 500)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is timestamp;
       
-      // Only admins can read, update, and delete reports
-      allow read, update, delete: if isAdmin();
+      // Only admins can read all reports
+      allow read: if isAdmin();
+      
+      // Only admins can update report status
+      allow update: if isAdmin()
+        && request.resource.data.status in ['pending', 'reviewed', 'resolved', 'dismissed'];
+      
+      // Only admins can delete reports
+      allow delete: if isAdmin();
     }
     
     // Bans/Suspensions Log

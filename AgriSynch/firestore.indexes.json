@@ -61,7 +61,21 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "timestamp",
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "reportType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
           "order": "DESCENDING"
         }
       ]

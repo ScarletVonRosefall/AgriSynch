@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../shared/chat_screen.dart';
 import '../shared/farmer_reviews_page.dart';
 import '../services/review_service.dart';
+import '../shared/report_dialog.dart';
 
 class BrowseProductsPage extends StatefulWidget {
   final String? initialCategory;
@@ -872,6 +873,16 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                           child: const Text('Add to Cart', style: TextStyle(fontSize: 10)),
                                         ),
                                       ),
+                                      const SizedBox(width: 6),
+                                      // Report Button
+                                      IconButton(
+                                        onPressed: () => _showReportDialog(product),
+                                        icon: const Icon(Icons.flag_outlined, size: 18),
+                                        color: Colors.red,
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        tooltip: 'Report Product',
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -1103,6 +1114,17 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showReportDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => ReportDialog(
+        reportType: 'product',
+        reportedItemId: product.id,
+        reportedItemName: product.name,
       ),
     );
   }

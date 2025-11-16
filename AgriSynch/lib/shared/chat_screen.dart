@@ -5,6 +5,7 @@ import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import '../services/review_service.dart';
 import 'theme_helper.dart';
+import 'report_dialog.dart';
 
 class ChatScreen extends StatefulWidget {
   final String otherUserId;
@@ -349,6 +350,28 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ),
                                 ),
                                 actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => ReportDialog(
+                                          reportType: 'user',
+                                          reportedItemId: widget.otherUserId,
+                                          reportedItemName: widget.otherUserName,
+                                        ),
+                                      );
+                                    },
+                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.flag, size: 18),
+                                        SizedBox(width: 4),
+                                        Text('Report'),
+                                      ],
+                                    ),
+                                  ),
                                   TextButton(
                                     onPressed: () => Navigator.pop(context),
                                     child: const Text('Close'),

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../shared/theme_helper.dart';
 import '../AgriSynch.dart';
+import 'admin_reports_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -31,7 +32,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
   }
 
@@ -145,6 +146,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             tabs: const [
               Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
               Tab(icon: Icon(Icons.help_outline), text: 'Support'),
+              Tab(icon: Icon(Icons.flag), text: 'Reports'),
               Tab(icon: Icon(Icons.people), text: 'Users'),
               Tab(icon: Icon(Icons.shopping_bag), text: 'Products'),
               Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
@@ -173,6 +175,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               children: [
                 _buildOverviewTab(),
                 _buildSupportTab(),
+                const AdminReportsPage(),
                 _buildUsersTab(),
                 _buildProductsTab(),
                 _buildOrdersTab(),
