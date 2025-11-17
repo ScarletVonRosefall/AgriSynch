@@ -59,6 +59,78 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     );
   }
 
+  Future<void> _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.logout, color: Color(0xFF00A862)),
+            const SizedBox(width: 12),
+            const Text('Confirm Logout', style: TextStyle(fontFamily: 'Poppins')),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to logout from the Admin Dashboard?',
+          style: TextStyle(fontFamily: 'Poppins'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00A862),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _performLogout();
+    }
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Clear any cached data
+      _selectedUserIds.clear();
+      _userSearchQuery = '';
+      _productSearchQuery = '';
+      _messageSearchQuery = '';
+
+      // Reset theme and sign out in parallel
+      await Future.wait([
+        ThemeNotifier().resetTheme(),
+        FirebaseAuth.instance.signOut(),
+      ]);
+
+      // Navigate to login screen immediately
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed: $e', style: const TextStyle(fontFamily: 'Poppins')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
@@ -119,12 +191,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async {
-              await ThemeNotifier().resetTheme();
-              await FirebaseAuth.instance.signOut();
-              if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-            },
+            tooltip: 'Logout',
+            onPressed: () => _confirmLogout(),
           ),
         ],
         bottom: PreferredSize(
@@ -434,15 +502,24 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('feedback')
-          .where('status', isEqualTo: 'submitted')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+          .snapshots(), // Simplified - no filters
       builder: (context, snapshot) {
+        print('🔍 Feedback stream state: ${snapshot.connectionState}, Error: ${snapshot.hasError}, Data: ${snapshot.data?.docs.length}');
+        
         if (snapshot.hasError) {
+          print('❌ Full error: ${snapshot.error}');
           return Center(
-            child: Text(
-              'Error loading requests: ${snapshot.error}',
-              style: const TextStyle(fontFamily: 'Poppins'),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(fontFamily: 'Poppins'),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           );
         }
@@ -1338,7 +1415,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   // Tab 6: Messages Management
   Widget _buildMessagesTab() {
-    final isDarkMode = _themeNotifier.isDarkMode;
+    final isDarkMode = false;
     
     return Column(
       children: [
@@ -1348,7 +1425,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           color: Colors.grey.shade100,
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Search messages by sender or receiver...',
+              hintText: 'Search conversations by user name...',
               hintStyle: const TextStyle(fontFamily: 'Poppins'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _messageSearchQuery.isNotEmpty
@@ -1367,10 +1444,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           ),
         ),
         
-        // Messages list
+        // Conversations list
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('messages').snapshots(),
+            stream: FirebaseFirestore.instance.collection('conversations').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
@@ -1380,37 +1457,47 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
               }
 
-              var messages = snapshot.data?.docs ?? [];
+              var conversations = snapshot.data?.docs ?? [];
 
               // Apply search filter
               if (_messageSearchQuery.isNotEmpty) {
-                messages = messages.where((doc) {
+                conversations = conversations.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  final senderName = (data['senderName'] ?? '').toString().toLowerCase();
-                  final receiverName = (data['receiverName'] ?? '').toString().toLowerCase();
-                  final text = (data['text'] ?? '').toString().toLowerCase();
-                  return senderName.contains(_messageSearchQuery) || 
-                         receiverName.contains(_messageSearchQuery) ||
-                         text.contains(_messageSearchQuery);
+                  final buyerName = (data['buyerName'] ?? '').toString().toLowerCase();
+                  final farmerName = (data['farmerName'] ?? '').toString().toLowerCase();
+                  final lastMessage = (data['lastMessage'] ?? '').toString().toLowerCase();
+                  return buyerName.contains(_messageSearchQuery) || 
+                         farmerName.contains(_messageSearchQuery) ||
+                         lastMessage.contains(_messageSearchQuery);
                 }).toList();
               }
 
-              if (messages.isEmpty) {
-                return const Center(
-                  child: Text('No messages found', style: TextStyle(fontFamily: 'Poppins')),
+              if (conversations.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      const Text('No conversations yet', style: TextStyle(fontFamily: 'Poppins', fontSize: 16, color: Colors.grey)),
+                    ],
+                  ),
                 );
               }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: messages.length,
+                itemCount: conversations.length,
                 itemBuilder: (context, index) {
-                  final message = messages[index];
-                  final data = message.data() as Map<String, dynamic>;
-                  final senderName = data['senderName'] ?? 'Unknown';
-                  final receiverName = data['receiverName'] ?? 'Unknown';
-                  final text = data['text'] ?? '';
-                  final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                  final conversation = conversations[index];
+                  final data = conversation.data() as Map<String, dynamic>;
+                  final buyerName = data['buyerName'] ?? 'Unknown';
+                  final farmerName = data['farmerName'] ?? 'Unknown';
+                  final buyerId = data['buyerId'] ?? '';
+                  final farmerId = data['farmerId'] ?? '';
+                  final lastMessage = data['lastMessage'] ?? '';
+                  final lastMessageTime = (data['lastMessageTime'] as Timestamp?)?.toDate();
+                  final productName = data['productName'];
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -1419,22 +1506,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     child: ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFF00A862),
-                        child: Icon(Icons.message, color: Colors.white),
+                        child: Icon(Icons.chat, color: Colors.white),
                       ),
                       title: Text(
-                        '$senderName → $receiverName',
+                        'Buyer: $buyerName ↔ Farmer: $farmerName',
                         style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       subtitle: Text(
-                        '$text\n${timestamp != null ? _formatDate(timestamp) : 'Unknown time'}',
+                        '${productName != null ? 'Re: $productName\n' : ''}${lastMessage.isEmpty ? 'No messages yet' : lastMessage}\n${lastMessageTime != null ? _formatDate(lastMessageTime) : 'Unknown time'}',
                         style: const TextStyle(fontFamily: 'Poppins', fontSize: 12),
-                        maxLines: 2,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                       isThreeLine: true,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteMessage(message.id),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.visibility, color: Color(0xFF00A862)),
+                            tooltip: 'View conversation',
+                            onPressed: () => _viewConversationDetails(conversation.id, buyerName, farmerName, buyerId, farmerId),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            tooltip: 'Delete conversation',
+                            onPressed: () => _deleteConversation(conversation.id),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -1882,12 +1980,247 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     categoryController.dispose();
   }
 
-  Future<void> _deleteMessage(String messageId) async {
-    try {
-      await FirebaseFirestore.instance.collection('messages').doc(messageId).delete();
-      _showSuccess('Message deleted');
-    } catch (e) {
-      _showError('Error: $e');
+  Future<void> _viewConversationDetails(String conversationId, String buyerName, String farmerName, String buyerId, String farmerId) async {
+    final isDarkMode = false;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: 600,
+          height: 700,
+          decoration: BoxDecoration(
+            color: ThemeHelper.getBackgroundColor(isDarkMode),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00A862),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.chat, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Conversation Details',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Buyer: $buyerName ↔ Farmer: $farmerName',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Messages list
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('conversations')
+                      .doc(conversationId)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
+                    }
+
+                    final messages = snapshot.data?.docs ?? [];
+
+                    if (messages.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No messages in this conversation',
+                          style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      reverse: true,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final data = message.data() as Map<String, dynamic>;
+                        final text = data['text'] ?? '';
+                        final senderId = data['senderId'] ?? '';
+                        final senderName = data['senderName'] ?? 'Unknown';
+                        final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                        final isBuyer = senderId == buyerId;
+
+                        return Align(
+                          alignment: isBuyer ? Alignment.centerLeft : Alignment.centerRight,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            constraints: const BoxConstraints(maxWidth: 400),
+                            child: Column(
+                              crossAxisAlignment: isBuyer ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      senderName,
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isBuyer ? '(Buyer)' : '(Farmer)',
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 10,
+                                        color: Colors.grey[500],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isBuyer ? Colors.blue[50] : const Color(0xFF00A862),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        text,
+                                        style: TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 14,
+                                          color: isBuyer ? Colors.black87 : Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        timestamp != null ? _formatDate(timestamp) : '',
+                                        style: TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 10,
+                                          color: isBuyer ? Colors.grey[600] : Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteConversation(String conversationId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Conversation?', style: TextStyle(fontFamily: 'Poppins')),
+        content: const Text(
+          'This will permanently delete this entire conversation and all its messages.',
+          style: TextStyle(fontFamily: 'Poppins'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(fontFamily: 'Poppins')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Delete all messages in the conversation
+        final messagesSnapshot = await FirebaseFirestore.instance
+            .collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .get();
+
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in messagesSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+
+        // Delete the conversation document
+        batch.delete(FirebaseFirestore.instance.collection('conversations').doc(conversationId));
+
+        await batch.commit();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Conversation deleted successfully', style: TextStyle(fontFamily: 'Poppins')),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error deleting conversation: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting conversation: $e', style: const TextStyle(fontFamily: 'Poppins')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

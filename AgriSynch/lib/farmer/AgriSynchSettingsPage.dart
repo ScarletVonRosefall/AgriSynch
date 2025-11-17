@@ -1277,51 +1277,58 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
       _isSubmittingFeedback = true;
     });
 
-    try {
-      final success = await FeedbackService.submitFeedback(
-        feedback: _feedbackController.text.trim(),
-        category: _feedbackCategory,
-        // No priority parameter - will use default "Medium"
-      );
+    // Clear the form immediately for better UX
+    final feedbackText = _feedbackController.text.trim();
+    final category = _feedbackCategory;
+    _feedbackController.clear();
+    setState(() {
+      _feedbackCategory = 'General';
+      _isSubmittingFeedback = false;
+    });
 
-      if (success) {
-        // Clear the form
-        _feedbackController.clear();
-        setState(() {
-          _feedbackCategory = 'General';
-        });
+    // Show immediate success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Sending feedback... Thank you!"),
+        backgroundColor: Color(0xFF00A862),
+        duration: Duration(seconds: 2),
+      ),
+    );
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Feedback sent successfully! Thank you for helping us improve AgriSynch."),
-            backgroundColor: Color(0xFF00C853),
-            duration: Duration(seconds: 4),
-          ),
-        );
-      } else {
-        // Show error message
+    // Submit in background without blocking UI
+    FeedbackService.submitFeedback(
+      feedback: feedbackText,
+      category: category,
+    ).then((success) {
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("✓ Feedback sent successfully!"),
+              backgroundColor: Color(0xFF00C853),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("⚠ Feedback may not have been sent. Please try again."),
+              backgroundColor: Colors.orange.shade600,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }).catchError((e) {
+      print('Error submitting feedback: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Failed to send feedback. Please try again later."),
+            content: const Text("Failed to send feedback. Please check your connection."),
             backgroundColor: Colors.red.shade600,
           ),
         );
       }
-    } catch (e) {
-      print('Error submitting feedback: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("An error occurred while sending feedback. Please check your connection and try again."),
-          backgroundColor: Colors.red.shade600,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmittingFeedback = false;
-        });
-      }
-    }
+    });
   }
 }

@@ -247,9 +247,9 @@ service cloud.firestore {
         && request.resource.data.timestamp is timestamp
         && request.resource.data.status == 'submitted';
       
-      // Users can read their own feedback, admins can read all feedback
-      allow read: if isSignedIn() 
-        && (resource.data.userId == request.auth.uid || isAdmin());
+      // Admins can read all feedback, users can read their own feedback
+      allow read: if isAdmin() 
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
       
       // Only admins can update feedback status or add responses
       allow update: if isAdmin();
@@ -280,6 +280,12 @@ service cloud.firestore {
     match /conversations/{conversationId} {
       // Any authenticated user can create, read, update, delete conversations
       allow read, write: if isSignedIn();
+      
+      // Messages subcollection inside conversations
+      match /messages/{messageId} {
+        // Any authenticated user can read and write messages in conversations
+        allow read, write: if isSignedIn();
+      }
     }
     
     // ==================== REVIEWS COLLECTION ====================

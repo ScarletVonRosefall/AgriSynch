@@ -19,10 +19,21 @@ class FeedbackService {
       final user = _auth.currentUser;
       print('🔍 Current user: ${user?.email ?? 'No user logged in'}');
       
-      final userEmail = user?.email ?? await _storage.read(key: 'user_email') ?? 'Unknown';
-      final userName = await _storage.read(key: 'user_name') ?? 
-                       await _storage.read(key: 'name') ?? 'Anonymous';
-      final accountType = await _storage.read(key: 'account_type') ?? 'Unknown';
+      // Get user info with fallback for storage errors
+      String userEmail = 'Unknown';
+      String userName = 'Anonymous';
+      String accountType = 'Unknown';
+      
+      try {
+        userEmail = user?.email ?? await _storage.read(key: 'user_email') ?? 'Unknown';
+        userName = await _storage.read(key: 'user_name') ?? 
+                   await _storage.read(key: 'name') ?? 'Anonymous';
+        accountType = await _storage.read(key: 'account_type') ?? 'Unknown';
+      } catch (storageError) {
+        print('⚠️ Storage error, using fallbacks: $storageError');
+        userEmail = user?.email ?? 'Unknown';
+        userName = user?.displayName ?? 'Anonymous';
+      }
 
       print('📝 User info - Email: $userEmail, Name: $userName, Type: $accountType');
 
