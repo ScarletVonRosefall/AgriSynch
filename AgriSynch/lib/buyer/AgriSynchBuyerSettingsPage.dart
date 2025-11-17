@@ -332,7 +332,12 @@ class _AgriSynchBuyerSettingsPageState
                                   "Admin Dashboard",
                                   icon: Icons.admin_panel_settings,
                                   isDarkMode: isDarkMode,
-                                  onTap: () {
+                                  onTap: () async {
+                                    try {
+                                      await ThemeNotifier().resetTheme();
+                                    } catch (e) {
+                                      print('Failed to reset theme before admin navigation: $e');
+                                    }
                                     Navigator.pushNamed(context, '/admin-dashboard');
                                   },
                                 ),

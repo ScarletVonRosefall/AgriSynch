@@ -8,12 +8,10 @@ import 'dart:async';
 import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
 import 'AgriCustomersPage.dart';
-import '../shared/AgriWeatherPage.dart';
 import '../shared/weather_helper.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
-import '../shared/AgriCurrencyPage.dart';
 import '../auth/auth_service.dart';
 import '../services/task_service.dart';
 import '../services/order_service.dart';
@@ -1102,26 +1100,50 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // --- Statistics Section (Quick Stats + Summary) ---
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildStatisticsSection(),
-                  ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWideScreen = constraints.maxWidth > 700;
 
-                  const SizedBox(height: 16),
-
-                  // --- Farming Advice Section ---
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildFarmingAdviceSection(),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // --- Weather Details Section ---
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildWeatherDetailsSection(),
+                        if (isWideScreen) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  children: [
+                                    _buildStatisticsSection(),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: [
+                                    _buildWeatherDetailsSection(),
+                                    const SizedBox(height: 16),
+                                    _buildFarmingAdviceSection(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              _buildStatisticsSection(),
+                              const SizedBox(height: 16),
+                              _buildWeatherDetailsSection(),
+                              const SizedBox(height: 16),
+                              _buildFarmingAdviceSection(),
+                            ],
+                          );
+                        }
+                      },
+                    ),
                   ),
 
                   const SizedBox(height: 20),
@@ -1241,24 +1263,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
-  IconData _getWeatherIconData(String description) {
-    final desc = description.toLowerCase();
-    if (desc.contains('sunny') || desc.contains('clear')) {
-      return Icons.wb_sunny;
-    } else if (desc.contains('cloud')) {
-      return Icons.cloud;
-    } else if (desc.contains('rain')) {
-      return Icons.grain;
-    } else if (desc.contains('storm')) {
-      return Icons.flash_on;
-    } else if (desc.contains('snow')) {
-      return Icons.ac_unit;
-    } else if (desc.contains('wind')) {
-      return Icons.air;
-    } else {
-      return Icons.wb_sunny;
-    }
-  }
+  
 
   Widget _buildGreetingText() {
     final isDarkMode = _themeNotifier.isDarkMode;

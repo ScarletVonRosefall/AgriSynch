@@ -14,7 +14,7 @@ class AdminDashboardPage extends StatefulWidget {
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
-class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTickerProviderStateMixin {
+class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTickerProviderStateMixin, RouteAware {
   final _themeNotifier = ThemeNotifier();
   bool _isProcessing = false;
   late TabController _tabController;
@@ -33,7 +33,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
+    // Ensure admin dashboard always opens in light mode
+    ThemeNotifier().resetTheme().catchError((e) {
+      print('Failed to reset theme on admin open: $e');
+    });
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route observer so we can detect when admin returns from test pages
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+  @override
+  void didPopNext() {
+    // Called when a route above this one has been popped and this route shows again
+    ThemeNotifier().resetTheme().catchError((e) {
+      print('Failed to reset theme on return to admin dashboard: $e');
+    });
+    if (mounted) setState(() {});
   }
 
   void _onThemeChanged() {
@@ -162,7 +184,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               } else if (value == 'buyer') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AgriSynchBuyerHome()),
+                  MaterialPageRoute(builder: (_) => const AgriSynchBuyerHome(hideBottomNav: true)),
                 );
               }
             },

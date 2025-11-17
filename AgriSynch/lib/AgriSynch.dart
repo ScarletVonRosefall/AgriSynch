@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:flutter/widgets.dart';
 
 import 'farmer/AgriSynchHomePage.dart';
 import 'farmer/AgriSynchTasksPage.dart';
@@ -21,6 +22,9 @@ import 'buyer/AgriSynchBuyerSettingsPage.dart';
 import 'shared/conversations_list_page.dart';
 import 'services/chat_service.dart';
 import 'shared/theme_helper.dart';
+
+// Global RouteObserver to allow pages to be aware when they become visible again
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +45,7 @@ class AgriSynchApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: '/',
+      navigatorObservers: [routeObserver],
       routes: {
         '/': (context) => const AgriSynchSignUpPage(),
         '/login': (context) => const AgriSynchLoginPage(),
@@ -170,7 +175,8 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
 }
 
 class AgriSynchBuyerHome extends StatefulWidget {
-  const AgriSynchBuyerHome({super.key});
+  final bool hideBottomNav;
+  const AgriSynchBuyerHome({super.key, this.hideBottomNav = false});
 
   @override
   State<AgriSynchBuyerHome> createState() => _AgriSynchBuyerHomeState();
@@ -208,7 +214,9 @@ class _AgriSynchBuyerHomeState extends State<AgriSynchBuyerHome> {
     
     return Scaffold(
       body: pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: widget.hideBottomNav
+          ? null
+          : BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
