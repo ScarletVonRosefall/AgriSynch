@@ -1315,11 +1315,15 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   );
                 }
 
+                // Calculate responsive columns based on screen width
+                final screenWidth = MediaQuery.of(context).size.width;
+                final crossAxisCount = screenWidth > 1200 ? 4 : (screenWidth > 800 ? 3 : 2);
+                
                 return GridView.builder(
                   padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.65,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: 0.75,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -1455,6 +1459,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(10),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -1509,7 +1514,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                       ),
                                     )
                                   else
-                                    const Spacer(),
+                                    const SizedBox(height: 8),
                                   const SizedBox(height: 6),
                                   // Availability Toggle
                                   Row(

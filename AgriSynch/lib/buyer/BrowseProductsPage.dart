@@ -630,12 +630,16 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       );
     }
 
+    // Calculate responsive columns based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth > 1200 ? 4 : (screenWidth > 800 ? 3 : 2);
+    
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.65,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: 0.75,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -714,6 +718,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(10),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -827,7 +832,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
-                                  const Spacer(),
+                                  const SizedBox(height: 8),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
