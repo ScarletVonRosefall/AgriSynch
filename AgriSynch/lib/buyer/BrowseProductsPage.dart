@@ -639,7 +639,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.9,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -738,6 +738,23 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
                                     ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.inventory_2, size: 12, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Stock: ${product.stock}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: product.stock < 10 
+                                            ? Colors.orange 
+                                            : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                                          fontWeight: product.stock < 10 ? FontWeight.w600 : FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 3),
                                   Row(

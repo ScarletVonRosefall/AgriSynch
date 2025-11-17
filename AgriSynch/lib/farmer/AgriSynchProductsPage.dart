@@ -1323,7 +1323,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   padding: const EdgeInsets.all(16),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
-                    childAspectRatio: 0.75,
+                    childAspectRatio: 0.9,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),

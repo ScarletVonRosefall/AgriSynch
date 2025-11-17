@@ -1162,6 +1162,23 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           fontSize: 13,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.inventory_2, size: 12, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Stock: ${product.stock}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: product.stock < 10 
+                                ? Colors.orange 
+                                : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                              fontWeight: product.stock < 10 ? FontWeight.w600 : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                       const Spacer(),
                       Row(
                         children: [
