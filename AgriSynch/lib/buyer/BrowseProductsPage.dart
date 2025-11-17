@@ -639,7 +639,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.9,
+        childAspectRatio: 0.85,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -660,6 +660,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     return Card(
                       elevation: 2,
                       color: ThemeHelper.getCardColor(isDarkMode),
+                      clipBehavior: Clip.antiAlias,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -714,13 +715,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             ],
                           ),
                           // Product Details
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                   Text(
                                     product.name,
                                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
@@ -838,11 +838,11 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     ],
                                   ),
                                   if (product.description.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
+                                    const SizedBox(height: 4),
                                     Text(
                                       product.description,
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 12,
                                         color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                                       ),
                                       maxLines: 2,
@@ -910,7 +910,6 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                 ],
                               ),
                             ),
-                          ),
                         ],
                       ),
                     );

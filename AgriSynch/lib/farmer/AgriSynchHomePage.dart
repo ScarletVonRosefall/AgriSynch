@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
 import 'AgriSynchCalendarPage.dart';
 import 'AgriFinances.dart';
@@ -334,227 +335,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     }
   }
 
-  Widget _buildWeatherCard() {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
-    return GestureDetector(
-      onTap: () {
-        if (currentWeather == null) {
-          // Retry loading weather if it failed
-          loadWeather();
-        } else {
-          // Navigate to weather page if already loaded
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AgriWeatherPage()),
-          );
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF263238) : Colors.blue[50],
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: isDarkMode 
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? [const Color(0xFF37474F), const Color(0xFF263238)]
-                : [Colors.blue[100]!, Colors.blue[50]!],
-          ),
-        ),
-        child: Row(
-          children: [
-            // Weather Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1976D2) : Colors.blue[600],
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Icon(
-                currentWeather != null
-                    ? _getWeatherIconData(currentWeather!.description)
-                    : Icons.wb_sunny,
-                color: Colors.white,
-                size: 30,
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            // Weather Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Weather',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.grey[800],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (currentWeather != null) ...[
-                    Text(
-                      '${currentWeather!.temperature}°C',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? const Color(0xFF64B5F6) : Colors.blue[700],
-                      ),
-                    ),
-                    Text(
-                      currentWeather!.description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
-                      ),
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Text(
-                          'Tap to load',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.refresh,
-                          size: 14,
-                          color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Arrow Icon
-            Icon(
-              Icons.arrow_forward_ios,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCurrencyCard() {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AgriCurrencyPage()),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF263238) : Colors.green[50],
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: isDarkMode 
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
-                : [Colors.green[100]!, Colors.green[50]!],
-          ),
-        ),
-        child: Row(
-          children: [
-            // Currency Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF4CAF50) : Colors.green[600],
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: const Icon(
-                Icons.currency_exchange,
-                color: Colors.white,
-                size: 30,
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            // Currency Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Currency Converter',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.grey[800],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'PHP • USD • EUR • More',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Real-time exchange rates',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDarkMode ? const Color(0xFF81C784) : Colors.green[700],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Arrow Icon
-            Icon(
-              Icons.arrow_forward_ios,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> checkAndCreateSampleNotifications() async {
     await NotificationHelper.checkTaskDeadlines();
 
@@ -586,6 +366,559 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     }
   }
 
+  Widget _buildStatisticsSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: Stream.value(tasks),
+      builder: (context, snapshot) {
+        int totalTasks = tasks.length;
+        int completedTasks = tasks.where((t) => t['completed'] == true).length;
+        int totalOrders = orders.length;
+        int pendingTasks = tasks.where((t) => t['completed'] != true).length;
+        int pendingOrders = orders.where((o) => 
+          o['status']?.toLowerCase() != 'delivered' && 
+          o['status']?.toLowerCase() != 'cancelled'
+        ).length;
+
+        return Column(
+          children: [
+            // Quick Stats Row
+            Row(
+              children: [
+                _buildQuickStat(
+                  "Total Tasks",
+                  "$totalTasks",
+                  Icons.assignment,
+                  Colors.blue,
+                ),
+                const SizedBox(width: 12),
+                _buildQuickStat(
+                  "Completed",
+                  "$completedTasks",
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+                const SizedBox(width: 12),
+                _buildQuickStat(
+                  "Orders",
+                  "$totalOrders",
+                  Icons.shopping_cart,
+                  Colors.orange,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Summary Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFF00E676),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Today's Summary",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "• $totalTasks Total Tasks",
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "• $pendingTasks Pending Tasks",
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "• $totalOrders Total Orders",
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "• $pendingOrders Pending Orders",
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.eco,
+                        color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Compact Weather Card
+            _buildCompactWeatherCard(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactWeatherCard() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    if (currentWeather == null) {
+      return GestureDetector(
+        onTap: loadWeather,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFF00C853),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Center(
+            child: Text(
+              'Tap to load weather',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? const Color(0xFF2E7D32)
+            : const Color(0xFF00C853),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          // Weather icon and temperature
+          Text(
+            WeatherHelper.getWeatherIcon(currentWeather!.icon),
+            style: const TextStyle(fontSize: 40),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  currentWeather!.temperatureString,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  currentWeather!.capitalizedDescription,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Location and time in vertical layout
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on, color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    currentWeather!.location,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.thermostat, color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Feels ${currentWeather!.feelsLikeString}',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.access_time, color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormat('HH:mm').format(DateTime.now()),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherDetailsSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    if (currentWeather == null) {
+      return GestureDetector(
+        onTap: loadWeather,
+        child: Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.cloud_off,
+                  size: 48,
+                  color: isDarkMode ? Colors.white54 : Colors.grey,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Tap to load weather',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    color: isDarkMode ? Colors.white54 : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Weather Details',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.water_drop,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${currentWeather!.humidity}%',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Humidity',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.air,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${currentWeather!.windSpeed.toStringAsFixed(1)} km/h',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Wind Speed',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.thermostat,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      currentWeather!.feelsLikeString,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Feels Like',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.update,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      DateFormat('HH:mm').format(DateTime.now()),
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Updated',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFarmingAdviceSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    if (currentWeather == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? const Color(0xFF1B5E20).withOpacity(0.3)
+              : const Color(0xFFE8F5E8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF81C784),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.agriculture,
+                  color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Farming Advice',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check weather conditions regularly',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: isDarkMode ? Colors.white70 : const Color(0xFF1B5E20),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? const Color(0xFF1B5E20).withOpacity(0.3)
+            : const Color(0xFFE8F5E8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF81C784),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.agriculture,
+                color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Farming Advice',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            WeatherHelper.getWeatherAdvice(
+              currentWeather!.description,
+              currentWeather!.temperature,
+            ),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              color: isDarkMode ? Colors.white70 : const Color(0xFF1B5E20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildQuickStat(
     String title,
     String value,
@@ -596,7 +929,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -611,12 +944,12 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(icon, color: color, size: 20),
             const SizedBox(height: 4),
             Text(
               value,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: isDarkMode ? Colors.white : Colors.black87,
               ),
@@ -624,7 +957,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             Text(
               title,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
               ),
               textAlign: TextAlign.center,
@@ -769,144 +1102,26 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // --- Quick Stats Row ---
+                  // --- Statistics Section (Quick Stats + Summary) ---
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        _buildQuickStat(
-                          "Total Tasks",
-                          "${tasks.length}",
-                          Icons.assignment,
-                          Colors.blue,
-                        ),
-                        const SizedBox(width: 12),
-                        _buildQuickStat(
-                          "Completed",
-                          "${tasks.where((t) => t['done'] == true).length}",
-                          Icons.check_circle,
-                          Colors.green,
-                        ),
-                        const SizedBox(width: 12),
-                        _buildQuickStat(
-                          "Orders",
-                          "${orders.length}",
-                          Icons.shopping_cart,
-                          Colors.orange,
-                        ),
-                      ],
-                    ),
+                    child: _buildStatisticsSection(),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // --- Summary Card ---
+                  // --- Farming Advice Section ---
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color(0xFF2E7D32)
-                            : const Color(0xFF00E676),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDarkMode 
-                                ? Colors.black.withOpacity(0.3)
-                                : Colors.grey.withOpacity(0.2),
-                            spreadRadius: 1,
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Today's Summary",
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  "• ${tasks.length} Total Tasks",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  "• ${tasks.where((t) => t['completed'] != true).length} Pending Tasks",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  "• ${orders.length} Total Orders",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                Text(
-                                  "• ${orders.where((o) => o['status']?.toLowerCase() != 'delivered' && o['status']?.toLowerCase() != 'cancelled').length} Pending Orders",
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.eco,
-                                color: Colors.orange,
-                                size: 30,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // --- Weather Card ---
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildWeatherCard(),
+                    child: _buildFarmingAdviceSection(),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // --- Currency Converter Card ---
+                  // --- Weather Details Section ---
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildCurrencyCard(),
+                    child: _buildWeatherDetailsSection(),
                   ),
 
                   const SizedBox(height: 20),

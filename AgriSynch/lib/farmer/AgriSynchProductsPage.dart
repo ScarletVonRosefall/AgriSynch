@@ -1323,7 +1323,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   padding: const EdgeInsets.all(16),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
-                    childAspectRatio: 0.9,
+                    childAspectRatio: 0.90,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -1332,6 +1332,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                     final product = products[index];
                     return Card(
                       elevation: 2,
+                      clipBehavior: Clip.antiAlias,
                       color: ThemeHelper.getCardColor(isDarkMode),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1457,7 +1458,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                           // Product Details
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(8),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1466,21 +1467,21 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                     product.name,
                                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 15,
+                                      fontSize: 14,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 2),
                                   Text(
                                     '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
                                     style: const TextStyle(
                                       color: Color(0xFF4CAF50),
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 15,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 2),
                                   Row(
                                     children: [
                                       Icon(
@@ -1499,23 +1500,19 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
-                                  // Description in the white space
-                                  if (product.description.isNotEmpty)
-                                    Expanded(
-                                      child: Text(
-                                        product.description,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          color: isDarkMode ? Colors.white60 : Colors.grey[600],
-                                        ),
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
+                                  const SizedBox(height: 4),
+                                  // Description - only show on larger screens
+                                  if (product.description.isNotEmpty && screenWidth > 800)
+                                    Text(
+                                      product.description,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDarkMode ? Colors.white60 : Colors.grey[600],
                                       ),
-                                    )
-                                  else
-                                    const SizedBox(height: 8),
-                                  const SizedBox(height: 6),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  const Spacer(),
                                   // Availability Toggle
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
