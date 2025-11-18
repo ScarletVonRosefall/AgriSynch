@@ -154,6 +154,34 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
               style: TextButton.styleFrom(foregroundColor: const Color(0xFF4CAF50)),
               child: const Text('Mark Resolved', style: TextStyle(fontFamily: 'Poppins')),
             ),
+          if (report.status == 'dismissed' || report.status == 'resolved')
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await _reportService.deleteReport(report.id);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Report deleted successfully'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error deleting report: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete', style: TextStyle(fontFamily: 'Poppins')),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close', style: TextStyle(fontFamily: 'Poppins')),

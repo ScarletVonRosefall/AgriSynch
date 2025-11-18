@@ -1060,87 +1060,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                               ],
                             ),
                           ),
-                          PopupMenuButton(
-                            icon: Icon(
-                              Icons.more_vert,
-                              color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
-                            ),
-                            tooltip: 'User actions',
-                            itemBuilder: (context) {
-                              // Check if this is a protected account (admin or "name" account)
-                              final isProtected = isAdmin || name.toLowerCase() == 'name';
-                              
-                              return [
-                                const PopupMenuItem(
-                                  value: 'view',
-                                  child: Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
-                                ),
-                                if (!isProtected && !isBanned && !isSuspended) ...[
-                                  const PopupMenuItem(
-                                    value: 'ban',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.block, color: Colors.red),
-                                        SizedBox(width: 8),
-                                        Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                                      ],
-                                    ),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'suspend',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.timelapse, color: Colors.orange),
-                                        SizedBox(width: 8),
-                                        Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                if (!isProtected && (isBanned || isSuspended))
-                                  const PopupMenuItem(
-                                    value: 'unban',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.green),
-                                        SizedBox(width: 8),
-                                        Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
-                                      ],
-                                    ),
-                                  ),
-                                if (!isProtected)
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete, color: Colors.red),
-                                        SizedBox(width: 8),
-                                        Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                                      ],
-                                    ),
-                                  ),
-                              ];
-                            },
-                            onSelected: (value) {
-                              switch (value) {
-                                case 'view':
-                                  _showUserDetailsDialog(user.id, data);
-                                  break;
-                                case 'ban':
-                                  _showBanUserDialog(user.id, name, permanent: true);
-                                  break;
-                                case 'suspend':
-                                  _showBanUserDialog(user.id, name, permanent: false);
-                                  break;
-                                case 'unban':
-                                  _unbanUser(user.id, name);
-                                  break;
-                                case 'delete':
-                                  _showDeleteUserConfirmation(user.id, name);
-                                  break;
-                              }
-                            },
-                          ),
+                          _buildUserActionsMenu(context, user.id, name, data, isAdmin, isBanned, isSuspended),
                         ],
                       ),
                     ),
@@ -1598,7 +1518,118 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
-  Future<void> _showUserDetailsDialog(String userId, Map<String, dynamic> data) async {
+  Widget _buildUserActionsMenu(BuildContext context, String userId, String name, Map<String, dynamic> data, bool isAdmin, bool isBanned, bool isSuspended) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    final isProtected = isAdmin || name.toLowerCase() == 'name';
+
+    return IconButton(
+      icon: Icon(
+        Icons.more_vert,
+        color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+      ),
+      tooltip: 'User actions',
+      onPressed: () {
+        _showUserActionsSheet(context, userId, name, data, isProtected, isBanned, isSuspended);
+      },
+    );
+  }
+
+  void _showUserActionsSheet(BuildContext context, String userId, String name, Map<String, dynamic> data, bool isProtected, bool isBanned, bool isSuspended) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: const Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  if (!mounted) return;
+                  showDialog(
+                    context: context,
+                    builder: (context) => _buildUserDetailsDialog(userId, data),
+                  );
+                },
+              ),
+              if (!isProtected && !isBanned && !isSuspended) ...[
+                ListTile(
+                  leading: const Icon(Icons.block, color: Colors.red),
+                  title: const Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    if (!mounted) return;
+                    final banResult = await showDialog<Map>(
+                      context: context,
+                      builder: (context) => _buildBanUserDialog(userId, name, permanent: true),
+                    );
+                    if (!mounted) return;
+                    if (banResult != null && banResult['confirm'] == true) {
+                      await _banUser(userId, name, banResult['reason'], true, null, banResult['deleteData'] ?? false);
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.timelapse, color: Colors.orange),
+                  title: const Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    if (!mounted) return;
+                    final suspendResult = await showDialog<Map>(
+                      context: context,
+                      builder: (context) => _buildBanUserDialog(userId, name, permanent: false),
+                    );
+                    if (!mounted) return;
+                    if (suspendResult != null && suspendResult['confirm'] == true) {
+                      await _banUser(userId, name, suspendResult['reason'], false, suspendResult['suspendDays'], suspendResult['deleteData'] ?? false);
+                    }
+                  },
+                ),
+              ],
+              if (!isProtected && (isBanned || isSuspended))
+                ListTile(
+                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  title: const Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    if (!mounted) return;
+                    final unbanResult = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => _buildUnbanDialog(userId, name),
+                    );
+                    if (!mounted) return;
+                    if (unbanResult == true) {
+                      await _unbanUser(userId, name);
+                    }
+                  },
+                ),
+              if (!isProtected)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    if (!mounted) return;
+                    final deleteResult = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => _buildDeleteUserDialog(userId, name),
+                    );
+                    if (!mounted) return;
+                    if (deleteResult == true) {
+                      await _performFullUserDeletion(userId);
+                    }
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildUserDetailsDialog(String userId, Map<String, dynamic> data) {
     final name = data['name'] ?? 'Unknown';
     final email = data['email'] ?? 'N/A';
     final accountType = data['accountType'] ?? 'Unknown';
@@ -1610,8 +1641,84 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     final suspendedUntil = data['suspendedUntil'] as Timestamp?;
     final averageRating = data['averageRating'] ?? 0.0;
     final reviewCount = data['reviewCount'] ?? 0;
-    
-    // Get user's product count (if farmer)
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: isBanned 
+                ? Colors.red 
+                : (isAdmin ? Colors.purple : const Color(0xFF00A862)),
+            child: Icon(
+              isBanned 
+                  ? Icons.block 
+                  : (isAdmin ? Icons.admin_panel_settings : Icons.person),
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: FutureBuilder<Map<String, int>>(
+          future: _getUserStats(userId, accountType),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            final stats = snapshot.data ?? {'products': 0, 'orders': 0};
+            
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _detailRow(Icons.email, 'Email', email),
+                _detailRow(Icons.person_outline, 'Account Type', accountType),
+                _detailRow(Icons.location_on, 'Location', location),
+                if (isAdmin)
+                  _detailRow(Icons.admin_panel_settings, 'Role', 'Administrator', color: Colors.purple),
+                if (isBanned || isSuspended) ...[
+                  const Divider(height: 24),
+                  _detailRow(
+                    Icons.block,
+                    isBanned ? 'Status' : 'Suspended Until',
+                    isBanned 
+                        ? 'PERMANENTLY BANNED' 
+                        : (suspendedUntil != null 
+                            ? _formatDate(suspendedUntil.toDate())
+                            : 'Unknown'),
+                    color: Colors.red,
+                  ),
+                  if (banReason.isNotEmpty)
+                    _detailRow(Icons.info_outline, 'Reason', banReason, color: Colors.red),
+                ],
+                const Divider(height: 24),
+                _detailRow(Icons.star, 'Average Rating', '${averageRating.toStringAsFixed(1)} ⭐ ($reviewCount reviews)'),
+                if (accountType == 'Farmer')
+                  _detailRow(Icons.inventory, 'Products', '${stats['products']}'),
+                _detailRow(Icons.shopping_bag, 'Orders', '${stats['orders']}'),
+              ],
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close', style: TextStyle(fontFamily: 'Poppins')),
+        ),
+      ],
+    );
+  }
+
+  Future<Map<String, int>> _getUserStats(String userId, String accountType) async {
     int productCount = 0;
     if (accountType == 'Farmer') {
       final products = await FirebaseFirestore.instance
@@ -1621,7 +1728,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       productCount = products.docs.length;
     }
     
-    // Get user's order count
     final buyerOrders = await FirebaseFirestore.instance
         .collection('orders')
         .where('buyerId', isEqualTo: userId)
@@ -1632,73 +1738,160 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         .get();
     final totalOrders = buyerOrders.docs.length + sellerOrders.docs.length;
 
-    if (!mounted) return;
+    return {'products': productCount, 'orders': totalOrders};
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: isBanned 
-                  ? Colors.red 
-                  : (isAdmin ? Colors.purple : const Color(0xFF00A862)),
-              child: Icon(
-                isBanned 
-                    ? Icons.block 
-                    : (isAdmin ? Icons.admin_panel_settings : Icons.person),
-                color: Colors.white,
-              ),
+  Widget _buildDeleteUserDialog(String userId, String userName) {
+    return AlertDialog(
+      title: const Text('Delete User', style: TextStyle(fontFamily: 'Poppins')),
+      content: Text(
+        'Are you sure you want to delete "$userName"? This will remove all their data.',
+        style: const TextStyle(fontFamily: 'Poppins'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Delete'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBanUserDialog(String userId, String userName, {required bool permanent}) {
+    final reasonController = TextEditingController();
+    int? suspendDays;
+    bool deleteData = false;
+
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: Text(
+            permanent ? 'Ban User Permanently' : 'Suspend User Temporarily',
+            style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  permanent 
+                      ? 'Permanently ban "$userName"? They will not be able to log in.'
+                      : 'Temporarily suspend "$userName"?',
+                  style: const TextStyle(fontFamily: 'Poppins'),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    labelStyle: TextStyle(fontFamily: 'Poppins'),
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                if (!permanent) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Suspend Duration',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('1 day')),
+                      DropdownMenuItem(value: 3, child: Text('3 days')),
+                      DropdownMenuItem(value: 7, child: Text('7 days')),
+                      DropdownMenuItem(value: 14, child: Text('14 days')),
+                      DropdownMenuItem(value: 30, child: Text('30 days')),
+                    ],
+                    onChanged: (value) => suspendDays = value,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  title: const Text(
+                    'Delete all user data',
+                    style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, color: Colors.red),
+                  ),
+                  subtitle: const Text(
+                    'This will permanently delete:\n• Messages & conversations\n• Products & orders\n• Notifications\n• All user content',
+                    style: TextStyle(fontFamily: 'Poppins', fontSize: 12),
+                  ),
+                  value: deleteData,
+                  onChanged: (value) {
+                    setDialogState(() => deleteData = value ?? false);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                reasonController.dispose();
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (reasonController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a reason')),
+                  );
+                  return;
+                }
+                if (!permanent && suspendDays == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select suspension duration')),
+                  );
+                  return;
+                }
+                
+                Navigator.pop(context, {
+                  'confirm': true,
+                  'reason': reasonController.text,
+                  'suspendDays': suspendDays,
+                  'deleteData': deleteData,
+                });
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text(permanent ? 'Ban' : 'Suspend', style: const TextStyle(fontFamily: 'Poppins')),
             ),
           ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _detailRow(Icons.email, 'Email', email),
-              _detailRow(Icons.person_outline, 'Account Type', accountType),
-              _detailRow(Icons.location_on, 'Location', location),
-              if (isAdmin)
-                _detailRow(Icons.admin_panel_settings, 'Role', 'Administrator', color: Colors.purple),
-              if (isBanned || isSuspended) ...[
-                const Divider(height: 24),
-                _detailRow(
-                  Icons.block,
-                  isBanned ? 'Status' : 'Suspended Until',
-                  isBanned 
-                      ? 'PERMANENTLY BANNED' 
-                      : (suspendedUntil != null 
-                          ? _formatDate(suspendedUntil.toDate())
-                          : 'Unknown'),
-                  color: Colors.red,
-                ),
-                if (banReason.isNotEmpty)
-                  _detailRow(Icons.info_outline, 'Reason', banReason, color: Colors.red),
-              ],
-              const Divider(height: 24),
-              _detailRow(Icons.star, 'Average Rating', '${averageRating.toStringAsFixed(1)} ⭐ ($reviewCount reviews)'),
-              if (accountType == 'Farmer')
-                _detailRow(Icons.inventory, 'Products', '$productCount'),
-              _detailRow(Icons.shopping_bag, 'Orders', '$totalOrders'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(fontFamily: 'Poppins')),
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildUnbanDialog(String userId, String userName) {
+    return AlertDialog(
+      title: const Text('Unban/Unsuspend User', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+      content: Text(
+        'Remove ban/suspension from "$userName"?',
+        style: const TextStyle(fontFamily: 'Poppins'),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: const Text('Unban'),
+        ),
+      ],
     );
   }
 
@@ -1736,34 +1929,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         ],
       ),
     );
-  }
-
-  Future<void> _showDeleteUserConfirmation(String userId, String userName) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete User', style: TextStyle(fontFamily: 'Poppins')),
-        content: Text(
-          'Are you sure you want to delete "$userName"? This will remove all their data.',
-          style: const TextStyle(fontFamily: 'Poppins'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _performFullUserDeletion(userId);
-    }
   }
 
   // Helper method to delete user data (used by both ban and delete functions)
@@ -2306,106 +2471,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   }
 
   // Ban/Suspend System Methods
-  Future<void> _showBanUserDialog(String userId, String userName, {required bool permanent}) async {
-    final reasonController = TextEditingController();
-    int? suspendDays;
-    bool deleteData = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            permanent ? 'Ban User Permanently' : 'Suspend User Temporarily',
-            style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  permanent 
-                      ? 'Permanently ban "$userName"? They will not be able to log in.'
-                      : 'Temporarily suspend "$userName"?',
-                  style: const TextStyle(fontFamily: 'Poppins'),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: reasonController,
-                  decoration: const InputDecoration(
-                    labelText: 'Reason',
-                    labelStyle: TextStyle(fontFamily: 'Poppins'),
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-                if (!permanent) ...[
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(
-                      labelText: 'Suspend Duration',
-                      labelStyle: TextStyle(fontFamily: 'Poppins'),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 1, child: Text('1 day')),
-                      DropdownMenuItem(value: 3, child: Text('3 days')),
-                      DropdownMenuItem(value: 7, child: Text('7 days')),
-                      DropdownMenuItem(value: 14, child: Text('14 days')),
-                      DropdownMenuItem(value: 30, child: Text('30 days')),
-                    ],
-                    onChanged: (value) => suspendDays = value,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-                CheckboxListTile(
-                  title: const Text(
-                    'Delete all user data',
-                    style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, color: Colors.red),
-                  ),
-                  subtitle: const Text(
-                    'This will permanently delete:\n• Messages & conversations\n• Products & orders\n• Notifications\n• All user content',
-                    style: TextStyle(fontFamily: 'Poppins', fontSize: 12),
-                  ),
-                  value: deleteData,
-                  onChanged: (value) {
-                    setDialogState(() => deleteData = value ?? false);
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text(permanent ? 'Ban' : 'Suspend', style: const TextStyle(fontFamily: 'Poppins')),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed == true && reasonController.text.isNotEmpty) {
-      if (!permanent && suspendDays == null) {
-        _showError('Please select suspension duration');
-        reasonController.dispose();
-        return;
-      }
-      await _banUser(userId, userName, reasonController.text, permanent, suspendDays, deleteData);
-    }
-    reasonController.dispose();
-  }
-
   Future<void> _banUser(String userId, String userName, String reason, bool permanent, int? days, bool deleteData) async {
     setState(() => _isProcessing = true);
 
@@ -2451,46 +2516,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   }
 
   Future<void> _unbanUser(String userId, String userName) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unban/Unsuspend User', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
-        content: Text(
-          'Remove ban/suspension from "$userName"?',
-          style: const TextStyle(fontFamily: 'Poppins'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Unban'),
-          ),
-        ],
-      ),
-    );
+    setState(() => _isProcessing = true);
 
-    if (confirmed == true) {
-      setState(() => _isProcessing = true);
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'banned': false,
+        'suspended': false,
+        'suspendedUntil': FieldValue.delete(),
+        'banReason': FieldValue.delete(),
+      });
 
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(userId).update({
-          'banned': false,
-          'suspendedUntil': FieldValue.delete(),
-          'banReason': FieldValue.delete(),
-        });
-
-        if (!mounted) return;
-        _showSuccess('User unbanned successfully');
-      } catch (e) {
-        if (!mounted) return;
-        _showError('Error: $e');
-      } finally {
-        if (mounted) setState(() => _isProcessing = false);
-      }
+      if (!mounted) return;
+      _showSuccess('User unbanned successfully');
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -2580,6 +2622,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     if (confirmed == true) {
       setState(() => _isProcessing = true);
       
+      
       for (final userId in _selectedUserIds) {
         try {
           await _performFullUserDeletion(userId);
@@ -2596,4 +2639,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       _showSuccess('Bulk deletion completed');
     }
   }
+
+
 }
+
+
+
