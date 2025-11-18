@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../auth/auth_service.dart';
 import '../shared/notification_helper.dart';
+import '../shared/feedback_service.dart';
 import '../shared/currency_helper.dart';
 import '../shared/user_profile_widget.dart';
 import '../shared/theme_helper.dart';
@@ -33,6 +34,9 @@ class _AgriSynchBuyerSettingsPageState
   String userEmail = '';
   String userRole = '';
   bool _isAdmin = false;
+  final TextEditingController _supportController = TextEditingController();
+  bool _isSubmittingSupport = false;
+  String _feedbackCategory = 'General';
 
   @override
   void initState() {
@@ -63,6 +67,7 @@ class _AgriSynchBuyerSettingsPageState
   @override
   void dispose() {
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    _supportController.dispose();
     super.dispose();
   }
 
@@ -500,8 +505,51 @@ class _AgriSynchBuyerSettingsPageState
                           ),
                         ),
                         const SizedBox(height: 12),
+                        // Category selection for quick feedback
+                        Text(
+                          "Category:",
+                          style: TextStyle(
+                            color: textColor,
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
+                            ),
+                          ),
+                          child: DropdownButton<String>(
+                            value: _feedbackCategory,
+                            isExpanded: true,
+                            underline: const SizedBox(),
+                            dropdownColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                            style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+                            items: const [
+                              DropdownMenuItem(value: 'General', child: Text('General Question/Comment')),
+                              DropdownMenuItem(value: 'Bug Report', child: Text('Bug Report')),
+                              DropdownMenuItem(value: 'Feature Request', child: Text('Feature Request')),
+                              DropdownMenuItem(value: 'Technical Support', child: Text('Technical Support')),
+                              DropdownMenuItem(value: 'Account Issues', child: Text('Account Issues')),
+                              DropdownMenuItem(value: 'Other', child: Text('Other')),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _feedbackCategory = value ?? 'General';
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         TextFormField(
+                          controller: _supportController,
                           maxLines: 3,
+                          maxLength: 500,
                           style: TextStyle(
                             color: textColor,
                             fontFamily: 'Poppins',
@@ -539,19 +587,61 @@ class _AgriSynchBuyerSettingsPageState
                         const SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: _actionButton(
-                            "Send Feedback",
-                            icon: Icons.send,
-                            isDarkMode: isDarkMode,
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Feedback sent. Thank you!"),
-                                  backgroundColor: Color(0xFF00C853),
+                          child: _isSubmittingSupport
+                              ? const SizedBox(
+                                  width: 120,
+                                  height: 40,
+                                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                )
+                              : _actionButton(
+                                  "Send Feedback",
+                                  icon: Icons.send,
+                                  isDarkMode: isDarkMode,
+                                  onTap: () async {
+                                    final message = _supportController.text.trim();
+                                    if (message.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Please enter your feedback before submitting."),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    setState(() {
+                                      _isSubmittingSupport = true;
+                                    });
+
+                                    final ok = await FeedbackService.submitFeedback(
+                                      feedback: message,
+                                      category: _feedbackCategory,
+                                    );
+
+                                    setState(() {
+                                      _isSubmittingSupport = false;
+                                    });
+
+                                    if (ok) {
+                                      _supportController.clear();
+                                      setState(() {
+                                        _feedbackCategory = 'General';
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Feedback sent. Thank you!"),
+                                          backgroundColor: Color(0xFF00C853),
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Failed to send feedback. Please try again."),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
-                              );
-                            },
-                          ),
                         ),
                       ],
                     ),
