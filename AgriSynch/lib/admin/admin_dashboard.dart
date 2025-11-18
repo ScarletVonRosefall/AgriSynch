@@ -84,198 +84,139 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   }
 
   Future<void> _confirmLogout() async {
-    final confirm = await showDialog<bool>(
+    final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.logout, color: Color(0xFF00A862)),
-            const SizedBox(width: 12),
-            const Text('Confirm Logout', style: TextStyle(fontFamily: 'Poppins')),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to logout from the Admin Dashboard?',
-          style: TextStyle(fontFamily: 'Poppins'),
-        ),
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
-            ),
+            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00A862),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Logout', style: TextStyle(fontFamily: 'Poppins')),
+            child: const Text('Logout'),
           ),
         ],
       ),
     );
-
-    if (confirm == true) {
-      await _performLogout();
+    if (shouldLogout == true) {
+      // Add your logout logic here
+      FirebaseAuth.instance.signOut();
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
-
-  Future<void> _performLogout() async {
-    try {
-      // Clear any cached data
-      _selectedUserIds.clear();
-      _userSearchQuery = '';
-      _productSearchQuery = '';
-      _messageSearchQuery = '';
-
-      // Reset theme and sign out in parallel
-      await Future.wait([
-        ThemeNotifier().resetTheme(),
-        FirebaseAuth.instance.signOut(),
-      ]);
-
-      // Navigate to login screen immediately
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    } catch (e) {
-      // Show error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logout failed: $e', style: const TextStyle(fontFamily: 'Poppins')),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = _themeNotifier.isDarkMode;
-
-    return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF00A862),
-        elevation: 0,
-        title: const Text(
-          'Admin Dashboard',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.science, color: Colors.white),
-            tooltip: 'Test Mode',
-            onSelected: (value) {
-              if (value == 'farmer') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AgriSynchHome()),
-                );
-              } else if (value == 'buyer') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AgriSynchBuyerHome(hideBottomNav: true)),
-                );
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'farmer',
-                child: Row(
-                  children: [
-                    Icon(Icons.agriculture, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('Test as Farmer'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'buyer',
-                child: Row(
-                  children: [
-                    Icon(Icons.shopping_cart, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('Test as Buyer'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            tooltip: 'Logout',
-            onPressed: () => _confirmLogout(),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            labelStyle: const TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-            tabAlignment: TabAlignment.start,
-            physics: const BouncingScrollPhysics(),
-            tabs: const [
-              Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-              Tab(icon: Icon(Icons.help_outline), text: 'Support'),
-              Tab(icon: Icon(Icons.flag), text: 'Reports'),
-              Tab(icon: Icon(Icons.people), text: 'Users'),
-              Tab(icon: Icon(Icons.shopping_bag), text: 'Products'),
-              Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
-              Tab(icon: Icon(Icons.message), text: 'Messages'),
-            ],
-          ),
-        ),
-      ),
-      body: _isProcessing
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: Color(0xFF00A862)),
-                  SizedBox(height: 16),
-                  Text(
-                    'Processing...',
-                    style: TextStyle(fontFamily: 'Poppins', fontSize: 16),
+          @override
+          Widget build(BuildContext context) {
+            return Scaffold(
+              appBar: AppBar(
+                backgroundColor: const Color(0xFF00A862),
+                title: const Text('Admin Dashboard', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, color: Colors.white)),
+                centerTitle: true,
+                actions: [
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.science, color: Colors.white),
+                    tooltip: 'Test Mode',
+                    onSelected: (value) {
+                      if (value == 'farmer') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AgriSynchHome()),
+                        );
+                      } else if (value == 'buyer') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AgriSynchBuyerHome(hideBottomNav: true)),
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'farmer',
+                        child: Row(
+                          children: [
+                            Icon(Icons.agriculture, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text('Test as Farmer'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'buyer',
+                        child: Row(
+                          children: [
+                            Icon(Icons.shopping_cart, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text('Test as Buyer'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    tooltip: 'Logout',
+                    onPressed: () => _confirmLogout(),
                   ),
                 ],
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(kToolbarHeight),
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    indicatorColor: Colors.white,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    labelStyle: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    tabAlignment: TabAlignment.start,
+                    physics: const BouncingScrollPhysics(),
+                    tabs: const [
+                      Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
+                      Tab(icon: Icon(Icons.help_outline), text: 'Support'),
+                      Tab(icon: Icon(Icons.flag), text: 'Reports'),
+                      Tab(icon: Icon(Icons.people), text: 'Users'),
+                      Tab(icon: Icon(Icons.shopping_bag), text: 'Products'),
+                      Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
+                      Tab(icon: Icon(Icons.message), text: 'Messages'),
+                    ],
+                  ),
+                ),
               ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              physics: const BouncingScrollPhysics(),
-              children: [
-                _buildOverviewTab(),
-                _buildSupportTab(),
-                const AdminReportsPage(),
-                _buildUsersTab(),
-                _buildProductsTab(),
-                _buildOrdersTab(),
-                _buildMessagesTab(),
-              ],
-            ),
-    );
-  }
+              body: _isProcessing
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFF00A862)),
+                          SizedBox(height: 16),
+                          Text(
+                            'Processing...',
+                            style: TextStyle(fontFamily: 'Poppins', fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    )
+                  : TabBarView(
+                      controller: _tabController,
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        _buildOverviewTab(),
+                        _buildSupportTab(),
+                        const AdminReportsPage(),
+                        _buildUsersTab(),
+                        _buildProductsTab(),
+                        _buildOrdersTab(),
+                        _buildMessagesTab(),
+                      ],
+                    ),
+            );
+          }
 
   // Tab 1: Overview with Analytics
   Widget _buildOverviewTab() {
@@ -524,28 +465,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   // Tab 2: Support & Feedback
   Widget _buildSupportTab() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('feedback')
-          .snapshots(), // Simplified - no filters
+      stream: FirebaseFirestore.instance.collection('feedback').snapshots(),
       builder: (context, snapshot) {
-        print('🔍 Feedback stream state: ${snapshot.connectionState}, Error: ${snapshot.hasError}, Data: ${snapshot.data?.docs.length}');
-        
         if (snapshot.hasError) {
-          print('❌ Full error: ${snapshot.error}');
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(fontFamily: 'Poppins'),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -568,7 +491,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No pending support requests',
+                  'No support requests',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 18,
@@ -592,7 +515,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             final feedback = data['feedback'] ?? 'No message provided';
             final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
             
-            // Category colors and icons
             Color categoryColor;
             IconData categoryIcon;
             switch (category) {
@@ -757,8 +679,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   // Tab 3: Users Management
   Widget _buildUsersTab() {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
     return Column(
       children: [
         // Search and Filter Bar
@@ -1529,104 +1449,111 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       ),
       tooltip: 'User actions',
       onPressed: () {
-        _showUserActionsSheet(context, userId, name, data, isProtected, isBanned, isSuspended);
+        showDialog(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('User Actions', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.info),
+                      title: const Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        _showUserDetailsDelayed(userId, data);
+                      },
+                    ),
+                    if (!isProtected && !isBanned && !isSuspended) ...[
+                      ListTile(
+                        leading: const Icon(Icons.block, color: Colors.red),
+                        title: const Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                        onTap: () async {
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          final banResult = await showDialog<Map>(
+                            context: context,
+                            builder: (context) => _buildBanUserDialog(userId, name, permanent: true),
+                          );
+                          if (!mounted) return;
+                          if (banResult != null && banResult['confirm'] == true) {
+                            await _banUser(userId, name, banResult['reason'], true, null, banResult['deleteData'] ?? false);
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.timelapse, color: Colors.orange),
+                        title: const Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
+                        onTap: () async {
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          final suspendResult = await showDialog<Map>(
+                            context: context,
+                            builder: (context) => _buildBanUserDialog(userId, name, permanent: false),
+                          );
+                          if (!mounted) return;
+                          if (suspendResult != null && suspendResult['confirm'] == true) {
+                            await _banUser(userId, name, suspendResult['reason'], false, suspendResult['suspendDays'], suspendResult['deleteData'] ?? false);
+                          }
+                        },
+                      ),
+                    ],
+                    if (!isProtected && (isBanned || isSuspended))
+                      ListTile(
+                        leading: const Icon(Icons.check_circle, color: Colors.green),
+                        title: const Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
+                        onTap: () async {
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          final unbanResult = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => _buildUnbanDialog(userId, name),
+                          );
+                          if (!mounted) return;
+                          if (unbanResult == true) {
+                            await _unbanUser(userId, name);
+                          }
+                        },
+                      ),
+                    if (!isProtected)
+                      ListTile(
+                        leading: const Icon(Icons.delete, color: Colors.red),
+                        title: const Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
+                        onTap: () async {
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          final deleteResult = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => _buildDeleteUserDialog(userId, name),
+                          );
+                          if (!mounted) return;
+                          if (deleteResult == true) {
+                            await _performFullUserDeletion(userId);
+                          }
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
     );
   }
 
-  void _showUserActionsSheet(BuildContext context, String userId, String name, Map<String, dynamic> data, bool isProtected, bool isBanned, bool isSuspended) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.info),
-                title: const Text('View Details', style: TextStyle(fontFamily: 'Poppins')),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  if (!mounted) return;
-                  showDialog(
-                    context: context,
-                    builder: (context) => _buildUserDetailsDialog(userId, data),
-                  );
-                },
-              ),
-              if (!isProtected && !isBanned && !isSuspended) ...[
-                ListTile(
-                  leading: const Icon(Icons.block, color: Colors.red),
-                  title: const Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    if (!mounted) return;
-                    final banResult = await showDialog<Map>(
-                      context: context,
-                      builder: (context) => _buildBanUserDialog(userId, name, permanent: true),
-                    );
-                    if (!mounted) return;
-                    if (banResult != null && banResult['confirm'] == true) {
-                      await _banUser(userId, name, banResult['reason'], true, null, banResult['deleteData'] ?? false);
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.timelapse, color: Colors.orange),
-                  title: const Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    if (!mounted) return;
-                    final suspendResult = await showDialog<Map>(
-                      context: context,
-                      builder: (context) => _buildBanUserDialog(userId, name, permanent: false),
-                    );
-                    if (!mounted) return;
-                    if (suspendResult != null && suspendResult['confirm'] == true) {
-                      await _banUser(userId, name, suspendResult['reason'], false, suspendResult['suspendDays'], suspendResult['deleteData'] ?? false);
-                    }
-                  },
-                ),
-              ],
-              if (!isProtected && (isBanned || isSuspended))
-                ListTile(
-                  leading: const Icon(Icons.check_circle, color: Colors.green),
-                  title: const Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    if (!mounted) return;
-                    final unbanResult = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => _buildUnbanDialog(userId, name),
-                    );
-                    if (!mounted) return;
-                    if (unbanResult == true) {
-                      await _unbanUser(userId, name);
-                    }
-                  },
-                ),
-              if (!isProtected)
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    if (!mounted) return;
-                    final deleteResult = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => _buildDeleteUserDialog(userId, name),
-                    );
-                    if (!mounted) return;
-                    if (deleteResult == true) {
-                      await _performFullUserDeletion(userId);
-                    }
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
+  void _showUserDetailsDelayed(String userId, Map<String, dynamic> data) {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (detailContext) => _buildUserDetailsDialog(userId, data),
+      );
+    });
   }
 
   Widget _buildUserDetailsDialog(String userId, Map<String, dynamic> data) {
@@ -1639,10 +1566,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     final isSuspended = data['suspended'] == true;
     final banReason = data['banReason'] ?? '';
     final suspendedUntil = data['suspendedUntil'] as Timestamp?;
+    final createdAt = data['createdAt'] as Timestamp?;
     final averageRating = data['averageRating'] ?? 0.0;
     final reviewCount = data['reviewCount'] ?? 0;
 
-    return AlertDialog(
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+        child: AlertDialog(
       title: Row(
         children: [
           CircleAvatar(
@@ -1684,21 +1615,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 _detailRow(Icons.location_on, 'Location', location),
                 if (isAdmin)
                   _detailRow(Icons.admin_panel_settings, 'Role', 'Administrator', color: Colors.purple),
-                if (isBanned || isSuspended) ...[
-                  const Divider(height: 24),
-                  _detailRow(
-                    Icons.block,
-                    isBanned ? 'Status' : 'Suspended Until',
-                    isBanned 
-                        ? 'PERMANENTLY BANNED' 
-                        : (suspendedUntil != null 
-                            ? _formatDate(suspendedUntil.toDate())
-                            : 'Unknown'),
-                    color: Colors.red,
-                  ),
-                  if (banReason.isNotEmpty)
-                    _detailRow(Icons.info_outline, 'Reason', banReason, color: Colors.red),
-                ],
+                if (isBanned)
+                  _detailRow(Icons.block, 'Status', 'PERMANENTLY BANNED', color: Colors.red),
+                if (isSuspended)
+                  _detailRow(Icons.block, 'Suspended Until', suspendedUntil != null ? _formatDate(suspendedUntil.toDate()) : 'Unknown', color: Colors.orange),
+                if (banReason.isNotEmpty)
+                  _detailRow(Icons.info_outline, 'Ban/Suspend Reason', banReason, color: Colors.red),
+                if (createdAt != null)
+                  _detailRow(Icons.calendar_today, 'Account Created', _formatDate(createdAt.toDate())),
                 const Divider(height: 24),
                 _detailRow(Icons.star, 'Average Rating', '${averageRating.toStringAsFixed(1)} ⭐ ($reviewCount reviews)'),
                 if (accountType == 'Farmer')
@@ -1715,6 +1639,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           child: const Text('Close', style: TextStyle(fontFamily: 'Poppins')),
         ),
       ],
+        ),
+      ),
     );
   }
 
@@ -2642,6 +2568,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
 
 }
+
+
 
 
 
