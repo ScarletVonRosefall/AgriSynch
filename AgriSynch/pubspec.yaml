@@ -39,14 +39,14 @@ dependencies:
   fl_chart: ^1.1.1
   http: ^1.1.0
   geolocator: ^14.0.2
-  image_picker: ^1.1.2
+  image_picker: ^1.2.1
   
   # Firebase core + services
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
   cloud_firestore: ^6.1.0
   firebase_storage: ^13.0.4
-  firebase_crashlytics: ^5.0.4
+  firebase_crashlytics: ^5.0.5
   cloud_functions: ^6.0.4
 
   # Image caching

@@ -124,7 +124,7 @@
     },
     {
       "name": "firebase_crashlytics",
-      "version": "5.0.4",
+      "version": "5.0.5",
       "dependencies": [
         "firebase_core",
         "firebase_core_platform_interface",
@@ -181,7 +181,7 @@
     },
     {
       "name": "image_picker",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "dependencies": [
         "flutter",
         "image_picker_android",
@@ -696,7 +696,7 @@
     },
     {
       "name": "image_picker_ios",
-      "version": "0.8.13+1",
+      "version": "0.8.13+2",
       "dependencies": [
         "flutter",
         "image_picker_platform_interface"
@@ -715,7 +715,7 @@
     },
     {
       "name": "image_picker_android",
-      "version": "0.8.13+7",
+      "version": "0.8.13+8",
       "dependencies": [
         "flutter",
         "flutter_plugin_android_lifecycle",
@@ -862,7 +862,7 @@
     },
     {
       "name": "shared_preferences_foundation",
-      "version": "2.5.5",
+      "version": "2.5.6",
       "dependencies": [
         "flutter",
         "shared_preferences_platform_interface"
@@ -870,7 +870,7 @@
     },
     {
       "name": "shared_preferences_android",
-      "version": "2.4.15",
+      "version": "2.4.16",
       "dependencies": [
         "flutter",
         "shared_preferences_platform_interface"
@@ -1113,7 +1113,7 @@
     },
     {
       "name": "file_selector_windows",
-      "version": "0.9.3+4",
+      "version": "0.9.3+5",
       "dependencies": [
         "cross_file",
         "file_selector_platform_interface",
@@ -1140,7 +1140,7 @@
     },
     {
       "name": "file_selector_macos",
-      "version": "0.9.4+5",
+      "version": "0.9.4+6",
       "dependencies": [
         "cross_file",
         "file_selector_platform_interface",
@@ -1149,7 +1149,7 @@
     },
     {
       "name": "file_selector_linux",
-      "version": "0.9.3+2",
+      "version": "0.9.3+3",
       "dependencies": [
         "cross_file",
         "file_selector_platform_interface",
@@ -1317,7 +1317,7 @@
     },
     {
       "name": "path_provider_foundation",
-      "version": "2.4.3",
+      "version": "2.4.4",
       "dependencies": [
         "flutter",
         "path_provider_platform_interface"
@@ -1325,7 +1325,7 @@
     },
     {
       "name": "path_provider_android",
-      "version": "2.2.20",
+      "version": "2.2.21",
       "dependencies": [
         "flutter",
         "path_provider_platform_interface"
