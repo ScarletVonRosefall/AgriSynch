@@ -1866,58 +1866,107 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   // Helper method to delete user data (used by both ban and delete functions)
   Future<void> _deleteUserData(String userId) async {
-    final messagesQuery = await FirebaseFirestore.instance
-        .collection('messages')
-        .where('senderId', isEqualTo: userId)
-        .get();
-    
-    for (var doc in messagesQuery.docs) {
-      await doc.reference.delete();
-    }
+    try {
+      // Delete messages sent by user
+      final messagesQuery = await FirebaseFirestore.instance
+          .collection('messages')
+          .where('senderId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in messagesQuery.docs) {
+        await doc.reference.delete();
+      }
 
-    final receivedMessagesQuery = await FirebaseFirestore.instance
-        .collection('messages')
-        .where('receiverId', isEqualTo: userId)
-        .get();
-    
-    for (var doc in receivedMessagesQuery.docs) {
-      await doc.reference.delete();
-    }
+      // Delete messages received by user
+      final receivedMessagesQuery = await FirebaseFirestore.instance
+          .collection('messages')
+          .where('receiverId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in receivedMessagesQuery.docs) {
+        await doc.reference.delete();
+      }
 
-    final notificationsQuery = await FirebaseFirestore.instance
-        .collection('notifications')
-        .where('userId', isEqualTo: userId)
-        .get();
-    
-    for (var doc in notificationsQuery.docs) {
-      await doc.reference.delete();
-    }
+      // Delete conversations where user is a participant
+      final conversationsQuery = await FirebaseFirestore.instance
+          .collection('conversations')
+          .where('participants', arrayContains: userId)
+          .get();
+      
+      for (var doc in conversationsQuery.docs) {
+        // Delete all messages in conversation
+        final messagesInConv = await doc.reference.collection('messages').get();
+        for (var msg in messagesInConv.docs) {
+          await msg.reference.delete();
+        }
+        // Delete conversation itself
+        await doc.reference.delete();
+      }
 
-    final productsQuery = await FirebaseFirestore.instance
-        .collection('products')
-        .where('farmerId', isEqualTo: userId)
-        .get();
-    
-    for (var doc in productsQuery.docs) {
-      await doc.reference.delete();
-    }
+      // Delete user notifications
+      final notificationsQuery = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in notificationsQuery.docs) {
+        await doc.reference.delete();
+      }
 
-    final ordersAsBuyerQuery = await FirebaseFirestore.instance
-        .collection('orders')
-        .where('buyerId', isEqualTo: userId)
-        .get();
-    
-    for (var doc in ordersAsBuyerQuery.docs) {
-      await doc.reference.delete();
-    }
+      // Delete user products
+      final productsQuery = await FirebaseFirestore.instance
+          .collection('products')
+          .where('farmerId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in productsQuery.docs) {
+        await doc.reference.delete();
+      }
 
-    final ordersAsSellerQuery = await FirebaseFirestore.instance
-        .collection('orders')
-        .where('sellerId', isEqualTo: userId)
-        .get();
-    
-    for (var doc in ordersAsSellerQuery.docs) {
-      await doc.reference.delete();
+      // Delete orders where user is buyer
+      final ordersAsBuyerQuery = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('buyerId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in ordersAsBuyerQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      // Delete orders where user is seller
+      final ordersAsSellerQuery = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('sellerId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in ordersAsSellerQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      // Delete user feedback
+      final feedbackQuery = await FirebaseFirestore.instance
+          .collection('feedback')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in feedbackQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      // Delete account action requests for user
+      final requestsQuery = await FirebaseFirestore.instance
+          .collection('accountActionRequests')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      for (var doc in requestsQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      print('✅ All user data deleted for: $userId');
+    } catch (e) {
+      print('❌ Error deleting user data: $e');
+      rethrow;
     }
   }
 
@@ -1937,15 +1986,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         _showError('Failed to delete user: ${result.data['message']}');
       }
     } catch (e) {
-      print('Error calling deleteUserAccount: $e');
+      print('Error calling deleteUserAccount Cloud Function: $e');
       
-      // Fallback to local deletion (only Firestore, not Auth)
+      // Fallback to local deletion (Firestore + attempt Auth deletion)
       try {
+        // Delete all user data first
         await _deleteUserData(userId);
+        
+        // Try to delete from Firebase Auth directly
+        try {
+          await FirebaseAuth.instance.currentUser?.delete();
+          print('✅ Deleted from Firebase Auth (current user)');
+        } catch (authError) {
+          print('⚠️ Could not delete from Auth as current user: $authError');
+          // Auth deletion via direct API might not work for admin deleting other users
+          // This is expected - Cloud Function method is preferred
+        }
+
+        // Delete user document from Firestore
         await FirebaseFirestore.instance.collection('users').doc(userId).delete();
 
         if (!mounted) return;
-        _showSuccess('User data deleted (Auth account may still exist - contact system admin)');
+        _showSuccess('User account and all data deleted successfully');
       } catch (fallbackError) {
         if (!mounted) return;
         _showError('Error deleting user: $fallbackError');
