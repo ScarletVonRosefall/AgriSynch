@@ -477,7 +477,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           );
         }
 
-        final requests = snapshot.data?.docs ?? [];
+        var requests = snapshot.data?.docs ?? [];
+        
+        // Filter out resolved and dismissed items - only show pending
+        requests = requests.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final status = data['status'] ?? 'pending';
+          return status != 'resolved' && status != 'dismissed';
+        }).toList();
 
         if (requests.isEmpty) {
           return Center(
@@ -491,7 +498,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No support requests',
+                  'No pending support requests',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 18,
