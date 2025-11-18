@@ -1988,26 +1988,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     } catch (e) {
       print('Error calling deleteUserAccount Cloud Function: $e');
       
-      // Fallback to local deletion (Firestore + attempt Auth deletion)
+      // Fallback to local deletion (Firestore only - Auth deletion requires Cloud Function)
       try {
         // Delete all user data first
         await _deleteUserData(userId);
-        
-        // Try to delete from Firebase Auth directly
-        try {
-          await FirebaseAuth.instance.currentUser?.delete();
-          print('✅ Deleted from Firebase Auth (current user)');
-        } catch (authError) {
-          print('⚠️ Could not delete from Auth as current user: $authError');
-          // Auth deletion via direct API might not work for admin deleting other users
-          // This is expected - Cloud Function method is preferred
-        }
 
         // Delete user document from Firestore
         await FirebaseFirestore.instance.collection('users').doc(userId).delete();
 
         if (!mounted) return;
-        _showSuccess('User account and all data deleted successfully');
+        _showSuccess('User data deleted from Firestore. Note: User may still exist in Auth - deploy Cloud Function for complete deletion.');
       } catch (fallbackError) {
         if (!mounted) return;
         _showError('Error deleting user: $fallbackError');
