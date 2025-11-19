@@ -365,6 +365,25 @@ class _AgriFinancesState extends State<AgriFinances> {
     setState(() {});
   }
 
+  void _editTransaction(Map<String, dynamic> transaction) {
+    showDialog(
+      context: context,
+      builder: (context) => EditTransactionDialog(
+        transaction: transaction,
+        onSave: (updatedTransaction) {
+          // Update the transaction in local list
+          final index = transactions.indexWhere((t) => t['id'] == transaction['id']);
+          if (index != -1) {
+            transactions[index] = updatedTransaction;
+            _saveTransactions();
+            _calculateTotals();
+            setState(() {});
+          }
+        },
+      ),
+    );
+  }
+
   List<BarChartGroupData> _generateBarChartData() {
     final categoryTotals = <String, double>{};
 
@@ -434,13 +453,14 @@ class _AgriFinancesState extends State<AgriFinances> {
     }
 
     final sections = <PieChartSectionData>[];
-    int colorIndex = 0;
+    int incomeColorIndex = 0;
+    int expenseColorIndex = 0;
 
-    // Add income sections
+    // Add income sections (green shades)
     for (var entry in incomeByCategory.entries) {
       sections.add(
         PieChartSectionData(
-          color: _getPieColor(colorIndex++),
+          color: _getIncomePieColor(incomeColorIndex++),
           value: entry.value,
           title: '$currencySymbol${entry.value.toStringAsFixed(0)}',
           radius: 60,
@@ -453,11 +473,11 @@ class _AgriFinancesState extends State<AgriFinances> {
       );
     }
 
-    // Add expense sections
+    // Add expense sections (red shades)
     for (var entry in expenseByCategory.entries) {
       sections.add(
         PieChartSectionData(
-          color: _getPieColor(colorIndex++),
+          color: _getExpensePieColor(expenseColorIndex++),
           value: entry.value,
           title: '$currencySymbol${entry.value.toStringAsFixed(0)}',
           radius: 60,
@@ -477,18 +497,24 @@ class _AgriFinancesState extends State<AgriFinances> {
     return _cachedPieChartData;
   }
 
-  Color _getPieColor(int index) {
+  Color _getIncomePieColor(int index) {
     final colors = [
-      const Color(0xFF4CAF50),
-      const Color(0xFF2196F3),
-      const Color(0xFFFF9800),
-      const Color(0xFF9C27B0),
-      const Color(0xFFE91E63),
-      const Color(0xFF607D8B),
-      const Color(0xFF795548),
-      const Color(0xFF009688),
-      const Color(0xFFFF5722),
-      const Color(0xFF3F51B5),
+      const Color(0xFF4CAF50), // Green
+      const Color(0xFF66BB6A), // Light Green
+      const Color(0xFF81C784), // Lighter Green
+      const Color(0xFFA5D6A7), // Pale Green
+      const Color(0xFF2E7D32), // Dark Green
+    ];
+    return colors[index % colors.length];
+  }
+
+  Color _getExpensePieColor(int index) {
+    final colors = [
+      const Color(0xFFEF5350), // Red
+      const Color(0xFFF44336), // Light Red
+      const Color(0xFFE57373), // Lighter Red
+      const Color(0xFFEF9A9A), // Pale Red
+      const Color(0xFFC62828), // Dark Red
     ];
     return colors[index % colors.length];
   }
@@ -651,7 +677,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                       'Profit',
                       profit,
                       profit >= 0 ? Icons.attach_money : Icons.money_off,
-                      profit >= 0 ? Colors.green : Colors.red,
+                      Colors.blue,
                     ),
                   ),
                 ],
@@ -921,7 +947,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                                   _buildLegendItem(
                                     'Net Profit',
                                     profit,
-                                    profit >= 0 ? Colors.green : Colors.red,
+                                    Colors.blue,
                                   ),
                                 ],
                               ),
@@ -1216,6 +1242,14 @@ class _AgriFinancesState extends State<AgriFinances> {
                 color: isIncome ? Colors.green : Colors.red,
                 fontSize: 14,
               ),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.edit,
+                color: isDarkMode ? Colors.white54 : Colors.grey,
+                size: 20,
+              ),
+              onPressed: () => _editTransaction(transaction),
             ),
             IconButton(
               icon: Icon(
@@ -1646,3 +1680,269 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     );
   }
 }
+
+class EditTransactionDialog extends StatefulWidget {
+  final Map<String, dynamic> transaction;
+  final Function(Map<String, dynamic>) onSave;
+
+  const EditTransactionDialog({
+    super.key,
+    required this.transaction,
+    required this.onSave,
+  });
+
+  @override
+  State<EditTransactionDialog> createState() => _EditTransactionDialogState();
+}
+
+class _EditTransactionDialogState extends State<EditTransactionDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _amountController;
+  late TextEditingController _descriptionController;
+  late String selectedType;
+  late String selectedCategory;
+  final _themeNotifier = ThemeNotifier();
+
+  final Map<String, List<String>> categoryMap = {
+    'income': ['Sales', 'Subsidies', 'Other Income'],
+    'expense': [
+      'Equipment',
+      'Seeds',
+      'Fertilizer',
+      'Labor',
+      'Fuel',
+      'Maintenance',
+      'Other Expense',
+    ],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+    selectedType = widget.transaction['type'] ?? 'income';
+    selectedCategory = widget.transaction['category'] ?? 'Sales';
+    _amountController = TextEditingController(
+      text: widget.transaction['amount'].toString(),
+    );
+    _descriptionController = TextEditingController(
+      text: widget.transaction['description'] ?? '',
+    );
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+    
+    return AlertDialog(
+      backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+      title: Text(
+        'Edit Transaction',
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.bold,
+          color: isDarkMode ? Colors.white : Colors.black,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Type dropdown
+              DropdownButtonFormField<String>(
+                value: selectedType,
+                dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                decoration: InputDecoration(
+                  labelText: 'Type',
+                  labelStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white24 : Colors.grey,
+                    ),
+                  ),
+                ),
+                items: ['income', 'expense'].map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(
+                      type.toUpperCase(),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedType = value;
+                      selectedCategory = categoryMap[value]!.first;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              // Category dropdown
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white24 : Colors.grey,
+                    ),
+                  ),
+                ),
+                items: (categoryMap[selectedType] ?? []).map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedCategory = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              // Amount field
+              TextFormField(
+                controller: _amountController,
+                decoration: InputDecoration(
+                  labelText: 'Amount',
+                  labelStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white24 : Colors.grey,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[50],
+                ),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter an amount';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              // Description field
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white24 : Colors.grey,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[50],
+                ),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a description';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white70 : Colors.grey,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              final updatedTransaction = {
+                ...widget.transaction,
+                'type': selectedType,
+                'category': selectedCategory,
+                'amount': double.parse(_amountController.text),
+                'description': _descriptionController.text,
+              };
+              widget.onSave(updatedTransaction);
+              Navigator.pop(context);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF00C853),
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Save Changes'),
+        ),
+      ],
+    );
+  }
+}
+
