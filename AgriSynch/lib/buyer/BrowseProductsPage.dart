@@ -224,17 +224,20 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
             .get();
         
         if (cartDoc.exists && cartDoc.data() != null) {
-          final cartData = cartDoc.data()!['items'] as List<dynamic>?;
-          if (cartData != null) {
-            setState(() {
-              cart = List<Map<String, dynamic>>.from(
-                cartData.map((item) => Map<String, dynamic>.from(item))
-              );
-            });
-            // Also save to local storage as backup
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('buyer_cart', json.encode(cart));
-            return;
+          final cartDocData = cartDoc.data();
+          if (cartDocData != null) {
+            final cartData = cartDocData['items'] as List<dynamic>?;
+            if (cartData != null) {
+              setState(() {
+                cart = List<Map<String, dynamic>>.from(
+                  cartData.map((item) => Map<String, dynamic>.from(item))
+                );
+              });
+              // Also save to local storage as backup
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('buyer_cart', json.encode(cart));
+              return;
+            }
           }
         }
       } catch (e) {

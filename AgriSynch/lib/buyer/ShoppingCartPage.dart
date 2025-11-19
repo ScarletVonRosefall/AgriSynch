@@ -52,11 +52,13 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
             .get();
         
         if (cartDoc.exists && cartDoc.data() != null) {
-          final cartData = cartDoc.data()!['items'] as List<dynamic>?;
-          if (cartData != null) {
-            final loadedCart = List<Map<String, dynamic>>.from(
-              cartData.map((item) => Map<String, dynamic>.from(item))
-            );
+          final cartDocData = cartDoc.data();
+          if (cartDocData != null) {
+            final cartData = cartDocData['items'] as List<dynamic>?;
+            if (cartData != null) {
+              final loadedCart = List<Map<String, dynamic>>.from(
+                cartData.map((item) => Map<String, dynamic>.from(item))
+              );
             
             // Fetch product images for items that don't have imageUrl
             for (var item in loadedCart) {
@@ -89,6 +91,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('buyer_cart', json.encode(cart));
             return;
+            }
           }
         }
       } catch (e) {

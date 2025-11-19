@@ -61,8 +61,11 @@ class OrderService {
           throw Exception('Product not found');
         }
         
-        final data = snapshot.data()!;
-        final currentStock = data['stock'] as int;
+        final data = snapshot.data();
+        if (data == null) {
+          throw Exception('Product data is invalid');
+        }
+        final currentStock = data['stock'] as int? ?? 0;
         final newStock = currentStock - quantity;
         
         print('  📊 Current stock: $currentStock, Order quantity: $quantity, New stock: $newStock');
@@ -155,12 +158,21 @@ class OrderService {
     try {
       final orderDoc = await _firestore.collection('orders').doc(orderId).get();
       if (orderDoc.exists) {
-        final orderData = orderDoc.data()!;
-        final buyerId = orderData['buyerId'] as String;
+        final orderData = orderDoc.data();
+        if (orderData == null) {
+          print('Warning: Order $orderId has no data');
+          return;
+        }
+        final buyerId = orderData['buyerId'] as String?;
+        if (buyerId == null) {
+          print('Warning: Order $orderId missing buyerId');
+          return;
+        }
         final items = (orderData['items'] as List<dynamic>?) ?? [];
-        final productName = items.isNotEmpty 
-            ? (items.first as Map<String, dynamic>)['name'] ?? 'Product(s)'
-            : 'Product(s)';
+        String productName = 'Product(s)';
+        if (items.isNotEmpty && items.first is Map<String, dynamic>) {
+          productName = (items.first as Map<String, dynamic>)['name'] as String? ?? 'Product(s)';
+        }
         
         String title = '';
         String body = '';

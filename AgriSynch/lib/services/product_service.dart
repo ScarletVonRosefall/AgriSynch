@@ -178,7 +178,11 @@ class ProductService {
         throw Exception('Product not found');
       }
 
-      final currentStock = snapshot.data()!['stock'] as int;
+      final data = snapshot.data();
+      if (data == null) {
+        throw Exception('Product data is invalid');
+      }
+      final currentStock = data['stock'] as int? ?? 0;
       final newStock = currentStock - quantity;
 
       if (newStock < 0) {
@@ -203,7 +207,11 @@ class ProductService {
         throw Exception('Product not found');
       }
 
-      final currentStock = snapshot.data()!['stock'] as int;
+      final data = snapshot.data();
+      if (data == null) {
+        throw Exception('Product data is invalid');
+      }
+      final currentStock = data['stock'] as int? ?? 0;
       final newStock = currentStock + quantity;
 
       transaction.update(docRef, {

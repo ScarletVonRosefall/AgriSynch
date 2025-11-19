@@ -246,14 +246,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               final totalUsers = allDocs.length;
               final farmers = allDocs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>?;
-                final accountType = data?['accountType'];
-                final isAdmin = data?['isAdmin'] == true;
+                if (data == null) return false;
+                final accountType = data['accountType'];
+                final isAdmin = data['isAdmin'] == true;
                 return accountType == 'Farmer' && !isAdmin;
               }).length;
               final buyers = allDocs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>?;
-                final accountType = data?['accountType'];
-                final isAdmin = data?['isAdmin'] == true;
+                if (data == null) return false;
+                final accountType = data['accountType'];
+                final isAdmin = data['isAdmin'] == true;
                 return accountType == 'Buyer' && !isAdmin;
               }).length;
 
@@ -481,7 +483,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         
         // Filter out resolved and dismissed items - only show pending
         requests = requests.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data() as Map<String, dynamic>?;
+          if (data == null) return false;
           final status = data['status'] ?? 'pending';
           return status != 'resolved' && status != 'dismissed';
         }).toList();
@@ -515,7 +518,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index];
-            final data = request.data() as Map<String, dynamic>;
+            final data = request.data() as Map<String, dynamic>?;
+            if (data == null) {
+              return const SizedBox.shrink();
+            }
             final userName = data['userName'] ?? 'Anonymous';
             final userEmail = data['userEmail'] ?? 'No email provided';
             final category = data['category'] ?? 'General';
@@ -878,7 +884,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               // Apply search filter
               if (_userSearchQuery.isNotEmpty) {
                 users = users.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>?;
+                  if (data == null) return false;
                   final name = (data['name'] ?? '').toString().toLowerCase();
                   final email = (data['email'] ?? '').toString().toLowerCase();
                   return name.contains(_userSearchQuery) || email.contains(_userSearchQuery);
@@ -888,7 +895,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               // Apply type filter
               if (_userTypeFilter != 'all') {
                 users = users.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>?;
+                  if (data == null) return false;
                   if (_userTypeFilter == 'Admin') {
                     return data['isAdmin'] == true;
                   }
@@ -907,7 +915,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 itemCount: users.length,
                 itemBuilder: (context, index) {
                   final user = users[index];
-                  final data = user.data() as Map<String, dynamic>;
+                  final data = user.data() as Map<String, dynamic>?;
+                  if (data == null) {
+                    return const SizedBox.shrink();
+                  }
                   final name = data['name'] ?? 'Unknown';
                   final email = data['email'] ?? '';
                   final accountType = data['accountType'] ?? 'Unknown';
@@ -938,7 +949,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         children: [
                           Checkbox(
                             value: _selectedUserIds.contains(user.id),
-                            onChanged: (isAdmin || name.toLowerCase() == 'name') ? null : (selected) {
+                            onChanged: (isAdmin || user.id.isEmpty) ? null : (selected) {
                               setState(() {
                                 if (selected == true) {
                                   _selectedUserIds.add(user.id);
@@ -1050,7 +1061,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               // Apply search filter
               if (_productSearchQuery.isNotEmpty) {
                 products = products.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>?;
+                  if (data == null) return false;
                   final name = (data['name'] ?? '').toString().toLowerCase();
                   final farmerName = (data['farmerName'] ?? '').toString().toLowerCase();
                   return name.contains(_productSearchQuery) || farmerName.contains(_productSearchQuery);
@@ -1068,7 +1080,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 itemCount: products.length,
                 itemBuilder: (context, index) {
                   final product = products[index];
-                  final data = product.data() as Map<String, dynamic>;
+                  final data = product.data() as Map<String, dynamic>?;
+                  if (data == null) {
+                    return const SizedBox.shrink();
+                  }
                   final name = data['name'] ?? 'Unknown Product';
                   final price = data['price'] ?? 0.0;
                   final quantity = data['quantity'] ?? 0;
@@ -1224,7 +1239,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               // Apply status filter
               if (_orderStatusFilter != 'all') {
                 orders = orders.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>?;
+                  if (data == null) return false;
                   return data['status'] == _orderStatusFilter;
                 }).toList();
               }
@@ -1240,14 +1256,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 itemCount: orders.length,
                 itemBuilder: (context, index) {
                   final order = orders[index];
-                  final data = order.data() as Map<String, dynamic>;
+                  final data = order.data() as Map<String, dynamic>?;
+                  if (data == null) {
+                    return const SizedBox.shrink();
+                  }
                   
-                  // Extract product names from items array
+                  // Extract product names from items array with null safety
                   String productName = 'Unknown';
-                  if (data['items'] != null && data['items'] is List && (data['items'] as List).isNotEmpty) {
-                    final items = data['items'] as List;
-                    final productNames = items.map((item) => item['name'] ?? 'Unknown').toList();
-                    productName = productNames.join(', ');
+                  try {
+                    final items = data['items'];
+                    if (items is List && items.isNotEmpty) {
+                      final productNames = items
+                          .whereType<Map<String, dynamic>>()
+                          .map((item) => (item['name'] as String?) ?? 'Unknown')
+                          .toList();
+                      if (productNames.isNotEmpty) {
+                        productName = productNames.join(', ');
+                      }
+                    }
+                  } catch (e) {
+                    print('Error parsing order items: $e');
                   }
                   
                   final buyerName = data['buyerName'] ?? 'Unknown';
@@ -1286,7 +1314,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   // Tab 6: Messages Management
   Widget _buildMessagesTab() {
-    final isDarkMode = false;
+    final isDarkMode = _themeNotifier.isDarkMode;
     
     return Column(
       children: [
@@ -1333,7 +1361,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               // Apply search filter
               if (_messageSearchQuery.isNotEmpty) {
                 conversations = conversations.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>?;
+                  if (data == null) return false;
                   final buyerName = (data['buyerName'] ?? '').toString().toLowerCase();
                   final farmerName = (data['farmerName'] ?? '').toString().toLowerCase();
                   final lastMessage = (data['lastMessage'] ?? '').toString().toLowerCase();
@@ -1361,7 +1390,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 itemCount: conversations.length,
                 itemBuilder: (context, index) {
                   final conversation = conversations[index];
-                  final data = conversation.data() as Map<String, dynamic>;
+                  final data = conversation.data() as Map<String, dynamic>?;
+                  if (data == null) {
+                    return const SizedBox.shrink();
+                  }
                   final buyerName = data['buyerName'] ?? 'Unknown';
                   final farmerName = data['farmerName'] ?? 'Unknown';
                   final buyerId = data['buyerId'] ?? '';
@@ -1447,7 +1479,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   Widget _buildUserActionsMenu(BuildContext context, String userId, String name, Map<String, dynamic> data, bool isAdmin, bool isBanned, bool isSuspended) {
     final isDarkMode = _themeNotifier.isDarkMode;
-    final isProtected = isAdmin || name.toLowerCase() == 'name';
+    final isProtected = isAdmin || userId.isEmpty;
 
     return IconButton(
       icon: Icon(
@@ -2130,7 +2162,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     if (result == true) {
       try {
         final price = double.tryParse(priceController.text) ?? 0.0;
+        if (price < 0) {
+          _showError('Price cannot be negative');
+          return;
+        }
+        
         final quantity = int.tryParse(quantityController.text) ?? 0;
+        if (quantity < 0) {
+          _showError('Quantity cannot be negative');
+          return;
+        }
 
         await FirebaseFirestore.instance.collection('products').doc(productId).update({
           'name': nameController.text.trim(),
@@ -2523,19 +2564,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   // Bulk Actions Methods
   void _toggleSelectAllUsers() {
-    setState(() {
-      if (_selectedUserIds.isEmpty) {
-        // Select all visible users
-        FirebaseFirestore.instance.collection('users').get().then((snapshot) {
+    if (_selectedUserIds.isEmpty) {
+      // Select all visible users
+      FirebaseFirestore.instance.collection('users').get().then((snapshot) {
+        if (mounted) {
           setState(() {
             _selectedUserIds = snapshot.docs.map((doc) => doc.id).toSet();
           });
-        });
-      } else {
-        // Deselect all
+        }
+      }).catchError((e) {
+        print('Error loading users for bulk selection: $e');
+        if (mounted) {
+          _showError('Failed to load users');
+        }
+      });
+    } else {
+      // Deselect all
+      setState(() {
         _selectedUserIds.clear();
-      }
-    });
+      });
+    }
   }
 
   Future<void> _bulkBanUsers() async {

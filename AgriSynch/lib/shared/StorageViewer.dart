@@ -22,9 +22,11 @@ class _StorageViewerPageState extends State<StorageViewerPage> {
 
   Future<void> loadStorage() async {
     final all = await storage.readAll();
-    setState(() {
-      storageData = all;
-    });
+    if (mounted) {
+      setState(() {
+        storageData = all;
+      });
+    }
   }
 
   /// Fix products in Firestore that have 'images' field as boolean instead of array

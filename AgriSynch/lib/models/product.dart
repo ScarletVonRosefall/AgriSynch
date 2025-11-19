@@ -40,7 +40,10 @@ class Product {
   });
 
   factory Product.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
+    final data = doc.data();
+    if (data == null) {
+      throw Exception('Product document ${doc.id} has no data');
+    }
     
     List<String> imagesList = [];
     if (data['images'] != null) {
