@@ -224,6 +224,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                           );
                                         },
                                       ),
+                                      const SizedBox(height: 12),
                                     ],
                                   ),
                                 ),
@@ -626,6 +627,37 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 fontSize: 13,
                                                 color: Colors.white,
                                               ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Center(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Download APK (demo) — button not wired')),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              foregroundColor: const Color(0xFF00A862),
+                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                              elevation: 6,
+                                            ),
+                                            icon: const Icon(Icons.android, color: Color(0xFF00A862)),
+                                            label: const Text('Download APK (Android)', style: TextStyle(color: Color(0xFF00A862), fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Center(
+                                          child: Text(
+                                            'Tip: This APK is downloaded via your browser. You may need to allow "Install unknown apps" or "Unknown sources" in your Android settings before installing.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontSize: 12,
+                                              color: Colors.white70,
                                             ),
                                           ),
                                         ),
