@@ -7,12 +7,14 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
-import 'package:flutter/foundation.dart';
 import '../utils/pdf_download.dart';
+import 'package:open_file/open_file.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
@@ -283,31 +285,29 @@ class _AgriFinancesState extends State<AgriFinances> {
       // Allow a short delay for painting
       await Future.delayed(const Duration(milliseconds: 200));
 
-      // Capture bar chart image
-      Uint8List? barBytes;
-      Uint8List? pieBytes;
+      // Prepare lightweight vector summaries (no screenshots) to speed up PDF creation
+      // Category totals for bar-like summary
+      final Map<String, double> categoryTotals = {};
+      double totalIncomeForPie = 0.0;
+      double totalExpenseForPie = 0.0;
 
-      try {
-        final barBoundary = _barChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-        if (barBoundary != null) {
-          final ui.Image barImage = await barBoundary.toImage(pixelRatio: 2.0);
-          final ByteData? bd = await barImage.toByteData(format: ui.ImageByteFormat.png);
-          barBytes = bd?.buffer.asUint8List();
+      for (var t in _cachedFilteredTransactions) {
+        final cat = (t['category'] ?? 'Other').toString();
+        final amt = (t['amount'] ?? 0.0) as double;
+        final type = (t['type'] ?? 'income').toString();
+
+        categoryTotals[cat] = (categoryTotals[cat] ?? 0.0) + amt;
+
+        if (type == 'income') {
+          totalIncomeForPie += amt;
+        } else {
+          totalExpenseForPie += amt;
         }
-      } catch (e) {
-        print('❌ Error capturing bar chart image: $e');
       }
 
-      try {
-        final pieBoundary = _pieChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-        if (pieBoundary != null) {
-          final ui.Image pieImage = await pieBoundary.toImage(pixelRatio: 2.0);
-          final ByteData? bd = await pieImage.toByteData(format: ui.ImageByteFormat.png);
-          pieBytes = bd?.buffer.asUint8List();
-        }
-      } catch (e) {
-        print('❌ Error capturing pie chart image: $e');
-      }
+      final sortedCategories = categoryTotals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+      final topCategories = sortedCategories.take(6).toList();
+      // maxCategoryValue not required when rendering text-based bars
 
       // Load a unicode-capable font from assets (Poppins is included in project assets)
       pw.Font ttf;
@@ -317,6 +317,44 @@ class _AgriFinancesState extends State<AgriFinances> {
       } catch (e) {
         print('⚠️ Could not load Poppins font for PDF ($e) — falling back to default');
         ttf = pw.Font.helvetica();
+      }
+
+      // Determine report owner and small metadata to include in the PDF
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final String reportUser = currentUser?.displayName ?? currentUser?.email ?? currentUser?.uid ?? 'Unknown User';
+
+      // Generate pie PNG bytes in-memory (async) so the PDF MultiPage builder stays synchronous
+      Uint8List pieBytes = Uint8List(0);
+      try {
+        final double totalPieGen = totalIncomeForPie + totalExpenseForPie;
+        if (totalPieGen > 0) {
+          const int size = 200;
+          final recorder = ui.PictureRecorder();
+          final canvas = Canvas(recorder);
+          final paint = Paint()..style = PaintingStyle.fill;
+          final rect = Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble());
+
+          final double sweepIncome = (totalIncomeForPie / totalPieGen) * 2 * math.pi;
+          final double start = -math.pi / 2;
+
+          paint.color = const Color(0xFF4CAF50); // income green
+          canvas.drawArc(rect, start, sweepIncome, true, paint);
+
+          paint.color = const Color(0xFFE53935); // expense red
+          canvas.drawArc(rect, start + sweepIncome, 2 * math.pi - sweepIncome, true, paint);
+
+          // center white circle for donut look
+          paint.color = const Color(0xFFFFFFFF);
+          canvas.drawCircle(Offset(size / 2, size / 2), size * 0.28, paint);
+
+          final picture = recorder.endRecording();
+          final ui.Image img = await picture.toImage(size, size);
+          final ByteData? bd = await img.toByteData(format: ui.ImageByteFormat.png);
+          if (bd != null) pieBytes = bd.buffer.asUint8List();
+        }
+      } catch (e) {
+        print('⚠️ Pie generation failed: $e');
+        pieBytes = Uint8List(0);
       }
 
       final doc = pw.Document();
@@ -334,6 +372,11 @@ class _AgriFinancesState extends State<AgriFinances> {
             );
 
             content.add(pw.Paragraph(text: 'Generated: ${DateFormat.yMMMd().add_jm().format(DateTime.now())}', style: pw.TextStyle(font: ttf)));
+            content.add(pw.Paragraph(text: 'User: $reportUser', style: pw.TextStyle(font: ttf)));
+            content.add(pw.SizedBox(height: 4));
+            content.add(pw.Bullet(text: 'Filter: $selectedFilter', style: pw.TextStyle(font: ttf)));
+            content.add(pw.Bullet(text: 'Time Range: $selectedTimeRange', style: pw.TextStyle(font: ttf)));
+            content.add(pw.Bullet(text: 'Items: ${_cachedFilteredTransactions.length}', style: pw.TextStyle(font: ttf)));
             content.add(pw.SizedBox(height: 6));
             content.add(pw.Paragraph(text: 'Summary', style: pw.TextStyle(font: ttf)));
             content.add(pw.Bullet(text: 'Total Income: $currencySymbol${totalIncome.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf)));
@@ -342,9 +385,72 @@ class _AgriFinancesState extends State<AgriFinances> {
             content.add(pw.SizedBox(height: 12));
 
             // Charts (images) if available
-            if (barBytes != null) content.add(pw.Center(child: pw.Image(pw.MemoryImage(barBytes), width: 450)));
-            if (pieBytes != null) content.add(pw.SizedBox(height: 8));
-            if (pieBytes != null) content.add(pw.Center(child: pw.Image(pw.MemoryImage(pieBytes), width: 350)));
+            // Lightweight vector summaries instead of screenshots.
+            if (topCategories.isNotEmpty) {
+              content.add(pw.Header(
+                level: 2,
+                text: 'Category Summary',
+                padding: pw.EdgeInsets.only(top: 8, bottom: 4),
+                textStyle: pw.TextStyle(font: ttf, fontSize: 14),
+              ));
+
+              final double maxBarWidth = 220.0;
+              final double baseValue = topCategories.first.value == 0 ? 1.0 : topCategories.first.value;
+
+              for (final e in topCategories) {
+                final barWidth = (e.value / baseValue) * maxBarWidth;
+                content.add(pw.Padding(
+                  padding: pw.EdgeInsets.symmetric(vertical: 4),
+                  child: pw.Row(children: [
+                    pw.Expanded(flex: 3, child: pw.Text(e.key, style: pw.TextStyle(font: ttf, fontSize: 10))),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                        flex: 6,
+                        child: pw.Container(
+                            height: 12,
+                            alignment: pw.Alignment.centerLeft,
+                            child: pw.Container(width: barWidth, height: 12, color: PdfColors.blue))),
+                    pw.SizedBox(width: 8),
+                    pw.Flexible(child: pw.Text('${e.value.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf, fontSize: 10))),
+                  ]),
+                ));
+              }
+            } else {
+              content.add(pw.Text('No category data available', style: pw.TextStyle(font: ttf)));
+            }
+
+            // Income / Expense summary — render a simple pie chart (generated in-memory)
+            final double totalPie = totalIncomeForPie + totalExpenseForPie;
+            content.add(pw.SizedBox(height: 8));
+            content.add(pw.Header(
+              level: 2,
+              text: 'Income / Expense Distribution',
+              padding: pw.EdgeInsets.only(top: 8, bottom: 4),
+              textStyle: pw.TextStyle(font: ttf, fontSize: 14),
+            ));
+
+            if (totalPie > 0) {
+              if (pieBytes.isNotEmpty) {
+                content.add(pw.Row(children: [
+                  pw.Container(width: 170, child: pw.Center(child: pw.Image(pw.MemoryImage(pieBytes), width: 150, height: 150))),
+                  pw.SizedBox(width: 12),
+                  pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                    pw.Text('Income: $currencySymbol${totalIncomeForPie.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf, fontSize: 12)),
+                    pw.SizedBox(height: 6),
+                    pw.Text('Expense: $currencySymbol${totalExpenseForPie.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf, fontSize: 12)),
+                    pw.SizedBox(height: 12),
+                    pw.Text('Income ${(totalIncomeForPie / totalPie * 100).toStringAsFixed(1)}%', style: pw.TextStyle(font: ttf, fontSize: 12)),
+                    pw.SizedBox(height: 6),
+                    pw.Text('Expense ${(totalExpenseForPie / totalPie * 100).toStringAsFixed(1)}%', style: pw.TextStyle(font: ttf, fontSize: 12)),
+                  ]))
+                ]));
+              } else {
+                // Fallback to textual summary if image generation failed
+                content.add(pw.Text('Income: $currencySymbol${totalIncomeForPie.toStringAsFixed(2)} — Expense: $currencySymbol${totalExpenseForPie.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf)));
+              }
+            } else {
+              content.add(pw.Text('No income/expense data available', style: pw.TextStyle(font: ttf)));
+            }
 
             // Transactions table (text) — use cached filtered transactions
             if (_cachedFilteredTransactions.isNotEmpty) {
@@ -403,15 +509,30 @@ class _AgriFinancesState extends State<AgriFinances> {
             );
 
             if (mounted) {
-              if (savedPath != null && savedPath.isNotEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('PDF saved to $savedPath')),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PDF download started')),
-                );
-              }
+                if (savedPath != null && savedPath.isNotEmpty) {
+                  // Try to open the saved PDF automatically (mobile/desktop)
+                  try {
+                    final result = await OpenFile.open(savedPath);
+                    if (result.type == ResultType.done) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Opened PDF: $savedPath')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('PDF saved to $savedPath')),
+                      );
+                    }
+                  } catch (e) {
+                    // If OpenFile isn't available or fails, fall back to showing saved path
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('PDF saved to $savedPath')),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('PDF download started')),
+                  );
+                }
             }
           } catch (e) {
             print('❌ Failed to save or download PDF fallback: $e');
