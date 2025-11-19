@@ -6,6 +6,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:flutter/foundation.dart';
+import '../utils/pdf_download.dart';
 import '../shared/theme_helper.dart';
 import '../shared/notification_helper.dart';
 import '../shared/AgriNotificationPage.dart';
@@ -86,6 +93,10 @@ class _AgriFinancesState extends State<AgriFinances> {
   List<BarChartGroupData> _cachedBarChartData = [];
   List<PieChartSectionData> _cachedPieChartData = [];
   List<String> _cachedBarChartLabels = [];
+
+  // Keys for capturing chart widgets as images for PDF export
+  final GlobalKey _barChartKey = GlobalKey();
+  final GlobalKey _pieChartKey = GlobalKey();
 
   String selectedFilter = 'All';
   String selectedTimeRange = 'This Month';
@@ -258,6 +269,170 @@ class _AgriFinancesState extends State<AgriFinances> {
     _cachedBarChartData = _generateBarChartData();
     _cachedBarChartLabels = _generateBarChartLabels();
     _cachedPieChartData = _generatePieChartData();
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      // Small UI hint
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preparing PDF...')),
+        );
+      }
+
+      // Allow a short delay for painting
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Capture bar chart image
+      Uint8List? barBytes;
+      Uint8List? pieBytes;
+
+      try {
+        final barBoundary = _barChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (barBoundary != null) {
+          final ui.Image barImage = await barBoundary.toImage(pixelRatio: 2.0);
+          final ByteData? bd = await barImage.toByteData(format: ui.ImageByteFormat.png);
+          barBytes = bd?.buffer.asUint8List();
+        }
+      } catch (e) {
+        print('❌ Error capturing bar chart image: $e');
+      }
+
+      try {
+        final pieBoundary = _pieChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (pieBoundary != null) {
+          final ui.Image pieImage = await pieBoundary.toImage(pixelRatio: 2.0);
+          final ByteData? bd = await pieImage.toByteData(format: ui.ImageByteFormat.png);
+          pieBytes = bd?.buffer.asUint8List();
+        }
+      } catch (e) {
+        print('❌ Error capturing pie chart image: $e');
+      }
+
+      // Load a unicode-capable font from assets (Poppins is included in project assets)
+      pw.Font ttf;
+      try {
+        final fontData = await rootBundle.load('assets/fonts/Poppins/Poppins-Medium.ttf');
+        ttf = pw.Font.ttf(fontData);
+      } catch (e) {
+        print('⚠️ Could not load Poppins font for PDF ($e) — falling back to default');
+        ttf = pw.Font.helvetica();
+      }
+
+      final doc = pw.Document();
+
+      doc.addPage(
+        pw.MultiPage(
+          build: (context) {
+            final List<pw.Widget> content = [];
+
+            content.add(
+              pw.Header(
+                level: 0,
+                child: pw.Text('AgriSynch - Financial Report', style: pw.TextStyle(font: ttf, fontSize: 20, fontWeight: pw.FontWeight.bold)),
+              ),
+            );
+
+            content.add(pw.Paragraph(text: 'Generated: ${DateFormat.yMMMd().add_jm().format(DateTime.now())}', style: pw.TextStyle(font: ttf)));
+            content.add(pw.SizedBox(height: 6));
+            content.add(pw.Paragraph(text: 'Summary', style: pw.TextStyle(font: ttf)));
+            content.add(pw.Bullet(text: 'Total Income: $currencySymbol${totalIncome.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf)));
+            content.add(pw.Bullet(text: 'Total Expenses: $currencySymbol${totalExpenses.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf)));
+            content.add(pw.Bullet(text: 'Net Profit: $currencySymbol${profit.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf)));
+            content.add(pw.SizedBox(height: 12));
+
+            // Charts (images) if available
+            if (barBytes != null) content.add(pw.Center(child: pw.Image(pw.MemoryImage(barBytes), width: 450)));
+            if (pieBytes != null) content.add(pw.SizedBox(height: 8));
+            if (pieBytes != null) content.add(pw.Center(child: pw.Image(pw.MemoryImage(pieBytes), width: 350)));
+
+            // Transactions table (text) — use cached filtered transactions
+            if (_cachedFilteredTransactions.isNotEmpty) {
+              content.add(pw.SizedBox(height: 12));
+              content.add(pw.Text('Transactions', style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)));
+              content.add(pw.SizedBox(height: 6));
+
+              // Build table data
+              final headers = ['Date', 'Type', 'Category', 'Amount', 'Description'];
+              final data = _cachedFilteredTransactions.map((t) {
+                String dateStr = '';
+                try {
+                  dateStr = DateFormat.yMMMd().format(DateTime.parse(t['date']));
+                } catch (_) {
+                  dateStr = t['date']?.toString() ?? '';
+                }
+                final type = (t['type'] ?? '').toString();
+                final category = (t['category'] ?? '').toString();
+                final amount = (t['amount'] ?? 0.0) as double;
+                final description = (t['description'] ?? '').toString();
+                return [dateStr, type, category, '$currencySymbol${amount.toStringAsFixed(2)}', description];
+              }).toList();
+
+              content.add(
+                pw.Table.fromTextArray(
+                  headers: headers,
+                  data: data,
+                  headerStyle: pw.TextStyle(font: ttf, fontSize: 10, fontWeight: pw.FontWeight.bold),
+                  cellStyle: pw.TextStyle(font: ttf, fontSize: 9),
+                  cellAlignment: pw.Alignment.centerLeft,
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(1.2), // Date
+                    1: const pw.FlexColumnWidth(0.8), // Type
+                    2: const pw.FlexColumnWidth(1.2), // Category
+                    3: const pw.FlexColumnWidth(0.9), // Amount
+                    4: const pw.FlexColumnWidth(2.5), // Description
+                  },
+                ),
+              );
+            }
+
+            return content;
+          },
+        ),
+      );
+
+      final pdfBytes = await doc.save();
+      try {
+        await Printing.layoutPdf(onLayout: (format) => pdfBytes);
+      } on MissingPluginException catch (e) {
+        print('⚠️ Printing plugin missing: $e — falling back to saving file');
+          try {
+            final savedPath = await savePdfBytes(
+              'agrisynch_financial_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
+              pdfBytes,
+            );
+
+            if (mounted) {
+              if (savedPath != null && savedPath.isNotEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('PDF saved to $savedPath')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PDF download started')),
+                );
+              }
+            }
+          } catch (e) {
+            print('❌ Failed to save or download PDF fallback: $e');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to save/download PDF: $e')),
+              );
+            }
+          }
+      } catch (e) {
+        // Other printing errors
+        rethrow;
+      }
+    } catch (e) {
+      print('❌ Error generating PDF: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error exporting PDF: $e')),
+        );
+      }
+    }
   }
 
   List<Map<String, dynamic>> _getFilteredTransactions() {
@@ -734,228 +909,234 @@ class _AgriFinancesState extends State<AgriFinances> {
               ),
               const SizedBox(height: 12),
 
-              // Bar Chart
+              // Bar Chart (wrapped for PDF capture)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  height: 250,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Spending by Category',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                child: RepaintBoundary(
+                  key: _barChartKey,
+                  child: Container(
+                    height: 250,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: BarChart(
-                          BarChartData(
-                            alignment: BarChartAlignment.spaceAround,
-                            maxY: () {
-                              final data = _getBarChartData();
-                              if (data.isEmpty) return 100.0;
-                              final maxValue = data.map((e) => e.barRods.first.toY).reduce((a, b) => a > b ? a : b);
-                              return (maxValue * 1.2).toDouble();
-                            }(),
-                            barTouchData: BarTouchData(
-                              touchTooltipData: BarTouchTooltipData(
-                                getTooltipColor: (_) => isDarkMode
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.grey[800]!,
-                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  final labels = _getBarChartLabels();
-                                  final label = groupIndex < labels.length
-                                      ? labels[groupIndex]
-                                      : 'Unknown';
-                                  return BarTooltipItem(
-                                    '$label\n$currencySymbol${rod.toY.toStringAsFixed(2)}',
-                                    const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'Poppins',
-                                    ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Spending by Category',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              maxY: () {
+                                final data = _getBarChartData();
+                                if (data.isEmpty) return 100.0;
+                                final maxValue = data.map((e) => e.barRods.first.toY).reduce((a, b) => a > b ? a : b);
+                                return (maxValue * 1.2).toDouble();
+                              }(),
+                              barTouchData: BarTouchData(
+                                touchTooltipData: BarTouchTooltipData(
+                                  getTooltipColor: (_) => isDarkMode
+                                      ? const Color(0xFF1E1E1E)
+                                      : Colors.grey[800]!,
+                                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                    final labels = _getBarChartLabels();
+                                    final label = groupIndex < labels.length
+                                        ? labels[groupIndex]
+                                        : 'Unknown';
+                                    return BarTooltipItem(
+                                      '$label\n$currencySymbol${rod.toY.toStringAsFixed(2)}',
+                                      const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Poppins',
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              titlesData: FlTitlesData(
+                                show: true,
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (double value, TitleMeta meta) {
+                                      final labels = _getBarChartLabels();
+                                      final index = value.toInt();
+                                      if (index >= 0 && index < labels.length) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: Text(
+                                            labels[index].length > 8
+                                                ? '${labels[index].substring(0, 8)}...'
+                                                : labels[index],
+                                            style: TextStyle(
+                                              color: isDarkMode
+                                                  ? Colors.white70
+                                                  : Colors.black54,
+                                              fontSize: 10,
+                                              fontFamily: 'Poppins',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return const Text('');
+                                    },
+                                    reservedSize: 30,
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 50,
+                                    getTitlesWidget:
+                                        (double value, TitleMeta meta) {
+                                          return Text(
+                                            '$currencySymbol${value.toInt()}',
+                                            style: TextStyle(
+                                              color: isDarkMode
+                                                  ? Colors.white70
+                                                  : Colors.black54,
+                                              fontSize: 10,
+                                              fontFamily: 'Poppins',
+                                            ),
+                                          );
+                                        },
+                                  ),
+                                ),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              barGroups: _getBarChartData(),
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                horizontalInterval: 50,
+                                getDrawingHorizontalLine: (value) {
+                                  return FlLine(
+                                    color: isDarkMode
+                                        ? Colors.white12
+                                        : Colors.grey[300]!,
+                                    strokeWidth: 1,
                                   );
                                 },
                               ),
                             ),
-                            titlesData: FlTitlesData(
-                              show: true,
-                              rightTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              topTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (double value, TitleMeta meta) {
-                                    final labels = _getBarChartLabels();
-                                    final index = value.toInt();
-                                    if (index >= 0 && index < labels.length) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: Text(
-                                          labels[index].length > 8
-                                              ? '${labels[index].substring(0, 8)}...'
-                                              : labels[index],
-                                          style: TextStyle(
-                                            color: isDarkMode
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                            fontSize: 10,
-                                            fontFamily: 'Poppins',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                    return const Text('');
-                                  },
-                                  reservedSize: 30,
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 50,
-                                  getTitlesWidget:
-                                      (double value, TitleMeta meta) {
-                                        return Text(
-                                          '$currencySymbol${value.toInt()}',
-                                          style: TextStyle(
-                                            color: isDarkMode
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                            fontSize: 10,
-                                            fontFamily: 'Poppins',
-                                          ),
-                                        );
-                                      },
-                                ),
-                              ),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            barGroups: _getBarChartData(),
-                            gridData: FlGridData(
-                              show: true,
-                              drawVerticalLine: false,
-                              horizontalInterval: 50,
-                              getDrawingHorizontalLine: (value) {
-                                return FlLine(
-                                  color: isDarkMode
-                                      ? Colors.white12
-                                      : Colors.grey[300]!,
-                                  strokeWidth: 1,
-                                );
-                              },
-                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // Pie Chart
+              // Pie Chart (wrapped for PDF capture)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  height: 300,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Income vs Expenses Distribution',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                child: RepaintBoundary(
+                  key: _pieChartKey,
+                  child: Container(
+                    height: 300,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: PieChart(
-                                PieChartData(
-                                  sectionsSpace: 2,
-                                  centerSpaceRadius: 40,
-                                  sections: _getPieChartData(),
-                                  pieTouchData: PieTouchData(
-                                    touchCallback:
-                                        (FlTouchEvent event, pieTouchResponse) {
-                                          // Handle touch events if needed
-                                        },
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Income vs Expenses Distribution',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: PieChart(
+                                  PieChartData(
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 40,
+                                    sections: _getPieChartData(),
+                                    pieTouchData: PieTouchData(
+                                      touchCallback:
+                                          (FlTouchEvent event, pieTouchResponse) {
+                                            // Handle touch events if needed
+                                          },
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 1,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLegendItem(
-                                    'Total Income',
-                                    totalIncome,
-                                    Colors.green,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildLegendItem(
-                                    'Total Expenses',
-                                    totalExpenses,
-                                    Colors.red,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildLegendItem(
-                                    'Net Profit',
-                                    profit,
-                                    Colors.blue,
-                                  ),
-                                ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 1,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLegendItem(
+                                      'Total Income',
+                                      totalIncome,
+                                      Colors.green,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _buildLegendItem(
+                                      'Total Expenses',
+                                      totalExpenses,
+                                      Colors.red,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _buildLegendItem(
+                                      'Net Profit',
+                                      profit,
+                                      Colors.blue,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1122,6 +1303,35 @@ class _AgriFinancesState extends State<AgriFinances> {
             ),
 
             // Add some bottom padding
+            // Export PDF button (bottom of page)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _exportPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.white, size: 20),
+                  label: const Text(
+                    'Export / Print PDF',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00C853),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
           ],
         ), // Close Column

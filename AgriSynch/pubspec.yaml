@@ -40,6 +40,8 @@ dependencies:
   http: ^1.1.0
   geolocator: ^14.0.2
   image_picker: ^1.2.1
+  pdf: ^3.10.1
+  printing: ^5.10.0
   
   # Firebase core + services
   firebase_core: ^4.2.1
