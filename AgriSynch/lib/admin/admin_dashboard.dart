@@ -109,12 +109,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   }
           @override
           Widget build(BuildContext context) {
-            return Scaffold(
-              appBar: AppBar(
-                backgroundColor: const Color(0xFF00A862),
-                title: const Text('Admin Dashboard', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, color: Colors.white)),
-                centerTitle: true,
-                actions: [
+            return PopScope(
+              canPop: false,
+              onPopInvoked: (bool didPop) {
+                if (didPop) return;
+                // Prevent back navigation on admin dashboard
+              },
+              child: Scaffold(
+                appBar: AppBar(
+                  backgroundColor: const Color(0xFF00A862),
+                  automaticallyImplyLeading: false,
+                  title: const Text('Admin Dashboard', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, color: Colors.white)),
+                  centerTitle: true,
+                  actions: [
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.science, color: Colors.white),
                     tooltip: 'Test Mode',
@@ -215,6 +222,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         _buildMessagesTab(),
                       ],
                     ),
+              ),
             );
           }
 
