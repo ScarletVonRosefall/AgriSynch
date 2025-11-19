@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../utils/url_opener.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -638,10 +639,14 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                           const SizedBox(height: 16),
                                           Center(
                                             child: ElevatedButton.icon(
-                                              onPressed: () {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('Download APK (demo) — button not wired')),
-                                                );
+                                              onPressed: () async {
+                                                const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v1.0.0/app-release.apk';
+                                                final ok = await openUrl(url);
+                                                if (!ok) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Could not open download link.')),
+                                                  );
+                                                }
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.white,

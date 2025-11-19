@@ -43,6 +43,7 @@ dependencies:
   pdf: ^3.10.1
   printing: ^5.10.0
   open_file: ^3.2.1
+  url_launcher: ^6.1.10
   
   # Firebase core + services
   firebase_core: ^4.2.1
