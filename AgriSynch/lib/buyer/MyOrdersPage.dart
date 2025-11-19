@@ -653,7 +653,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                 ),
                 child: Row(
                   children: [
-                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                     const Expanded(
                       child: Text(
                         'My Orders',

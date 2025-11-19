@@ -102,7 +102,10 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(left: 0),

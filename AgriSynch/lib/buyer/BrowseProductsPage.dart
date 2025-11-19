@@ -427,7 +427,10 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
               children: [
                 Row(
                   children: [
-                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                     const Expanded(
                       child: Text(
                         'Browse Products',
