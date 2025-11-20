@@ -273,7 +273,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 ),
               ),
               value: weatherDependent,
-              activeColor: const Color(0xFF4CAF50),
+              activeThumbColor: const Color(0xFF4CAF50),
               onChanged: (bool value) {
                 setState(() {
                   weatherDependent = value;
@@ -326,7 +326,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 ),
               ),
               value: isRecurring,
-              activeColor: const Color(0xFF4CAF50),
+              activeThumbColor: const Color(0xFF4CAF50),
               onChanged: (bool value) {
                 setState(() {
                   isRecurring = value;

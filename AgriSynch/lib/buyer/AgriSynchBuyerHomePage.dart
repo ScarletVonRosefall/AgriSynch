@@ -40,7 +40,6 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   String userName = '';
   String _currencySymbol = 'P'; // Will be loaded from settings
 
-  // Data for buyer dashboard
   List<Map<String, dynamic>> orders = [];
   List<Map<String, dynamic>> cart = [];
   int unreadNotifications = 0;
@@ -52,13 +51,14 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   void initState() {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
-    _setupBanListener();
     _loadCurrencySymbol();
     loadUserName();
+    loadTheme();
     loadBuyerData();
     loadUnreadNotifications();
-    loadWeather();
     checkAndCreateWelcomeNotification();
+    loadWeather();
+    _setupBanListener();
   }
 
   void _onThemeChanged() {
@@ -460,6 +460,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -1432,6 +1433,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
               MaterialPageRoute(
                 builder: (context) => BrowseProductsPage(
                   initialCategory: product.category,
+                  initialProductId: product.id,
                 ),
               ),
             ).then((_) {
@@ -1491,11 +1493,13 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                   ],
                 ),
               ),
-              Expanded(
+              Flexible(
+                fit: FlexFit.loose,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         product.name,
@@ -1515,8 +1519,10 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           Icon(Icons.location_on, size: 11, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
@@ -1832,7 +1838,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         };
       }
     } catch (e) {
-      print('Error loading profile data: $e');
+      debugPrint('Error loading profile data: $e');
       return {
         'name': '',
         'nickname': '',
@@ -1840,6 +1846,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
       };
     }
   }
+
+  // (Debug dialog removed)
 
   // Helper method to get ImageProvider for both base64 and URL images
   ImageProvider _getImageProvider(String imageData) {

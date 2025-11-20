@@ -506,7 +506,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                 'Using your current location',
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withAlpha((0.7 * 255).round()),
                   fontSize: 12,
                 ),
               ),
@@ -528,7 +528,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -634,7 +634,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? const Color(0xFF1B5E20).withOpacity(0.3)
+            ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
             : const Color(0xFFE8F5E8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(

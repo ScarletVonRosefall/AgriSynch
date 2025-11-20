@@ -1541,7 +1541,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                               );
                                             }
                                           },
-                                          activeColor: const Color(0xFF4CAF50),
+                                          activeThumbColor: const Color(0xFF4CAF50),
                                         ),
                                       ),
                                       Flexible(

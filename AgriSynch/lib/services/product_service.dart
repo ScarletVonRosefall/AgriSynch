@@ -28,6 +28,11 @@ class ProductService {
     }
   }
 
+  /// Public wrapper to check if current user is admin.
+  Future<bool> isCurrentUserAdmin() async {
+    return _isCurrentUserAdmin();
+  }
+
   Stream<List<Product>> getAllProducts() async* {
     final isAdmin = await _isCurrentUserAdmin();
     

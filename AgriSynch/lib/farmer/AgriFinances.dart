@@ -475,7 +475,7 @@ class _AgriFinancesState extends State<AgriFinances> {
               }).toList();
 
               content.add(
-                pw.Table.fromTextArray(
+                pw.TableHelper.fromTextArray(
                   headers: headers,
                   data: data,
                   headerStyle: pw.TextStyle(font: ttf, fontSize: 10, fontWeight: pw.FontWeight.bold),

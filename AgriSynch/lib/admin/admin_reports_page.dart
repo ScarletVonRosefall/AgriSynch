@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/foundation.dart';
 import '../models/report.dart';
 import '../services/report_service.dart';
 import '../shared/theme_helper.dart';
@@ -420,7 +419,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: _getStatusColor(report.status).withOpacity(0.2),
+                        backgroundColor: _getStatusColor(report.status).withAlpha((0.2 * 255).round()),
                         child: Icon(
                           _getReportTypeIcon(report.reportType),
                           color: _getStatusColor(report.status),

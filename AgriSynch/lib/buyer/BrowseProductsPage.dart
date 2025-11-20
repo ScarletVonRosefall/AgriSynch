@@ -19,8 +19,9 @@ import '../shared/report_dialog.dart';
 
 class BrowseProductsPage extends StatefulWidget {
   final String? initialCategory;
-  
-  const BrowseProductsPage({super.key, this.initialCategory});
+  final String? initialProductId;
+
+  const BrowseProductsPage({super.key, this.initialCategory, this.initialProductId});
 
   @override
   State<BrowseProductsPage> createState() => _BrowseProductsPageState();
@@ -129,6 +130,49 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         _hasMoreData = result['hasMore'] as bool;
         _isInitialLoading = false;
       });
+
+      debugPrint('BrowseProductsPage._loadInitialProducts: loaded ${_allProducts.length} products for category=$selectedCategory');
+
+      // If an initialProductId was provided (e.g., clicked from Featured), ensure it is present
+      // by fetching it directly and prepending if necessary.
+      if (widget.initialProductId != null) {
+        try {
+          debugPrint('BrowseProductsPage: initialProductId=${widget.initialProductId} selectedCategory=$selectedCategory');
+          final featuredProduct = await _productService.getProduct(widget.initialProductId!);
+          debugPrint('BrowseProductsPage: fetched featuredProduct id=${featuredProduct.id} category=${featuredProduct.category} isAvailable=${featuredProduct.isAvailable} stock=${featuredProduct.stock} isAdminOnly=${featuredProduct.isAdminOnly} price=${featuredProduct.price}');
+          // Apply same visibility filters as the list
+          final isAdmin = await _productService.isCurrentUserAdmin();
+          final passesAvailability = featuredProduct.isAvailable && featuredProduct.stock > 0;
+          final passesAdminFilter = isAdmin || !featuredProduct.isAdminOnly;
+          final passesCategory = selectedCategory == 'All' || featuredProduct.category.toLowerCase() == selectedCategory.toLowerCase();
+
+          debugPrint('BrowseProductsPage: passesAvailability=$passesAvailability passesAdminFilter=$passesAdminFilter passesCategory=$passesCategory isAdmin=$isAdmin');
+
+          if (passesAvailability && passesAdminFilter && passesCategory) {
+            final alreadyPresent = _allProducts.any((p) => p.id == featuredProduct.id);
+            debugPrint('BrowseProductsPage: alreadyPresent=$alreadyPresent');
+            if (!alreadyPresent) {
+              // Automatically expand price filter to include the clicked featured product
+              double newMaxPrice = maxPrice;
+              if (featuredProduct.price > maxPrice) {
+                debugPrint('BrowseProductsPage: expanding maxPrice from $maxPrice to ${featuredProduct.price}');
+                newMaxPrice = featuredProduct.price;
+              }
+
+              setState(() {
+                _allProducts = [featuredProduct, ..._allProducts];
+                maxPrice = newMaxPrice;
+              });
+              debugPrint('BrowseProductsPage: prepended featuredProduct ${featuredProduct.id} to list, now total ${_allProducts.length} products, maxPrice=$maxPrice');
+            }
+          } else {
+            debugPrint('BrowseProductsPage: featuredProduct does NOT pass visibility filters');
+          }
+        } catch (e) {
+          // Ignore — the product might have been removed or inaccessible
+          debugPrint('Could not fetch initial product: $e');
+        }
+      }
     } catch (e) {
       ErrorHandler.logError('BrowseProductsPage._loadInitialProducts', e);
       
@@ -366,6 +410,8 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
 
   // Filter and sort products
   List<Product> filterAndSortProducts(List<Product> products) {
+    debugPrint('BrowseProductsPage.filterAndSortProducts: input ${products.length} products, searchQuery="$searchQuery", selectedLocation="$selectedLocation", minPrice=$minPrice, maxPrice=$maxPrice');
+    
     var filtered = products;
 
     // Apply search query
@@ -374,6 +420,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
         p.farmerName.toLowerCase().contains(searchQuery.toLowerCase())
       ).toList();
+      debugPrint('BrowseProductsPage.filterAndSortProducts: after search filter: ${filtered.length} products');
     }
 
     // Apply location filter
@@ -381,12 +428,21 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       filtered = filtered.where((p) =>
         p.location.toLowerCase().contains(selectedLocation.toLowerCase())
       ).toList();
+      debugPrint('BrowseProductsPage.filterAndSortProducts: after location filter: ${filtered.length} products');
     }
 
     // Apply price range filter
-    filtered = filtered.where((p) =>
-      p.price >= minPrice && p.price <= maxPrice
-    ).toList();
+    final beforePrice = filtered.length;
+    filtered = filtered.where((p) {
+      final passes = p.price >= minPrice && p.price <= maxPrice;
+      if (!passes && p.id == 'hcz0XGP5TDnC7X1SnzHB') {
+        debugPrint('BrowseProductsPage.filterAndSortProducts: Ancient Dragon Egg FILTERED OUT by price: ${p.price} not in range [$minPrice, $maxPrice]');
+      }
+      return passes;
+    }).toList();
+    if (filtered.length != beforePrice) {
+      debugPrint('BrowseProductsPage.filterAndSortProducts: after price filter: ${filtered.length} products (was $beforePrice)');
+    }
 
     // Apply sorting
     switch (sortBy) {
@@ -402,6 +458,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         break;
     }
 
+    debugPrint('BrowseProductsPage.filterAndSortProducts: final output ${filtered.length} products');
     return filtered;
   }
 

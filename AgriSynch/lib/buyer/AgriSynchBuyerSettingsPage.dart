@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../auth/auth_service.dart';
+// removed unused auth import (not referenced in this file)
 import '../shared/notification_helper.dart';
 import '../shared/feedback_service.dart';
 import '../shared/currency_helper.dart';
