@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
+import 'dart:async';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/error_handler.dart';
@@ -45,6 +46,9 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   List<Product> _allProducts = [];
   final ScrollController _scrollController = ScrollController();
   
+  // Firestore real-time listener for product updates (stock changes)
+  StreamSubscription<QuerySnapshot>? _productsStreamSubscription;
+  
   // New filter states
   String selectedLocation = 'All';
   double minPrice = 0;
@@ -77,6 +81,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     loadFavorites();
     loadCart();
     _loadInitialProducts();
+    _startListeningToProductChanges(); // Start listening for real-time stock updates
     _scrollController.addListener(_onScroll);
   }
 
@@ -96,6 +101,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _productsStreamSubscription?.cancel(); // Clean up the Firestore listener
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -245,6 +251,45 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     }
   }
 
+  void _startListeningToProductChanges() {
+    // Cancel any existing subscription
+    _productsStreamSubscription?.cancel();
+    
+    // Listen to all available products from Firestore and update stock/availability in real-time
+    _productsStreamSubscription = FirebaseFirestore.instance
+        .collection('products')
+        .where('isAvailable', isEqualTo: true)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            if (!mounted) return;
+            
+            // Build a map of updated product data
+            final updatedProducts = <String, Product>{};
+            for (final doc in snapshot.docs) {
+              try {
+                final product = Product.fromFirestore(doc);
+                updatedProducts[product.id] = product;
+              } catch (e) {
+                debugPrint('Error parsing product ${doc.id} in real-time listener: $e');
+              }
+            }
+            
+            // Update products in the _allProducts list with latest data from Firestore
+            setState(() {
+              for (int i = 0; i < _allProducts.length; i++) {
+                if (updatedProducts.containsKey(_allProducts[i].id)) {
+                  _allProducts[i] = updatedProducts[_allProducts[i].id]!;
+                }
+              }
+            });
+          },
+          onError: (e) {
+            debugPrint('Error listening to product changes: $e');
+          },
+        );
+  }
+
   Future<void> loadFavorites() async {
     final prefs = await SharedPreferences.getInstance();
     final favoritesString = prefs.getString('favorite_products');
@@ -337,11 +382,45 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
 
       setState(() {
         if (existingIndex >= 0) {
+          // Increase quantity but respect product stock
+          final currentQty = (cart[existingIndex]['quantity'] ?? 1) as int;
+          if ((currentQty + 1) > product.stock) {
+            // Show error: cannot add more than available stock
+            if (mounted) {
+              ErrorHandler.showErrorSnackBar(
+                context,
+                'stock_limit',
+                customMessage: 'Only ${product.stock} item(s) available',
+              );
+            }
+            return;
+          }
+
           // Increase quantity
-          cart[existingIndex]['quantity'] =
-              (cart[existingIndex]['quantity'] ?? 1) + 1;
+          cart[existingIndex]['quantity'] = currentQty + 1;
         } else {
-          // Add new item
+          // Add new item (essential fields only)
+          // If the product image is base64 (data URL), don't copy it into the cart
+          String imageForCart = '';
+          if (product.images.isNotEmpty) {
+            final first = product.images[0];
+            if (!first.startsWith('data:image')) {
+              imageForCart = first;
+            }
+          }
+
+          // If product has zero stock, prevent adding
+          if (product.stock <= 0) {
+            if (mounted) {
+              ErrorHandler.showErrorSnackBar(
+                context,
+                'out_of_stock',
+                customMessage: 'This product is out of stock',
+              );
+            }
+            return;
+          }
+
           cart.add({
             'id': product.id,
             'name': product.name,
@@ -351,7 +430,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
             'farmer': product.farmerName,
             'farmerId': product.farmerId,
             'location': product.location,
-            'imageUrl': product.images.isNotEmpty ? product.images[0] : '',
+            'imageUrl': imageForCart, // store URL only; base64 is left in product doc
             'quantity': 1,
             'dateAdded': DateTime.now().toIso8601String(),
           });
@@ -361,17 +440,34 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
       // Save to SharedPreferences
       await prefs.setString('buyer_cart', json.encode(cart));
       
-      // Save to Firestore
+      // Save to Firestore (strip unnecessary fields)
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         try {
+          // Clean cart before saving to Firestore to prevent size limit issues
+          final cleanCart = cart.map((item) {
+            return {
+              'id': item['id'],
+              'name': item['name'],
+              'price': item['price'],
+              'unit': item['unit'],
+              'category': item['category'],
+              'farmer': item['farmer'],
+              'farmerId': item['farmerId'],
+              'location': item['location'],
+              'imageUrl': item['imageUrl'],
+              'quantity': item['quantity'],
+              'dateAdded': item['dateAdded'],
+            };
+          }).toList();
+          
           await FirebaseFirestore.instance
               .collection('users')
               .doc(currentUser.uid)
               .collection('cart')
               .doc('items')
               .set({
-                'items': cart,
+                'items': cleanCart,
                 'updatedAt': FieldValue.serverTimestamp(),
               }).timeout(
                 const Duration(seconds: 10),

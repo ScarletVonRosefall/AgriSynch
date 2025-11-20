@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../services/order_service.dart';
+import '../services/product_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
 import '../shared/chat_screen.dart';
@@ -211,29 +212,71 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   }
 
   Future<void> cancelOrder(String orderId, bool isFirestore) async {
-    if (isFirestore) {
-      // Cancel in Firestore
-      await _orderService.updateOrderStatus(orderId, 'cancelled');
-    } else {
-      // Cancel in legacy SharedPreferences
-      final orderIndex = legacyOrders.indexWhere((order) => order['id'] == orderId);
-      if (orderIndex >= 0) {
-        setState(() {
-          legacyOrders[orderIndex]['status'] = 'cancelled';
-        });
+    try {
+      if (isFirestore) {
+        // Fetch the order to get item details for stock restoration
+        final order = await _orderService.getOrderById(orderId);
+        if (order == null) {
+          if (mounted) {
+            ErrorHandler.showErrorSnackBar(
+              context,
+              'Order not found',
+              customMessage: 'Could not find the order to cancel',
+            );
+          }
+          return;
+        }
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('buyer_orders', json.encode(legacyOrders));
+        // Restore stock for all items in the order
+        for (final item in order.items) {
+          try {
+            final productService = ProductService();
+            await productService.increaseStock(item.productId, item.quantity);
+            debugPrint('✅ Stock restored for ${item.productId}: +${item.quantity}');
+          } catch (e) {
+            debugPrint('❌ Error restoring stock for ${item.productId}: $e');
+            // Continue with other items even if one fails
+          }
+        }
+
+        // Cancel in Firestore
+        await _orderService.updateOrderStatus(orderId, 'cancelled');
+        
+        // Refresh the order list
+        if (mounted) {
+          await _loadInitialOrders();
+        }
+      } else {
+        // Cancel in legacy SharedPreferences
+        final orderIndex = legacyOrders.indexWhere((order) => order['id'] == orderId);
+        if (orderIndex >= 0) {
+          setState(() {
+            legacyOrders[orderIndex]['status'] = 'cancelled';
+          });
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('buyer_orders', json.encode(legacyOrders));
+        }
       }
-    }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order cancelled successfully'),
-          backgroundColor: Color(0xFF4CAF50),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order cancelled successfully. Stock has been restored.'),
+            backgroundColor: Color(0xFF4CAF50),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error cancelling order: $e');
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          customMessage: 'Failed to cancel order. Please try again.',
+        );
+      }
     }
   }
 

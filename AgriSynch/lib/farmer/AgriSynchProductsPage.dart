@@ -735,7 +735,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         source: ImageSource.camera,
         maxWidth: 800,
         maxHeight: 800,
-        imageQuality: 100,
+        imageQuality: 70,
       );
       
       if (image == null) {
@@ -774,8 +774,21 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       );
 
       try {
-        // Convert to base64
+        // Convert to base64 (with size guard)
         final bytes = await image.readAsBytes();
+        if (bytes.length > 500000) {
+          // >500KB - warn user and skip
+          if (mounted) {
+            Navigator.pop(context); // Close processing dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Image too large. Please choose a smaller image (<= 500 KB).'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
         final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
         
         if (!mounted) return;
@@ -825,7 +838,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         source: ImageSource.gallery,
         maxWidth: 800,
         maxHeight: 800,
-        imageQuality: 100,
+        imageQuality: 70,
       );
       
       if (image == null) return;
@@ -853,8 +866,20 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ),
       );
 
-      // Convert to base64
+      // Convert to base64 (with size guard)
       final bytes = await image.readAsBytes();
+      if (bytes.length > 500000) {
+        if (mounted) {
+          Navigator.pop(context); // Close processing dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image too large. Please choose a smaller image (<= 500 KB).'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
       final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       
       if (!mounted) return;
@@ -988,7 +1013,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         source: ImageSource.camera,
         maxWidth: 800,
         maxHeight: 800,
-        imageQuality: 100,
+        imageQuality: 70,
       );
       
       if (image == null) return;
@@ -1016,8 +1041,20 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ),
       );
 
-      // Convert to base64
+      // Convert to base64 (with size guard)
       final bytes = await image.readAsBytes();
+      if (bytes.length > 500000) {
+        if (mounted) {
+          Navigator.pop(context); // Close processing dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image too large. Please choose a smaller image (<= 500 KB).'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
       final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       
       if (!mounted) return;
@@ -1055,7 +1092,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         source: ImageSource.gallery,
         maxWidth: 800,
         maxHeight: 800,
-        imageQuality: 100,
+        imageQuality: 70,
       );
       
       if (image == null) return;
@@ -1083,8 +1120,20 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ),
       );
 
-      // Convert to base64
+      // Convert to base64 (with size guard)
       final bytes = await image.readAsBytes();
+      if (bytes.length > 500000) {
+        if (mounted) {
+          Navigator.pop(context); // Close processing dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image too large. Please choose a smaller image (<= 500 KB).'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
       final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       
       if (!mounted) return;

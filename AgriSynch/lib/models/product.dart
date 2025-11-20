@@ -96,6 +96,106 @@ class Product {
     };
   }
 
+  /// Validate product data to prevent Firestore size limit issues
+  /// Returns a list of validation errors (empty if valid)
+  List<String> validate() {
+    final errors = <String>[];
+
+    // Name validation
+    if (name.isEmpty) {
+      errors.add('Product name cannot be empty');
+    }
+    if (name.length > 200) {
+      errors.add('Product name must be 200 characters or less (${name.length})');
+    }
+
+    // Description validation (prevent bloat)
+    if (description.length > 5000) {
+      errors.add('Product description must be 5000 characters or less (${description.length})');
+    }
+
+    // Price validation
+    if (price < 0) {
+      errors.add('Price cannot be negative');
+    }
+    if (price > 999999) {
+      errors.add('Price exceeds maximum allowed value');
+    }
+
+    // Stock validation
+    if (stock < 0) {
+      errors.add('Stock cannot be negative');
+    }
+    if (stock > 999999) {
+      errors.add('Stock exceeds maximum allowed value');
+    }
+
+    // Images validation (prevent storing massive base64 data)
+    if (images.length > 10) {
+      errors.add('Maximum 10 images allowed (${images.length} provided)');
+    }
+    for (int i = 0; i < images.length; i++) {
+      final imageUrl = images[i];
+      // Check if image is base64 (starts with 'data:image')
+      if (imageUrl.startsWith('data:image')) {
+        errors.add('Image $i: Base64 images not allowed in Firestore. Use URLs only.');
+        continue;
+      }
+      // Check URL length (URLs should be reasonable, not massive)
+      if (imageUrl.length > 2000) {
+        errors.add('Image $i URL exceeds maximum length (${imageUrl.length} characters)');
+      }
+    }
+
+    // Unit validation
+    if (unit.isEmpty) {
+      errors.add('Unit cannot be empty');
+    }
+    if (unit.length > 50) {
+      errors.add('Unit must be 50 characters or less');
+    }
+
+    // Category validation
+    if (category.isEmpty) {
+      errors.add('Category cannot be empty');
+    }
+
+    // Location validation
+    if (location.isEmpty) {
+      errors.add('Location cannot be empty');
+    }
+    if (location.length > 200) {
+      errors.add('Location must be 200 characters or less');
+    }
+
+    // FarmerId validation
+    if (farmerId.isEmpty) {
+      errors.add('Farmer ID cannot be empty');
+    }
+
+    // FarmerName validation
+    if (farmerName.isEmpty) {
+      errors.add('Farmer name cannot be empty');
+    }
+    if (farmerName.length > 200) {
+      errors.add('Farmer name must be 200 characters or less');
+    }
+
+    return errors;
+  }
+
+  /// Check if this product would exceed Firestore document size when stored
+  /// Firestore has a 1MB limit per document
+  bool exceedsFirestoreLimit() {
+    // Rough estimate: convert to JSON and check byte size
+    final json = toFirestore();
+    final jsonString = json.toString();
+    final bytes = jsonString.codeUnitAt(0) * jsonString.length; // Rough estimate
+    
+    // Flag if over 500KB to be safe (leaves room for other data)
+    return bytes > 500000;
+  }
+
   Product copyWith({
     String? id,
     String? name,

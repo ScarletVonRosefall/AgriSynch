@@ -7,6 +7,7 @@ import '../shared/AgriNotificationPage.dart';
 import '../shared/currency_helper.dart';
 import '../services/finance_service.dart';
 import '../services/order_service.dart';
+import '../services/product_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
 import '../shared/chat_screen.dart';
@@ -639,6 +640,20 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             ElevatedButton(
               onPressed: () async {
                 try {
+                  // If cancelling, restore stock first
+                  if (selectedStatus == 'cancelled') {
+                    final productService = ProductService();
+                    for (final item in order.items) {
+                      try {
+                        await productService.increaseStock(item.productId, item.quantity);
+                        debugPrint('✅ Stock restored for ${item.productId}: +${item.quantity}');
+                      } catch (e) {
+                        debugPrint('❌ Error restoring stock for ${item.productId}: $e');
+                        // Continue with other items even if one fails
+                      }
+                    }
+                  }
+
                   // Update order status in Firestore
                   await _orderService.updateOrderStatus(orderId, selectedStatus);
                   
@@ -657,13 +672,21 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   
                   if (mounted) {
                     Navigator.pop(context);
-                    ErrorHandler.showSuccessSnackBar(
-                      context,
-                      selectedStatus == 'delivered'
-                          ? 'Order delivered! $_currencySymbol${order.totalAmount.toStringAsFixed(2)} added to finances'
-                          : 'Order status updated to ${_capitalizeFirst(selectedStatus)}',
-                      duration: const Duration(seconds: 3),
-                    );
+                    if (selectedStatus == 'cancelled') {
+                      ErrorHandler.showSuccessSnackBar(
+                        context,
+                        'Order cancelled and stock restored',
+                        duration: const Duration(seconds: 3),
+                      );
+                    } else {
+                      ErrorHandler.showSuccessSnackBar(
+                        context,
+                        selectedStatus == 'delivered'
+                            ? 'Order delivered! $_currencySymbol${order.totalAmount.toStringAsFixed(2)} added to finances'
+                            : 'Order status updated to ${_capitalizeFirst(selectedStatus)}',
+                        duration: const Duration(seconds: 3),
+                      );
+                    }
                   }
                 } catch (e) {
                   ErrorHandler.logError('updateOrderStatus', e);

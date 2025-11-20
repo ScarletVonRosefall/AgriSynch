@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../services/order_service.dart';
+import '../services/product_service.dart';
 import '../models/order.dart';
 import '../shared/theme_helper.dart';
 
@@ -44,6 +45,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     if (currentUser != null) {
       // Try to load from Firestore first
       try {
+        debugPrint('🛒 ShoppingCartPage.loadCart: Loading from Firestore for user ${currentUser.uid}');
         final cartDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
@@ -56,6 +58,11 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
           if (cartDocData != null) {
             final cartData = cartDocData['items'] as List<dynamic>?;
             if (cartData != null) {
+              debugPrint('🛒 ShoppingCartPage.loadCart: Found ${cartData.length} items in Firestore');
+              for (var i = 0; i < cartData.length; i++) {
+                final item = cartData[i];
+                debugPrint('  Item $i: id=${item['id']}, name=${item['name']}, qty=${item['quantity']}');
+              }
               final loadedCart = List<Map<String, dynamic>>.from(
                 cartData.map((item) => Map<String, dynamic>.from(item))
               );
@@ -95,15 +102,22 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
           }
         }
       } catch (e) {
-        print('Error loading cart from Firestore: $e');
+        debugPrint('🛒 ShoppingCartPage.loadCart: Error loading from Firestore: $e');
       }
     }
     
     // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final cartString = prefs.getString('buyer_cart');
+    debugPrint('🛒 ShoppingCartPage.loadCart: Checking SharedPreferences for buyer_cart key');
     if (cartString != null) {
+      debugPrint('🛒 ShoppingCartPage.loadCart: Found cart in SharedPreferences');
       final loadedCart = List<Map<String, dynamic>>.from(json.decode(cartString));
+      debugPrint('🛒 ShoppingCartPage.loadCart: Loaded ${loadedCart.length} items from SharedPreferences');
+      for (var i = 0; i < loadedCart.length; i++) {
+        final item = loadedCart[i];
+        debugPrint('  Item $i: id=${item['id']}, name=${item['name']}, qty=${item['quantity']}');
+      }
       
       // Fetch product images for items that don't have imageUrl
       for (var item in loadedCart) {
@@ -147,26 +161,53 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     }
   }
 
+  // Strip cart items to essential fields only (prevent Firestore size limit issues)
+  List<Map<String, dynamic>> _getCleanCartForFirestore(List<Map<String, dynamic>> cartItems) {
+    return cartItems.map((item) {
+      // Ensure we never persist base64 image data into Firestore cart documents
+      var imageUrl = item['imageUrl'];
+      if (imageUrl is String && imageUrl.startsWith('data:image')) {
+        imageUrl = ''; // strip base64 images from cart storage
+      }
+
+      return {
+        'id': item['id'],
+        'name': item['name'],
+        'price': item['price'],
+        'unit': item['unit'],
+        'category': item['category'],
+        'farmer': item['farmer'],
+        'farmerId': item['farmerId'],
+        'location': item['location'],
+        'imageUrl': imageUrl ?? '',
+        'quantity': item['quantity'],
+        'dateAdded': item['dateAdded'] ?? DateTime.now().toIso8601String(),
+      };
+    }).toList();
+  }
+
   Future<void> updateCart() async {
-    // Save to SharedPreferences
+    // Save to SharedPreferences (can store everything)
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('buyer_cart', json.encode(cart));
     
-    // Save to Firestore
+    // Save to Firestore (strip unnecessary fields to avoid size limit)
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       try {
+        final cleanCart = _getCleanCartForFirestore(cart);
+        debugPrint('🛒 updateCart: Saving ${cleanCart.length} items to Firestore');
         await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
             .collection('cart')
             .doc('items')
             .set({
-              'items': cart,
+              'items': cleanCart,
               'updatedAt': FieldValue.serverTimestamp(),
             });
       } catch (e) {
-        print('Error saving cart to Firestore: $e');
+        debugPrint('🛒 Error saving cart to Firestore: $e');
         // Continue anyway - local storage is saved
       }
     }
@@ -176,6 +217,39 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     if (newQuantity <= 0) {
       removeItem(index);
       return;
+    }
+
+    final oldQuantity = cart[index]['quantity'] as int? ?? 0;
+
+    // If increasing quantity, validate against product stock
+    if (newQuantity > oldQuantity) {
+      try {
+        final productId = cart[index]['id'] as String? ?? '';
+        final productService = ProductService();
+        final product = await productService.getProduct(productId);
+        final availableStock = product.stock;
+
+        if (newQuantity > availableStock) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Only $availableStock item(s) available'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error checking stock for product when updating quantity: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unable to verify product stock. Try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() {
