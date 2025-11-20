@@ -20,6 +20,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   final _themeNotifier = ThemeNotifier();
   List<Map<String, dynamic>> cart = [];
   List<Map<String, dynamic>> orders = [];
+  bool _cartChanged = false;
 
   @override
   void initState() {
@@ -190,6 +191,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     // Save to SharedPreferences (can store everything)
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('buyer_cart', json.encode(cart));
+    _cartChanged = true;
     
     // Save to Firestore (strip unnecessary fields to avoid size limit)
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -406,7 +408,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.pop(context); // Go back to home
+                  Navigator.pop(context, _cartChanged); // Go back to home and notify previous route
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: const Color(0xFF4CAF50),
@@ -454,33 +456,38 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: Column(
-        children: [
-          // Header
-          Container(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: headerColor,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.pop(context);
-                    } else {
-                      Navigator.pushReplacementNamed(context, '/buyer-home');
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, _cartChanged);
+        return false; // Prevent the default pop since we're handling it
+      },
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        body: Column(
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: headerColor,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(28),
+                  bottomRight: Radius.circular(28),
                 ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.pop(context, _cartChanged);
+                      } else {
+                        Navigator.pushReplacementNamed(context, '/buyer-home');
+                      }
+                    },
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  ),
                 const Expanded(
                   child: Text(
                     'Shopping Cart',
@@ -793,6 +800,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
               ),
             ),
         ],
+      ),
       ),
     );
   }
