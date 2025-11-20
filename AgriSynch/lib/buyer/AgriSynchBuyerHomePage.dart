@@ -239,7 +239,8 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
 
         if (snapshot.hasData && snapshot.data != null) {
           final realOrders = snapshot.data!;
-          totalOrders = realOrders.length;
+          // Exclude cancelled orders from the total count
+          totalOrders = realOrders.where((o) => o.status != 'cancelled').length;
           pendingOrders = realOrders.where((o) => 
             o.status == 'pending' || 
             o.status == 'confirmed' || 
