@@ -184,10 +184,44 @@ class ChatService {
         .collection('conversations')
         .where('participants', arrayContains: userId)
         .snapshots()
-        .map((snapshot) {
-      final conversations = snapshot.docs
+        .asyncMap((snapshot) async {
+      // Get current user's role to check if they can message admins
+      final currentUserDoc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .get();
+      final isCurrentUserAdmin = currentUserDoc.data()?['isAdmin'] == true;
+      
+      List<Conversation> conversations = snapshot.docs
           .map((doc) => Conversation.fromFirestore(doc))
           .toList();
+      
+      // If user is not an admin, filter out conversations with admins
+      if (!isCurrentUserAdmin) {
+        conversations = await Future.wait(
+          conversations.map((conv) async {
+            // Get the other participant's role
+            final otherUserId = conv.participants.firstWhere(
+              (id) => id != userId,
+              orElse: () => '',
+            );
+            
+            if (otherUserId.isEmpty) return null;
+            
+            final otherUserDoc = await _firestore
+                .collection('users')
+                .doc(otherUserId)
+                .get();
+            final otherUserIsAdmin = otherUserDoc.data()?['isAdmin'] == true;
+            
+            // Return conversation only if other user is not admin
+            if (!otherUserIsAdmin) {
+              return conv;
+            }
+            return null;
+          }),
+        ).then((list) => list.whereType<Conversation>().toList());
+      }
       
       conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
       

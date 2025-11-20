@@ -2467,10 +2467,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection('conversations')
-                      .doc(conversationId)
                       .collection('messages')
-                      .orderBy('timestamp', descending: true)
+                      .where('conversationId', isEqualTo: conversationId)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
@@ -2481,7 +2479,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
                     }
 
-                    final messages = snapshot.data?.docs ?? [];
+                    var messages = snapshot.data?.docs ?? [];
+                    // Sort by timestamp descending client-side
+                    messages.sort((a, b) {
+                      final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
+                      final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
+                      return (bTime?.toDate() ?? DateTime(2000)).compareTo(aTime?.toDate() ?? DateTime(2000));
+                    });
 
                     if (messages.isEmpty) {
                       return const Center(
@@ -2499,7 +2503,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       itemBuilder: (context, index) {
                         final message = messages[index];
                         final data = message.data() as Map<String, dynamic>;
-                        final text = data['text'] ?? '';
+                        final text = data['message'] ?? '';
                         final senderId = data['senderId'] ?? '';
                         final senderName = data['senderName'] ?? 'Unknown';
                         final timestamp = (data['timestamp'] as Timestamp?)?.toDate();

@@ -38,11 +38,22 @@ class _NewMessagePageState extends State<NewMessagePage> {
     super.dispose();
   }
 
-  Stream<List<Map<String, dynamic>>> _getUsersStream() {
+  Stream<List<Map<String, dynamic>>> _getUsersStream() async* {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) {
+      yield [];
+      return;
+    }
+    
+    // Get current user's role to determine if they can message admins
+    final currentUserDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .get();
+    final isCurrentUserAdmin = currentUserDoc.data()?['isAdmin'] == true;
     
     // Get all users - we'll filter by role in memory to avoid index requirement
-    return FirebaseFirestore.instance
+    yield* FirebaseFirestore.instance
         .collection('users')
         .snapshots()
         .map((snapshot) {
@@ -68,6 +79,7 @@ class _NewMessagePageState extends State<NewMessagePage> {
               'email': data['email'] ?? '',
               'role': finalRole,
               'location': data['location'] ?? '',
+              'isAdmin': data['isAdmin'] == true,
             };
           })
           .where((user) {
@@ -78,6 +90,11 @@ class _NewMessagePageState extends State<NewMessagePage> {
             // Skip users with placeholder data
             if (name == 'unknown' || name == 'name' || name.isEmpty ||
                 email == 'email' || email.isEmpty || !email.contains('@')) {
+              return false;
+            }
+            
+            // Non-admin users cannot message admins
+            if (!isCurrentUserAdmin && user['isAdmin'] == true) {
               return false;
             }
             
