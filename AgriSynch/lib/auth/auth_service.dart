@@ -130,6 +130,18 @@ class AuthService {
   // Send password reset email
   static Future<bool> sendPasswordResetEmail(String email) async {
     try {
+      // Check if user exists in Firestore first
+      final userQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email.toLowerCase())
+          .limit(1)
+          .get();
+      
+      if (userQuery.docs.isEmpty) {
+        debugPrint('User with email $email not found in Firestore');
+        return false;
+      }
+      
       await _auth.sendPasswordResetEmail(email: email);
       return true;
     } catch (e) {

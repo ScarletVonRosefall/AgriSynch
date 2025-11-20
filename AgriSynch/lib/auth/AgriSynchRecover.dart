@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/theme_helper.dart';
+import 'auth_service.dart';
 
 class AgriSynchRecoverPage extends StatefulWidget {
   const AgriSynchRecoverPage({super.key});
@@ -53,12 +54,21 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
       _isSending = true;
       setState(() => isLoading = true);
 
-      // Try to send reset email directly through Firebase Auth
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: email,
-      );
+      // Use AuthService to send reset email (includes user existence check)
+      final emailSent = await AuthService.sendPasswordResetEmail(email);
 
       if (!mounted) return;
+
+      if (!emailSent) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('No account found with this email address. This account may have been deleted.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
 
       messenger.showSnackBar(
         const SnackBar(

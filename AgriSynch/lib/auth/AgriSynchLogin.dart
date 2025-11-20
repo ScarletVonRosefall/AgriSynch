@@ -448,9 +448,19 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
 
                                                         final data = doc.data();
                                                         
+                                                        // Check if user document exists (not deleted)
+                                                        if (data == null) {
+                                                          await FirebaseAuth.instance.signOut();
+                                                          if (!mounted) return;
+                                                          messenger.showSnackBar(
+                                                            const SnackBar(content: Text('This account has been deleted and no longer exists.')),
+                                                          );
+                                                          return;
+                                                        }
+                                                        
                                                         // Check if user is banned or suspended
-                                                        final isBanned = data?['banned'] == true;
-                                                        final suspendedUntil = data?['suspendedUntil'] as Timestamp?;
+                                                        final isBanned = data['banned'] == true;
+                                                        final suspendedUntil = data['suspendedUntil'] as Timestamp?;
                                                         final isSuspended = suspendedUntil != null && 
                                                                            suspendedUntil.toDate().isAfter(DateTime.now());
                                                         
@@ -458,7 +468,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                           await FirebaseAuth.instance.signOut();
                                                           if (!mounted) return;
                                                           messenger.showSnackBar(
-                                                            SnackBar(content: Text('Your account has been permanently banned. Reason: ${data?['banReason'] ?? 'Violation of terms'}')),
+                                                            SnackBar(content: Text('Your account has been permanently banned. Reason: ${data['banReason'] ?? 'Violation of terms'}')),
                                                           );
                                                           return;
                                                         }
@@ -468,13 +478,13 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                           if (!mounted) return;
                                                           final suspendedUntilDate = suspendedUntil.toDate();
                                                           messenger.showSnackBar(
-                                                            SnackBar(content: Text('Your account is suspended until ${suspendedUntilDate.day}/${suspendedUntilDate.month}/${suspendedUntilDate.year}. Reason: ${data?['banReason'] ?? 'Policy violation'}')),
+                                                            SnackBar(content: Text('Your account is suspended until ${suspendedUntilDate.day}/${suspendedUntilDate.month}/${suspendedUntilDate.year}. Reason: ${data['banReason'] ?? 'Policy violation'}')),
                                                           );
                                                           return;
                                                         }
                                                         
-                                                        final accountType = data?['accountType'] ?? 'Farmer';
-                                                        final userName = data?['name'] ?? '';
+                                                        final accountType = data['accountType'] ?? 'Farmer';
+                                                        final userName = data['name'] ?? '';
 
                                                         // Store data in parallel
                                                         await Future.wait([
