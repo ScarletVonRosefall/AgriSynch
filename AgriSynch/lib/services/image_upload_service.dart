@@ -1,7 +1,7 @@
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'rate_limit_service.dart';
 
 class ImageUploadService {
@@ -15,7 +15,7 @@ class ImageUploadService {
       // Try default instance first
       _storage = FirebaseStorage.instance;
     } catch (e) {
-      print('⚠️ Using default storage failed, trying with explicit bucket...');
+      debugPrint('⚠️ Using default storage failed, trying with explicit bucket...');
       // Fallback to explicit bucket
       _storage = FirebaseStorage.instanceFor(
         bucket: 'gs://agrisynch-a9350.appspot.com',
@@ -36,7 +36,7 @@ class ImageUploadService {
       );
       return image;
     } catch (e) {
-      print('Error picking image: $e');
+      debugPrint('Error picking image: $e');
       return null;
     }
   }
@@ -52,7 +52,7 @@ class ImageUploadService {
       );
       return image;
     } catch (e) {
-      print('Error taking photo: $e');
+      debugPrint('Error taking photo: $e');
       return null;
     }
   }
@@ -67,7 +67,7 @@ class ImageUploadService {
       );
       return images;
     } catch (e) {
-      print('Error picking multiple images: $e');
+      debugPrint('Error picking multiple images: $e');
       return [];
     }
   }
@@ -75,7 +75,7 @@ class ImageUploadService {
   /// Upload image to Firebase Storage (works on both Web and Mobile)
   Future<String?> uploadProductImage(XFile imageFile, String productId) async {
     if (currentUserId == null) {
-      print('❌ Error: User not authenticated');
+      debugPrint('❌ Error: User not authenticated');
       throw Exception('User not authenticated. Please login again.');
     }
 
@@ -86,7 +86,7 @@ class ImageUploadService {
     );
     if (!canUpload) {
       final errorMessage = RateLimitService.getRateLimitMessage('image_upload');
-      print('🚫 ImageUploadService: $errorMessage');
+      debugPrint('🚫 ImageUploadService: $errorMessage');
       throw Exception(errorMessage);
     }
 
@@ -94,8 +94,8 @@ class ImageUploadService {
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
       final String filePath = 'products/$currentUserId/$productId/$fileName';
       
-      print('📤 Starting upload to: $filePath (Platform: ${kIsWeb ? "Web" : "Mobile"})');
-      print('👤 Current User ID: $currentUserId');
+      debugPrint('📤 Starting upload to: $filePath (Platform: ${kIsWeb ? "Web" : "Mobile"})');
+      debugPrint('👤 Current User ID: $currentUserId');
       
       final Reference ref = _storage.ref().child(filePath);
       
@@ -108,7 +108,7 @@ class ImageUploadService {
       // Read image as bytes (works on both web and mobile)
       final bytes = await imageFile.readAsBytes();
       
-      print('📦 Image size: ${bytes.length} bytes');
+      debugPrint('📦 Image size: ${bytes.length} bytes');
       
       // Upload bytes directly (compatible with web and mobile)
       final UploadTask uploadTask = ref.putData(bytes, metadata);
@@ -117,40 +117,40 @@ class ImageUploadService {
       uploadTask.snapshotEvents.listen(
         (TaskSnapshot snapshot) {
           final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          print('📊 Upload progress: ${progress.toStringAsFixed(2)}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)');
-          print('   State: ${snapshot.state}');
+          debugPrint('📊 Upload progress: ${progress.toStringAsFixed(2)}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)');
+          debugPrint('   State: ${snapshot.state}');
         },
         onError: (error) {
-          print('❌ Upload stream error: $error');
+          debugPrint('❌ Upload stream error: $error');
         },
       );
       
       // Wait for upload to complete with timeout
-      print('⏳ Waiting for upload to complete...');
+      debugPrint('⏳ Waiting for upload to complete...');
       final TaskSnapshot snapshot = await uploadTask.timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          print('❌ Upload timeout after 30 seconds');
+          debugPrint('❌ Upload timeout after 30 seconds');
           throw Exception('Upload timed out. Please check your internet connection and Firebase Storage rules.');
         },
       );
       
-      print('✅ Upload task completed. State: ${snapshot.state}');
+      debugPrint('✅ Upload task completed. State: ${snapshot.state}');
       
       // Get download URL
       final String downloadUrl = await snapshot.ref.getDownloadURL();
       
-      print('✅ Image uploaded successfully: $downloadUrl');
+      debugPrint('✅ Image uploaded successfully: $downloadUrl');
       return downloadUrl;
     } on FirebaseException catch (e) {
-      print('❌ Firebase error uploading image:');
-      print('   Code: ${e.code}');
-      print('   Message: ${e.message}');
-      print('   Plugin: ${e.plugin}');
+      debugPrint('❌ Firebase error uploading image:');
+      debugPrint('   Code: ${e.code}');
+      debugPrint('   Message: ${e.message}');
+      debugPrint('   Plugin: ${e.plugin}');
       throw Exception('Upload failed: ${e.message}');
     } catch (e) {
-      print('❌ Error uploading image: $e');
-      print('   Error type: ${e.runtimeType}');
+      debugPrint('❌ Error uploading image: $e');
+      debugPrint('   Error type: ${e.runtimeType}');
       throw Exception('Failed to upload image: $e');
     }
   }
@@ -177,10 +177,10 @@ class ImageUploadService {
     try {
       final Reference ref = _storage.refFromURL(imageUrl);
       await ref.delete();
-      print('✅ Image deleted successfully');
+      debugPrint('✅ Image deleted successfully');
       return true;
     } catch (e) {
-      print('Error deleting image: $e');
+      debugPrint('Error deleting image: $e');
       return false;
     }
   }

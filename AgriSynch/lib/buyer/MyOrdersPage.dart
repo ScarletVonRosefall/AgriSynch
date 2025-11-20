@@ -370,7 +370,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               'Order Date: ${formatDate(order['orderDate'])}',
               style: TextStyle(
                 fontFamily: 'Poppins',
-                color: textColor.withOpacity(0.7),
+                color: textColor.withAlpha((0.7 * 255).round()),
                 fontSize: 14,
               ),
             ),
@@ -379,7 +379,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                 'Estimated Delivery: ${formatDate(order['estimatedDelivery'])}',
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  color: textColor.withOpacity(0.7),
+                  color: textColor.withAlpha((0.7 * 255).round()),
                   fontSize: 14,
                 ),
               ),
@@ -493,19 +493,19 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               width: double.infinity,
                 child: OutlinedButton.icon(
                 onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
                   final farmerId = order['farmerId'] ?? '';
                   final allowed = await canMessageUser(farmerId);
                   if (!allowed) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('You cannot message admin accounts.')),
-                      );
-                    }
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('You cannot message admin accounts.')),
+                    );
                     return;
                   }
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
+                  if (!mounted) return;
+                  navigator.pop();
+                  navigator.push(
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(
                         otherUserId: order['farmerId'] ?? '',
@@ -738,7 +738,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                         Icon(
                           Icons.receipt_long,
                           size: 80,
-                          color: textColor.withOpacity(0.5),
+                          color: textColor.withAlpha((0.5 * 255).round()),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -748,7 +748,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 18,
-                            color: textColor.withOpacity(0.7),
+                            color: textColor.withAlpha((0.7 * 255).round()),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -757,7 +757,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 14,
-                            color: textColor.withOpacity(0.5),
+                            color: textColor.withAlpha((0.5 * 255).round()),
                           ),
                         ),
                       ],
@@ -877,7 +877,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                   formatDate(order['orderDate']),
                                   style: TextStyle(
                                     fontFamily: 'Poppins',
-                                    color: textColor.withOpacity(0.7),
+                                    color: textColor.withAlpha((0.7 * 255).round()),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -891,7 +891,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                       '$itemCount item${itemCount > 1 ? 's' : ''}',
                                       style: TextStyle(
                                         fontFamily: 'Poppins',
-                                        color: textColor.withOpacity(0.7),
+                                        color: textColor.withAlpha((0.7 * 255).round()),
                                         fontSize: 14,
                                       ),
                                     ),

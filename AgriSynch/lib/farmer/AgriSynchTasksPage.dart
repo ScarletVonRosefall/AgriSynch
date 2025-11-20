@@ -815,7 +815,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withAlpha((0.2 * 255).round()),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: IconButton(
@@ -899,7 +899,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withAlpha((0.1 * 255).round()),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.orange),
                 ),
@@ -1030,7 +1030,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withAlpha((0.1 * 255).round()),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),

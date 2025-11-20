@@ -139,10 +139,10 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
+                color: Colors.black.withAlpha((0.05 * 255).round()),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
           ],
         ),
         child: Column(
@@ -163,10 +163,10 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Text(
                   _formatMessageTime(message.timestamp),
-                  style: TextStyle(
+                    style: TextStyle(
                     fontSize: 11,
                     color: isMe 
-                        ? Colors.white.withOpacity(0.8)
+                        ? Colors.white.withAlpha((0.8 * 255).round())
                         : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                   ),
                 ),
@@ -176,8 +176,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     message.isRead ? Icons.done_all : Icons.done,
                     size: 16,
                     color: message.isRead 
-                        ? Colors.white.withOpacity(0.9)
-                        : Colors.white.withOpacity(0.7),
+                      ? Colors.white.withAlpha((0.9 * 255).round())
+                      : Colors.white.withAlpha((0.7 * 255).round()),
                   ),
                 ],
               ],
@@ -274,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     // Info Button
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
@@ -284,7 +284,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           size: 24,
                         ),
                         onPressed: () async {
-                          // Fetch user information
+                          // Capture context before async calls and fetch user information
+                          final dialogContext = context;
                           final userDoc = await FirebaseFirestore.instance
                               .collection('users')
                               .doc(widget.otherUserId)
@@ -316,10 +317,12 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (userType.toLowerCase() == 'farmer') {
                             ratingStats = await ReviewService.getFarmerRatingStats(widget.otherUserId);
                           }
-                          
+                          // Ensure widget still mounted after awaiting remote calls
+                          if (!mounted) return;
+
                           if (mounted) {
                             showDialog(
-                              context: context,
+                              context: dialogContext,
                               builder: (context) => AlertDialog(
                                 title: const Text('User Info'),
                                 content: SingleChildScrollView(
@@ -487,7 +490,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
+                  color: Colors.grey.withAlpha((0.3 * 255).round()),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),

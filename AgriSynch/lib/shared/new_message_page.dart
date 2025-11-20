@@ -385,19 +385,22 @@ class _NewMessagePageState extends State<NewMessagePage> {
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
+                  // Capture stable UI objects before async gaps
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+
                   // Check permission before navigating to chat
                   final allowed = await canMessageUser(user['id']);
+                  // Ensure widget still mounted immediately after awaiting
+                  if (!mounted) return;
                   if (!allowed) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('You cannot message admin accounts.')),
-                      );
-                    }
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('You cannot message admin accounts.')),
+                    );
                     return;
                   }
                   // Navigate to chat screen with this user
-                  Navigator.push(
-                    context,
+                  navigator.push(
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(
                         otherUserId: user['id'],

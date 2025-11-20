@@ -190,6 +190,8 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     });
     await updateCart();
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Item removed from cart'),
@@ -204,6 +206,8 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       cart.clear();
     });
     await updateCart();
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -462,7 +466,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                     Icon(
                       Icons.shopping_cart_outlined,
                       size: 80,
-                      color: textColor.withOpacity(0.5),
+                      color: textColor.withAlpha((0.5 * 255).round()),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -470,7 +474,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 18,
-                        color: textColor.withOpacity(0.7),
+                        color: textColor.withAlpha((0.7 * 255).round()),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -479,7 +483,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,
-                        color: textColor.withOpacity(0.5),
+                        color: textColor.withAlpha((0.5 * 255).round()),
                       ),
                     ),
                   ],
@@ -499,7 +503,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
+                          color: Colors.grey.withAlpha((0.2 * 255).round()),
                           spreadRadius: 1,
                           blurRadius: 4,
                           offset: const Offset(0, 2),
@@ -612,7 +616,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                         'by ${item['farmer']}',
                                         style: TextStyle(
                                           fontFamily: 'Poppins',
-                                          color: textColor.withOpacity(0.7),
+                                          color: textColor.withAlpha((0.7 * 255).round()),
                                           fontSize: 12,
                                         ),
                                       ),

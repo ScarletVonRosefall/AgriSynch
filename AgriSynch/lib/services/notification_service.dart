@@ -43,15 +43,15 @@ class NotificationService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         if (kDebugMode) {
-          print('✅ User granted notification permission');
+          debugPrint('✅ User granted notification permission');
         }
       } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
         if (kDebugMode) {
-          print('⚠️ User granted provisional notification permission');
+          debugPrint('⚠️ User granted provisional notification permission');
         }
       } else {
         if (kDebugMode) {
-          print('❌ User declined or has not accepted notification permission');
+          debugPrint('❌ User declined or has not accepted notification permission');
         }
         return;
       }
@@ -64,7 +64,7 @@ class NotificationService {
       if (token != null) {
         await _saveFCMToken(token);
         if (kDebugMode) {
-          print('📱 FCM Token: $token');
+          debugPrint('📱 FCM Token: $token');
         }
       }
 
@@ -85,11 +85,11 @@ class NotificationService {
 
       _initialized = true;
       if (kDebugMode) {
-        print('✅ NotificationService initialized successfully');
+        debugPrint('✅ NotificationService initialized successfully');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error initializing NotificationService: $e');
+        debugPrint('❌ Error initializing NotificationService: $e');
       }
     }
   }
@@ -141,12 +141,12 @@ class NotificationService {
           'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
         });
         if (kDebugMode) {
-          print('✅ FCM token saved for user: ${user.uid}');
+          debugPrint('✅ FCM token saved for user: ${user.uid}');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error saving FCM token: $e');
+        debugPrint('❌ Error saving FCM token: $e');
       }
     }
   }
@@ -154,10 +154,10 @@ class NotificationService {
   /// Handle foreground messages (when app is open)
   void _handleForegroundMessage(RemoteMessage message) {
     if (kDebugMode) {
-      print('📬 Foreground message received: ${message.messageId}');
-      print('Title: ${message.notification?.title}');
-      print('Body: ${message.notification?.body}');
-      print('Data: ${message.data}');
+      debugPrint('📬 Foreground message received: ${message.messageId}');
+      debugPrint('Title: ${message.notification?.title}');
+      debugPrint('Body: ${message.notification?.body}');
+      debugPrint('Data: ${message.data}');
     }
 
     // Show local notification
@@ -169,8 +169,8 @@ class NotificationService {
   /// Handle notification taps from background/terminated state
   void _handleBackgroundMessageTap(RemoteMessage message) {
     if (kDebugMode) {
-      print('🔔 Notification tapped: ${message.messageId}');
-      print('Data: ${message.data}');
+      debugPrint('🔔 Notification tapped: ${message.messageId}');
+      debugPrint('Data: ${message.data}');
     }
 
     // Emit tap event for navigation
@@ -180,7 +180,7 @@ class NotificationService {
   /// Handle local notification taps
   void _onNotificationTap(NotificationResponse response) {
     if (kDebugMode) {
-      print('🔔 Local notification tapped: ${response.payload}');
+      debugPrint('🔔 Local notification tapped: ${response.payload}');
     }
 
     // Parse payload and emit tap event
@@ -196,7 +196,7 @@ class NotificationService {
         }
       } catch (e) {
         if (kDebugMode) {
-          print('❌ Error parsing notification payload: $e');
+          debugPrint('❌ Error parsing notification payload: $e');
         }
       }
     }
@@ -281,7 +281,7 @@ class NotificationService {
     );
 
     if (kDebugMode) {
-      print('📱 Local notification shown: $title');
+      debugPrint('📱 Local notification shown: $title');
     }
   }
 
@@ -302,8 +302,8 @@ class NotificationService {
 
       if (fcmToken == null) {
         if (kDebugMode) {
-          print('⚠️ No FCM token found for user: $userId');
-        }
+            debugPrint('⚠️ No FCM token found for user: $userId');
+          }
         return;
       }
 
@@ -325,11 +325,11 @@ class NotificationService {
       });
 
       if (kDebugMode) {
-        print('✅ Notification queued for user: $userId');
+        debugPrint('✅ Notification queued for user: $userId');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error sending notification: $e');
+        debugPrint('❌ Error sending notification: $e');
       }
     }
   }
@@ -415,8 +415,8 @@ class NotificationService {
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kDebugMode) {
-    print('📬 Background message received: ${message.messageId}');
-    print('Title: ${message.notification?.title}');
-    print('Body: ${message.notification?.body}');
+    debugPrint('📬 Background message received: ${message.messageId}');
+    debugPrint('Title: ${message.notification?.title}');
+    debugPrint('Body: ${message.notification?.body}');
   }
 }

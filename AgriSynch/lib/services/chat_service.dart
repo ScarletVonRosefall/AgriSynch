@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
 import 'dart:math';
 import 'rate_limit_service.dart';
@@ -31,8 +32,8 @@ class ChatService {
   }) async {
     try {
       final currentUser = _auth.currentUser;
-      if (currentUser == null) {
-        print('❌ ChatService: No authenticated user');
+        if (currentUser == null) {
+          debugPrint('❌ ChatService: No authenticated user');
         return false;
       }
 
@@ -43,7 +44,7 @@ class ChatService {
       );
       if (!canSend) {
         final errorMessage = RateLimitService.getRateLimitMessage('message_send');
-        print('🚫 ChatService: $errorMessage');
+        debugPrint('🚫 ChatService: $errorMessage');
         throw Exception(errorMessage);
       }
 
@@ -53,10 +54,10 @@ class ChatService {
       
       final messageId = generateMessageId(senderId, message);
       
-      print('🔧 ChatService: Sending message');
-      print('   📋 MessageID: $messageId');
-      print('   💬 Content: "$message"');
-      print('   👤 From: $senderId -> $receiverId');
+      debugPrint('🔧 ChatService: Sending message');
+      debugPrint('   📋 MessageID: $messageId');
+      debugPrint('   💬 Content: "$message"');
+      debugPrint('   👤 From: $senderId -> $receiverId');
 
       final existingMessage = await _firestore
           .collection('messages')
@@ -64,11 +65,11 @@ class ChatService {
           .get();
           
       if (existingMessage.exists) {
-        print('🚫 ChatService: Message with this ID already exists');
+        debugPrint('🚫 ChatService: Message with this ID already exists');
         return false;
       }
 
-      print('✅ ChatService: Message ID is unique, proceeding to send');
+      debugPrint('✅ ChatService: Message ID is unique, proceeding to send');
 
       final chatMessage = ChatMessage(
         id: messageId,
@@ -84,14 +85,14 @@ class ChatService {
         orderId: orderId,
       );
 
-      print('💾 ChatService: Saving to Firestore...');
+        debugPrint('💾 ChatService: Saving to Firestore...');
       await _firestore
           .collection('messages')
           .doc(messageId)
           .set(chatMessage.toFirestore());
-      print('✅ ChatService: Message saved to Firestore');
+        debugPrint('✅ ChatService: Message saved to Firestore');
 
-      print('🔄 ChatService: Updating conversation...');
+        debugPrint('🔄 ChatService: Updating conversation...');
       final conversationRef = _firestore.collection('conversations').doc(conversationId);
       final conversationDoc = await conversationRef.get();
 
@@ -121,12 +122,12 @@ class ChatService {
       }
 
       // TODO: Add push notification when NotificationService supports it
-      
-      print('🎉 ChatService: Message send completed successfully');
+
+      debugPrint('🎉 ChatService: Message send completed successfully');
       return true;
     } catch (e, stackTrace) {
-      print('❌ ChatService: Error sending message: $e');
-      print('📚 Stack trace: $stackTrace');
+      debugPrint('❌ ChatService: Error sending message: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
       return false;
     }
   }
@@ -161,7 +162,7 @@ class ChatService {
         if (!isDuplicate) {
           deduplicatedMessages.add(message);
         } else {
-          print('🚫 Stream: Filtering out duplicate message: "${message.message}"');
+          debugPrint('🚫 Stream: Filtering out duplicate message: "${message.message}"');
         }
       }
       
@@ -220,9 +221,9 @@ class ChatService {
           .doc(conversationId)
           .update({'unreadCount': 0});
 
-      print('✅ Messages marked as read');
+      debugPrint('✅ Messages marked as read');
     } catch (e) {
-      print('❌ Error marking messages as read: $e');
+      debugPrint('❌ Error marking messages as read: $e');
     }
   }
 
@@ -255,10 +256,10 @@ class ChatService {
       batch.delete(_firestore.collection('conversations').doc(conversationId));
 
       await batch.commit();
-      print('✅ Conversation deleted');
+      debugPrint('✅ Conversation deleted');
       return true;
     } catch (e) {
-      print('❌ Error deleting conversation: $e');
+      debugPrint('❌ Error deleting conversation: $e');
       return false;
     }
   }
@@ -283,7 +284,7 @@ class ChatService {
 
       return conversations;
     } catch (e) {
-      print('❌ Error searching conversations: $e');
+      debugPrint('❌ Error searching conversations: $e');
       return [];
     }
   }

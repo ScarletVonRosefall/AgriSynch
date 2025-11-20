@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 class TaskService {
@@ -13,7 +14,7 @@ class TaskService {
     if (userId == null) {
       throw Exception('No authenticated user found');
     }
-    print('Current user ID: $userId');
+    debugPrint('Current user ID: $userId');
     return _firestore.collection('users').doc(userId).collection('tasks');
   }
 
@@ -34,7 +35,7 @@ class TaskService {
   }) async {
     if (currentUserId == null) throw Exception('User not authenticated');
     
-    print('Creating task in users/$currentUserId/tasks/');
+    debugPrint('Creating task in users/$currentUserId/tasks/');
     
     await _tasksCollection.add({
       'alarmCount': 0,
@@ -63,11 +64,11 @@ class TaskService {
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getTasks({int limit = 20}) {
     if (currentUserId == null) {
-      print('ERROR: No authenticated user in getTasks()');
+      debugPrint('ERROR: No authenticated user in getTasks()');
       return Stream.fromIterable([]).cast<QuerySnapshot<Map<String, dynamic>>>();
     }
     
-    print('Getting tasks for user: $currentUserId');
+    debugPrint('Getting tasks for user: $currentUserId');
     
     try {
       // TODO: Restore second orderBy after creating composite index in Firebase Console
@@ -76,11 +77,11 @@ class TaskService {
           .limit(limit)
           .snapshots()
           .handleError((error) {
-            print('ERROR in tasks stream: $error');
+            debugPrint('ERROR in tasks stream: $error');
             return Stream.empty();
           });
     } catch (e) {
-      print('ERROR setting up tasks stream: $e');
+      debugPrint('ERROR setting up tasks stream: $e');
       return Stream.fromIterable([]).cast<QuerySnapshot<Map<String, dynamic>>>();
     }
   }
@@ -99,9 +100,9 @@ class TaskService {
       throw Exception('User not authenticated');
     }
 
-    print('=== Task Update Process Started ===');
-    print('TaskId: $taskId');
-    print('Updates: $updates');
+    debugPrint('=== Task Update Process Started ===');
+    debugPrint('TaskId: $taskId');
+    debugPrint('Updates: $updates');
 
     final updateData = Map<String, dynamic>.from(updates);
 
@@ -112,9 +113,9 @@ class TaskService {
         throw TimeoutException('Task update timed out after 10 seconds');
       }),
     ]).catchError((error) {
-      print('=== Task Update Error ===');
-      print('Error type: ${error.runtimeType}');
-      print('Error details: $error');
+      debugPrint('=== Task Update Error ===');
+      debugPrint('Error type: ${error.runtimeType}');
+      debugPrint('Error details: $error');
       
       if (error is TimeoutException) {
         throw Exception('Update timed out. Please try again.');
@@ -210,8 +211,8 @@ class TaskService {
 
       }, timeout: const Duration(seconds: 5));
 
-      print('Task update completed successfully');
-      print('=== Task Update Process Completed ===');
+      debugPrint('Task update completed successfully');
+      debugPrint('=== Task Update Process Completed ===');
     } catch (e) {
       if (e is TimeoutException) {
         throw Exception('Database operation timed out');

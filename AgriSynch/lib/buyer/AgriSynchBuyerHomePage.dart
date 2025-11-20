@@ -106,7 +106,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }, onError: (error) {
-      print('Ban check subscription error: $error');
+      debugPrint('Ban check subscription error: $error');
     });
   }
 
@@ -187,7 +187,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         });
       }
     } catch (e) {
-      print('Weather load error: $e');
+      debugPrint('Weather load error: $e');
       if (mounted) {
         setState(() {
           _isLoadingWeather = false;
@@ -413,12 +413,12 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     if (currentWeather == null) {
       return GestureDetector(
         onTap: loadWeather,
-        child: Container(
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
+            child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
           child: Center(
             child: Column(
               children: [
@@ -453,7 +453,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withAlpha((0.1 * 255).round()),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -605,9 +605,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
+            decoration: BoxDecoration(
             color: isDarkMode
-                ? const Color(0xFF1B5E20).withOpacity(0.3)
+                ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
                 : const Color(0xFFE8F5E8),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -672,10 +672,10 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
           color: isDarkMode ? const Color(0xFF37474F) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(
+              BoxShadow(
               color: isDarkMode
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.2),
+                ? Colors.black.withAlpha((0.3 * 255).round())
+                : Colors.grey.withAlpha((0.2 * 255).round()),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -737,14 +737,12 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     if (currentWeather == null) {
       return GestureDetector(
         onTap: loadWeather,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isDarkMode
-                ? const Color(0xFF2E7D32)
-                : const Color(0xFF00C853),
-            borderRadius: BorderRadius.circular(18),
-          ),
+            child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853),
+              borderRadius: BorderRadius.circular(18),
+            ),
           child: const Center(
             child: Text(
               'Tap to load weather',
@@ -897,7 +895,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -957,7 +955,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -1010,7 +1008,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                     // Settings Button
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
@@ -1039,7 +1037,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -1448,7 +1446,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
               Container(
                 height: 100,
                 decoration: BoxDecoration(
-                  color: categoryColor.withOpacity(0.2),
+                  color: categoryColor.withAlpha((0.2 * 255).round()),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
@@ -1572,7 +1570,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withAlpha((0.2 * 255).round()),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -1633,7 +1631,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.2),
+                      color: statusColor.withAlpha((0.2 * 255).round()),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: statusColor),
                     ),

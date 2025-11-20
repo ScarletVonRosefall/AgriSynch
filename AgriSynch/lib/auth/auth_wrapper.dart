@@ -43,7 +43,7 @@ class AuthWrapper extends StatelessWidget {
                 .timeout(const Duration(seconds: 5))
                 .then((_) => FirebaseAuth.instance.currentUser)
                 .catchError((e) {
-                  print('Error reloading user: $e');
+                  debugPrint('Error reloading user: $e');
                   return user; // Return original user on error
                 }),
             builder: (context, userSnapshot) {

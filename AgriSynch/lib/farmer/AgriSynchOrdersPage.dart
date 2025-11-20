@@ -381,7 +381,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _getStatusColor(order['status'] ?? 'Pending').withOpacity(0.1),
+                color: _getStatusColor(order['status'] ?? 'Pending').withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -466,7 +466,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.2),
+                          color: Colors.blue.withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: Colors.blue, width: 1),
                         ),
@@ -581,7 +581,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                    color: const Color(0xFF4CAF50).withAlpha((0.1 * 255).round()),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFF4CAF50)),
                   ),
@@ -617,6 +617,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                   }
                   return;
                 }
+                if (!mounted) return;
                 Navigator.pop(context);
                 Navigator.push(
                   context,
@@ -737,7 +738,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -1073,7 +1074,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           "$count $status",
           style: TextStyle(
             fontFamily: 'Poppins',
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withAlpha((0.9 * 255).round()),
             fontSize: 12,
           ),
         ),

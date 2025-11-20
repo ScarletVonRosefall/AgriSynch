@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 class WeatherHelper {
@@ -21,7 +22,7 @@ class WeatherHelper {
     if (_cachedWeather != null && 
         _cacheTime != null && 
         DateTime.now().difference(_cacheTime!) < _cacheDuration) {
-      print('Returning cached weather data');
+      debugPrint('Returning cached weather data');
       return _cachedWeather;
     }
     
@@ -31,7 +32,7 @@ class WeatherHelper {
       _cacheTime = DateTime.now();
       return weather;
     } catch (e) {
-      print('Weather fetch error: $e');
+      debugPrint('Weather fetch error: $e');
       // Return cached data even if expired, if available
       return _cachedWeather;
     }
@@ -56,12 +57,12 @@ class WeatherHelper {
 
       // If no coordinates provided, get current location
       if (lat == null || lon == null) {
-        print('No coordinates provided, requesting device location...');
+        debugPrint('No coordinates provided, requesting device location...');
         try {
           final position = await _getCurrentPosition();
           lat = position.latitude;
           lon = position.longitude;
-          print('Using device location: $lat, $lon');
+          debugPrint('Using device location: $lat, $lon');
         } catch (e) {
           throw Exception('Unable to get location: ${e.toString().replaceAll('Exception: ', '')}');
         }
@@ -74,31 +75,31 @@ class WeatherHelper {
           'current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature&'
           'timezone=auto';
 
-      print('Making Open-Meteo API request to: $url');
+      debugPrint('Making Open-Meteo API request to: $url');
 
       // Make API request (no API key needed!) with shorter timeout
       final response = await http
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 5));
 
-      print('Weather API response status: ${response.statusCode}');
+      debugPrint('Weather API response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Weather data received: ${data['current']['temperature_2m']}°C');
+        debugPrint('Weather data received: ${data['current']['temperature_2m']}°C');
         
         // Get location name from reverse geocoding with better fallback
         String locationName = await _getLocationName(lat, lon) ?? 
                              _getApproximateLocation(lat, lon);
         
-        print('Location name: $locationName');
+        debugPrint('Location name: $locationName');
         
         return WeatherData.fromOpenMeteo(data, locationName);
       } else {
         throw Exception('Weather API error (${response.statusCode}): ${response.body}');
       }
     } catch (e) {
-      print('Weather API Exception: $e');
+      debugPrint('Weather API Exception: $e');
       rethrow;
     }
   }
@@ -143,8 +144,8 @@ class WeatherHelper {
         }
       }
       return null;
-    } catch (e) {
-      print('Geocoding error: $e');
+      } catch (e) {
+      debugPrint('Geocoding error: $e');
       return null;
     }
   }
@@ -154,13 +155,13 @@ class WeatherHelper {
     try {
       // Use Open-Meteo's reverse geocoding (correct endpoint) with shorter timeout
       final url = 'https://geocoding-api.open-meteo.com/v1/reverse?latitude=$lat&longitude=$lon&count=1';
-      print('Requesting location name from: $url');
+      debugPrint('Requesting location name from: $url');
       
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 3));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Geocoding response: $data');
+        debugPrint('Geocoding response: $data');
         
         if (data['results'] != null && data['results'].isNotEmpty) {
           final result = data['results'][0];
@@ -176,16 +177,16 @@ class WeatherHelper {
           
           if (parts.isNotEmpty) {
             String location = parts.join(', ');
-            print('Location resolved: $location');
+            debugPrint('Location resolved: $location');
             return location;
           }
         }
       }
       
-      print('Geocoding returned no results or error: ${response.statusCode}');
+      debugPrint('Geocoding returned no results or error: ${response.statusCode}');
       return null;
     } catch (e) {
-      print('Reverse geocoding error: $e');
+      debugPrint('Reverse geocoding error: $e');
       return null;
     }
   }
@@ -195,37 +196,37 @@ class WeatherHelper {
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        print('Location services are disabled.');
+        debugPrint('Location services are disabled.');
         throw Exception('Location services are disabled. Please enable GPS in your device settings.');
       }
 
       // Check location permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        print('Requesting location permission...');
+        debugPrint('Requesting location permission...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          print('Location permissions are denied');
+          debugPrint('Location permissions are denied');
           throw Exception('Location permission denied. Please allow location access to get accurate weather.');
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('Location permissions are permanently denied');
+        debugPrint('Location permissions are permanently denied');
         throw Exception('Location permission permanently denied. Please enable in device settings.');
       }
 
-      print('Getting current position with high accuracy...');
+      debugPrint('Getting current position with high accuracy...');
       // Get current position with high accuracy
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
       
-      print('Location acquired: ${position.latitude}, ${position.longitude}');
+      debugPrint('Location acquired: ${position.latitude}, ${position.longitude}');
       return position;
     } catch (e) {
-      print('Error getting location: $e');
+      debugPrint('Error getting location: $e');
       rethrow;
     }
   }

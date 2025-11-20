@@ -21,7 +21,7 @@ class ThemeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _darkModeNotifier.value = prefs.getBool('dark_mode') ?? false;
     } catch (e) {
-      print('Error loading theme: $e');
+      debugPrint('Error loading theme: $e');
     }
   }
 
@@ -41,7 +41,7 @@ class ThemeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('dark_mode', _darkModeNotifier.value);
     } catch (e) {
-      print('Error saving theme: $e');
+      debugPrint('Error saving theme: $e');
     }
   }
 
@@ -134,7 +134,7 @@ class ThemeHelper {
     return TextStyle(
       fontFamily: 'Poppins',
       fontSize: 14,
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withAlpha((0.9 * 255).round()),
     );
   }
 
@@ -150,7 +150,7 @@ class ThemeHelper {
       boxShadow: withShadow
           ? [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+                color: Colors.black.withAlpha(((isDark ? 0.4 : 0.08) * 255).round()),
                 blurRadius: isDark ? 12 : 8,
                 offset: const Offset(0, 2),
               ),

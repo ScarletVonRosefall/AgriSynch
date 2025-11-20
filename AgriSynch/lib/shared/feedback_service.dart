@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class FeedbackService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,11 +14,11 @@ class FeedbackService {
     String? category,
   }) async {
     try {
-      print('🔄 Starting feedback submission...');
+      debugPrint('🔄 Starting feedback submission...');
       
       // Get current user info
       final user = _auth.currentUser;
-      print('🔍 Current user: ${user?.email ?? 'No user logged in'}');
+      debugPrint('🔍 Current user: ${user?.email ?? 'No user logged in'}');
       
       // Get user info with fallback for storage errors
       String userEmail = 'Unknown';
@@ -30,12 +31,12 @@ class FeedbackService {
                    await _storage.read(key: 'name') ?? 'Anonymous';
         accountType = await _storage.read(key: 'account_type') ?? 'Unknown';
       } catch (storageError) {
-        print('⚠️ Storage error, using fallbacks: $storageError');
+        debugPrint('⚠️ Storage error, using fallbacks: $storageError');
         userEmail = user?.email ?? 'Unknown';
         userName = user?.displayName ?? 'Anonymous';
       }
 
-      print('📝 User info - Email: $userEmail, Name: $userName, Type: $accountType');
+      debugPrint('📝 User info - Email: $userEmail, Name: $userName, Type: $accountType');
 
       // Auto-determine priority based on category
       String priority = 'Medium'; // Default
@@ -62,19 +63,19 @@ class FeedbackService {
         'appVersion': '1.0.0',
       };
 
-      print('📤 Submitting feedback data: $feedbackData');
+      debugPrint('📤 Submitting feedback data: $feedbackData');
 
       // Add to Firestore
       final docRef = await _firestore.collection('feedback').add(feedbackData);
-      print('✅ Feedback submitted successfully! Document ID: ${docRef.id}');
+      debugPrint('✅ Feedback submitted successfully! Document ID: ${docRef.id}');
       
       return true;
     } catch (e) {
-      print('❌ Error submitting feedback: $e');
-      print('❌ Error type: ${e.runtimeType}');
+      debugPrint('❌ Error submitting feedback: $e');
+      debugPrint('❌ Error type: ${e.runtimeType}');
       if (e is FirebaseException) {
-        print('❌ Firebase error code: ${e.code}');
-        print('❌ Firebase error message: ${e.message}');
+        debugPrint('❌ Firebase error code: ${e.code}');
+        debugPrint('❌ Firebase error message: ${e.message}');
       }
       return false;
     }
@@ -104,7 +105,7 @@ class FeedbackService {
               })
           .toList();
     } catch (e) {
-      print('Error getting feedback: $e');
+      debugPrint('Error getting feedback: $e');
       return [];
     }
   }
@@ -118,7 +119,7 @@ class FeedbackService {
       });
       return true;
     } catch (e) {
-      print('Error updating feedback status: $e');
+      debugPrint('Error updating feedback status: $e');
       return false;
     }
   }
@@ -133,7 +134,7 @@ class FeedbackService {
       });
       return true;
     } catch (e) {
-      print('Error adding admin response: $e');
+      debugPrint('Error adding admin response: $e');
       return false;
     }
   }
@@ -165,7 +166,7 @@ class FeedbackService {
         'lastWeekCount': await _getLastWeekFeedbackCount(),
       };
     } catch (e) {
-      print('Error getting feedback stats: $e');
+      debugPrint('Error getting feedback stats: $e');
       return {
         'total': 0,
         'submitted': 0,
@@ -219,7 +220,7 @@ class FeedbackService {
                category.contains(keyword.toLowerCase());
       }).toList();
     } catch (e) {
-      print('Error searching feedback: $e');
+      debugPrint('Error searching feedback: $e');
       return [];
     }
   }

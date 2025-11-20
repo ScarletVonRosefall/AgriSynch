@@ -242,7 +242,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
           }
         }
       } catch (e) {
-        print('Error loading cart from Firestore: $e');
+        debugPrint('Error loading cart from Firestore: $e');
       }
     }
     
@@ -332,7 +332,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
               }).timeout(
                 const Duration(seconds: 10),
                 onTimeout: () {
-                  print('Firestore cart sync timed out - local cart saved');
+                  debugPrint('Firestore cart sync timed out - local cart saved');
                 },
               );
         } catch (e) {
@@ -540,7 +540,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                               });
                               _loadInitialProducts(); // Reload products when category changes
                             },
-                            backgroundColor: Colors.white.withOpacity(0.85),
+                            backgroundColor: Colors.white.withAlpha((0.85 * 255).round()),
                             selectedColor: Colors.white,
                             labelStyle: TextStyle(
                               color: const Color(0xFF2E7D32),
@@ -685,7 +685,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                 height: 120,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: _getCategoryColor(product.category).withOpacity(0.1),
+                                  color: _getCategoryColor(product.category).withAlpha((0.1 * 255).round()),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(12),
                                     topRight: Radius.circular(12),
@@ -871,17 +871,17 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       Expanded(
                                         child: OutlinedButton(
                                           onPressed: () async {
+                                            final messenger = ScaffoldMessenger.of(context);
+                                            final navigator = Navigator.of(context);
                                             final allowed = await canMessageUser(product.farmerId);
                                             if (!allowed) {
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('You cannot message admin accounts.')),
-                                                );
-                                              }
+                                              messenger.showSnackBar(
+                                                const SnackBar(content: Text('You cannot message admin accounts.')),
+                                              );
                                               return;
                                             }
-                                            Navigator.push(
-                                              context,
+                                            if (!mounted) return;
+                                            navigator.push(
                                               MaterialPageRoute(
                                                 builder: (_) => ChatScreen(
                                                   otherUserId: product.farmerId,

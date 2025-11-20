@@ -38,9 +38,9 @@ class RateLimitHelper {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                border: Border.all(color: Colors.orange.withAlpha((0.3 * 255).round())),
               ),
               child: Row(
                 children: [
@@ -98,7 +98,7 @@ class RateLimitHelper {
                     'Remaining: $remaining',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withAlpha((0.9 * 255).round()),
                     ),
                   ),
                 ],
@@ -138,9 +138,9 @@ class RateLimitHelper {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withAlpha((0.1 * 255).round()),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withAlpha((0.3 * 255).round())),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

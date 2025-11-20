@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import '../models/report.dart';
 import '../services/report_service.dart';
 import '../shared/theme_helper.dart';
@@ -157,26 +158,27 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
           if (report.status == 'dismissed' || report.status == 'resolved')
             TextButton(
               onPressed: () async {
+                // Capture the messenger before the async gap so we don't
+                // use BuildContext across awaits.
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 try {
                   await _reportService.deleteReport(report.id);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Report deleted successfully'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Report deleted successfully'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error deleting report: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting report: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -284,7 +286,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withAlpha((0.05 * 255).round()),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -392,17 +394,17 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                       Icon(
                         Icons.check_circle_outline,
                         size: 64,
-                        color: textColor.withOpacity(0.5),
+                        color: textColor.withAlpha((0.5 * 255).round()),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'No reports found',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          color: textColor.withOpacity(0.7),
-                        ),
-                      ),
+                          Text(
+                            'No reports found',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 18,
+                              color: textColor.withAlpha((0.7 * 255).round()),
+                            ),
+                          ),
                     ],
                   ),
                 );
@@ -437,20 +439,20 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                         children: [
                           const SizedBox(height: 4),
                           Text(
-                            '${report.category} • ${report.reportType}',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              color: textColor.withOpacity(0.7),
+                              '${report.category} • ${report.reportType}',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12,
+                                color: textColor.withAlpha((0.7 * 255).round()),
+                              ),
                             ),
-                          ),
                           const SizedBox(height: 4),
                           Text(
                             'By ${report.reporterName} • ${DateFormat('MMM dd, yyyy').format(report.createdAt)}',
                             style: TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 11,
-                              color: textColor.withOpacity(0.5),
+                              color: textColor.withAlpha((0.5 * 255).round()),
                             ),
                           ),
                         ],
@@ -458,7 +460,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(report.status).withOpacity(0.2),
+                          color: _getStatusColor(report.status).withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

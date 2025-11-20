@@ -165,7 +165,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     // Get current user
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      print('❌ No user logged in');
+      debugPrint('❌ No user logged in');
       return;
     }
 
@@ -197,9 +197,9 @@ class _AgriFinancesState extends State<AgriFinances> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('financial_transactions', json.encode(transactions));
       
-      print('✅ Loaded ${transactions.length} transactions from Firestore');
+      debugPrint('✅ Loaded ${transactions.length} transactions from Firestore');
     } catch (e) {
-      print('❌ Error loading from Firestore: $e');
+      debugPrint('❌ Error loading from Firestore: $e');
       
       // Fallback to local storage
       final prefs = await SharedPreferences.getInstance();
@@ -208,7 +208,7 @@ class _AgriFinancesState extends State<AgriFinances> {
         transactions = List<Map<String, dynamic>>.from(
           json.decode(savedTransactions),
         );
-        print('✅ Loaded ${transactions.length} transactions from local storage (fallback)');
+        debugPrint('✅ Loaded ${transactions.length} transactions from local storage (fallback)');
       }
     }
     
@@ -220,7 +220,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     // Get current user
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      print('❌ No user logged in');
+      debugPrint('❌ No user logged in');
       return;
     }
 
@@ -245,9 +245,9 @@ class _AgriFinancesState extends State<AgriFinances> {
             .timeout(const Duration(seconds: 10));
       }
       
-      print('✅ Saved ${transactions.length} transactions to Firestore');
+      debugPrint('✅ Saved ${transactions.length} transactions to Firestore');
     } catch (e) {
-      print('❌ Error saving to Firestore: $e');
+      debugPrint('❌ Error saving to Firestore: $e');
     }
 
     // Also save to local storage
@@ -315,7 +315,7 @@ class _AgriFinancesState extends State<AgriFinances> {
         final fontData = await rootBundle.load('assets/fonts/Poppins/Poppins-Medium.ttf');
         ttf = pw.Font.ttf(fontData);
       } catch (e) {
-        print('⚠️ Could not load Poppins font for PDF ($e) — falling back to default');
+        debugPrint('⚠️ Could not load Poppins font for PDF ($e) — falling back to default');
         ttf = pw.Font.helvetica();
       }
 
@@ -353,7 +353,7 @@ class _AgriFinancesState extends State<AgriFinances> {
           if (bd != null) pieBytes = bd.buffer.asUint8List();
         }
       } catch (e) {
-        print('⚠️ Pie generation failed: $e');
+        debugPrint('⚠️ Pie generation failed: $e');
         pieBytes = Uint8List(0);
       }
 
@@ -501,7 +501,7 @@ class _AgriFinancesState extends State<AgriFinances> {
       try {
         await Printing.layoutPdf(onLayout: (format) => pdfBytes);
       } on MissingPluginException catch (e) {
-        print('⚠️ Printing plugin missing: $e — falling back to saving file');
+        debugPrint('⚠️ Printing plugin missing: $e — falling back to saving file');
           try {
             final savedPath = await savePdfBytes(
               'agrisynch_financial_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
@@ -535,7 +535,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                 }
             }
           } catch (e) {
-            print('❌ Failed to save or download PDF fallback: $e');
+            debugPrint('❌ Failed to save or download PDF fallback: $e');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Failed to save/download PDF: $e')),
@@ -547,7 +547,7 @@ class _AgriFinancesState extends State<AgriFinances> {
         rethrow;
       }
     } catch (e) {
-      print('❌ Error generating PDF: $e');
+      debugPrint('❌ Error generating PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error exporting PDF: $e')),
@@ -649,9 +649,9 @@ class _AgriFinancesState extends State<AgriFinances> {
             .doc(id)
             .delete()
             .timeout(const Duration(seconds: 10));
-        print('✅ Deleted transaction $id from Firestore');
+        debugPrint('✅ Deleted transaction $id from Firestore');
       } catch (e) {
-        print('❌ Error deleting from Firestore: $e');
+        debugPrint('❌ Error deleting from Firestore: $e');
       }
     }
     
@@ -878,7 +878,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withAlpha((0.2 * 255).round()),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: IconButton(
@@ -935,7 +935,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                     'Track your farm income and expenses',
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withAlpha((0.8 * 255).round()),
                       fontSize: 14,
                     ),
                   ),
@@ -1043,7 +1043,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1188,7 +1188,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1475,7 +1475,7 @@ class _AgriFinancesState extends State<AgriFinances> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

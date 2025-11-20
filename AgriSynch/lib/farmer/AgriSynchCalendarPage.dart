@@ -674,7 +674,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                                     ),
                                   ),
                                   leading: CircleAvatar(
-                                    backgroundColor: getCategoryColor(event.category).withOpacity(0.2),
+                                    backgroundColor: getCategoryColor(event.category).withAlpha((0.2 * 255).round()),
                                     child: Icon(
                                       _getCategoryIcon(event.category),
                                       color: getCategoryColor(event.category),

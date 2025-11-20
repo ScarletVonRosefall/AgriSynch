@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 class NotificationHelper {
   static const String _notificationsKey = 'notifications';
@@ -135,9 +136,9 @@ class NotificationHelper {
           .get()
           .timeout(
             const Duration(seconds: 3),
-            onTimeout: () {
+              onTimeout: () {
               // If timeout, return cached or empty result
-              print('Firestore notification fetch timed out');
+              debugPrint('Firestore notification fetch timed out');
               throw TimeoutException('Firestore timeout');
             },
           );
@@ -147,7 +148,7 @@ class NotificationHelper {
       _lastCacheUpdate = DateTime.now();
       return totalCount;
     } catch (e) {
-      print('Error getting unread count: $e');
+      debugPrint('Error getting unread count: $e');
       // Return cached value if available
       if (_cachedUnreadCount != null) {
         return _cachedUnreadCount!;
@@ -160,7 +161,7 @@ class NotificationHelper {
         _lastCacheUpdate = DateTime.now();
         return count;
       } catch (e2) {
-        print('Error getting local notifications: $e2');
+        debugPrint('Error getting local notifications: $e2');
         return 0;
       }
     }

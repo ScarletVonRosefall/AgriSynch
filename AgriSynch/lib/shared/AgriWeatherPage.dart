@@ -208,7 +208,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -403,7 +403,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -498,7 +498,7 @@ class _AgriWeatherPageState extends State<AgriWeatherPage> {
             children: [
               Icon(
                 Icons.gps_fixed,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withAlpha((0.7 * 255).round()),
                 size: 14,
               ),
               const SizedBox(width: 4),

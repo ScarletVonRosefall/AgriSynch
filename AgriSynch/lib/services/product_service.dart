@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import 'rate_limit_service.dart';
 
@@ -22,7 +23,7 @@ class ProductService {
       final accountType = userDoc.data()?['accountType'] ?? '';
       return accountType.toLowerCase() == 'admin';
     } catch (e) {
-      print('Error checking admin status: $e');
+      debugPrint('Error checking admin status: $e');
       return false;
     }
   }
@@ -125,12 +126,12 @@ class ProductService {
     );
     if (!canCreate) {
       final errorMessage = RateLimitService.getRateLimitMessage('product_create');
-      print('🚫 ProductService: $errorMessage');
+      debugPrint('🚫 ProductService: $errorMessage');
       throw Exception(errorMessage);
     }
 
     final docRef = await _productsCollection.add(product.toFirestore());
-    print('✅ Product added: ${docRef.id}');
+    debugPrint('✅ Product added: ${docRef.id}');
     return docRef.id;
   }
 
@@ -144,21 +145,21 @@ class ProductService {
     );
     if (!canUpdate) {
       final errorMessage = RateLimitService.getRateLimitMessage('product_update');
-      print('🚫 ProductService: $errorMessage');
+      debugPrint('🚫 ProductService: $errorMessage');
       throw Exception(errorMessage);
     }
 
     updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
 
     await _productsCollection.doc(productId).update(updates);
-    print('✅ Product updated: $productId');
+    debugPrint('✅ Product updated: $productId');
   }
 
   Future<void> deleteProduct(String productId) async {
     if (currentUserId == null) throw Exception('User not authenticated');
 
     await _productsCollection.doc(productId).delete();
-    print('✅ Product deleted: $productId');
+    debugPrint('✅ Product deleted: $productId');
   }
 
   Future<void> updateStock(String productId, int newStock) async {
@@ -257,7 +258,7 @@ class ProductService {
             try {
               return Product.fromFirestore(doc);
             } catch (e) {
-              print('Error parsing product ${doc.id}: $e');
+              debugPrint('Error parsing product ${doc.id}: $e');
               return null;
             }
           })
@@ -285,7 +286,7 @@ class ProductService {
         'hasMore': false,
       };
     } catch (e) {
-      print('Error in getProductsPaginated: $e');
+      debugPrint('Error in getProductsPaginated: $e');
       rethrow;
     }
   }

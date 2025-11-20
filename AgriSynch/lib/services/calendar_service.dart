@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/calendar_event.dart';
 
 class CalendarService {
@@ -34,7 +35,7 @@ class CalendarService {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
-    print('Fetching events and tasks for date: $startOfDay');
+    debugPrint('Fetching events and tasks for date: $startOfDay');
 
     // Create a stream for regular events
     final eventStream = _eventsCollection
@@ -46,7 +47,7 @@ class CalendarService {
           final events = snapshot.docs
               .map((doc) => CalendarEvent.fromFirestore(doc))
               .toList();
-          print('Found ${events.length} events');
+          debugPrint('Found ${events.length} events');
           return events;
         });
 
@@ -84,7 +85,7 @@ class CalendarService {
             );
           }).toList();
           
-          print('Found ${tasks.length} tasks for date $date');
+          debugPrint('Found ${tasks.length} tasks for date $date');
           return tasks;
         });
 
@@ -121,7 +122,7 @@ class CalendarService {
         .doc(eventId)
         .get();
     
-    if (taskDoc.exists) {
+      if (taskDoc.exists) {
       // It's a task, delete from tasks collection
       await _firestore
           .collection('users')
@@ -129,11 +130,11 @@ class CalendarService {
           .collection('tasks')
           .doc(eventId)
           .delete();
-      print('Deleted task: $eventId');
+      debugPrint('Deleted task: $eventId');
     } else {
       // It's a calendar event, delete from calendar_events collection
       await _eventsCollection.doc(eventId).delete();
-      print('Deleted calendar event: $eventId');
+      debugPrint('Deleted calendar event: $eventId');
     }
   }
 

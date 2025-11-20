@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -35,7 +36,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     _tabController = TabController(length: 7, vsync: this);
     // Ensure admin dashboard always opens in light mode
     ThemeNotifier().resetTheme().catchError((e) {
-      print('Failed to reset theme on admin open: $e');
+      debugPrint('Failed to reset theme on admin open: $e');
     });
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
   }
@@ -53,7 +54,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   void didPopNext() {
     // Called when a route above this one has been popped and this route shows again
     ThemeNotifier().resetTheme().catchError((e) {
-      print('Failed to reset theme on return to admin dashboard: $e');
+      debugPrint('Failed to reset theme on return to admin dashboard: $e');
     });
     if (mounted) setState(() {});
   }
@@ -103,7 +104,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     );
     if (shouldLogout == true) {
       // Add your logout logic here
-      FirebaseAuth.instance.signOut();
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }
@@ -439,7 +442,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -566,7 +569,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               color: ThemeHelper.getCardColor(_themeNotifier.isDarkMode),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: categoryColor.withOpacity(0.3), width: 2),
+                side: BorderSide(color: categoryColor.withAlpha((0.3 * 255).round()), width: 2),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -736,7 +739,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withAlpha((0.05 * 255).round()),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -1152,7 +1155,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withAlpha((0.05 * 255).round()),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -1283,7 +1286,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       }
                     }
                   } catch (e) {
-                    print('Error parsing order items: $e');
+                    debugPrint('Error parsing order items: $e');
                   }
                   
                   final buyerName = data['buyerName'] ?? 'Unknown';
@@ -2003,9 +2006,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         await doc.reference.delete();
       }
 
-      print('✅ All user data deleted for: $userId');
+      debugPrint('✅ All user data deleted for: $userId');
     } catch (e) {
-      print('❌ Error deleting user data: $e');
+      debugPrint('❌ Error deleting user data: $e');
       rethrow;
     }
   }
@@ -2026,7 +2029,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         _showError('Failed to delete user: ${result.data['message']}');
       }
     } catch (e) {
-      print('Error calling deleteUserAccount Cloud Function: $e');
+      debugPrint('Error calling deleteUserAccount Cloud Function: $e');
       
       // Fallback to local deletion (Firestore only - Auth deletion requires Cloud Function)
       try {
@@ -2434,7 +2437,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           );
         }
       } catch (e) {
-        print('Error deleting conversation: $e');
+        debugPrint('Error deleting conversation: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2581,7 +2584,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           });
         }
       }).catchError((e) {
-        print('Error loading users for bulk selection: $e');
+        debugPrint('Error loading users for bulk selection: $e');
         if (mounted) {
           _showError('Failed to load users');
         }
@@ -2624,7 +2627,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         try {
           await _banUser(userId, 'User', 'Bulk ban by admin', true, null, false);
         } catch (e) {
-          print('Error banning user $userId: $e');
+          debugPrint('Error banning user $userId: $e');
         }
       }
       
@@ -2668,7 +2671,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         try {
           await _performFullUserDeletion(userId);
         } catch (e) {
-          print('Error deleting user $userId: $e');
+          debugPrint('Error deleting user $userId: $e');
         }
       }
       

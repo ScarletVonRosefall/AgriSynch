@@ -280,7 +280,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     borderRadius: BorderRadius.circular(8),
                                                     boxShadow: [
                                                       BoxShadow(
-                                                        color: Colors.black.withOpacity(0.2),
+                                                        color: Colors.black.withAlpha((0.2 * 255).round()),
                                                         blurRadius: 4,
                                                         offset: const Offset(0, 2),
                                                       ),
@@ -327,16 +327,12 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.1,
-                                            ),
+                                            color: const Color(0xFFFFFFFF).withAlpha((0.1 * 255).round()),
                                             borderRadius: BorderRadius.circular(
                                               20,
                                             ),
                                             border: Border.all(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.3,
-                                              ),
+                                              color: const Color(0xFFFFFFFF).withAlpha((0.3 * 255).round()),
                                               width: 1,
                                             ),
                                           ),
@@ -390,6 +386,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                         Center(
                                           child: ElevatedButton(
                                             onPressed: () async {
+                                              final messenger = ScaffoldMessenger.of(context);
+                                              final navigator = Navigator.of(context);
                                               final name = nameController.text
                                                   .trim();
                                               final email = emailController.text
@@ -468,7 +466,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 };
 
                                                 await preUserRef.set(preUserData);
-                                                print('Pre-auth Firestore doc created: ${preUserRef.id}');
+                                                debugPrint('Pre-auth Firestore doc created: ${preUserRef.id}');
 
                                                 // 2) Create account with Firebase Auth
                                                 final credential =
@@ -479,7 +477,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                         );
 
                                                 final user = credential.user;
-                                                if (user != null) {
+                                                  if (user != null) {
                                                   // Send verification email
                                                   await user.sendEmailVerification();
                                                   
@@ -503,10 +501,10 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                   // Optionally delete the pre-auth doc to avoid duplicates
                                                   await preUserRef.delete().catchError((err) {
                                                     // Not critical if delete fails; log for debugging
-                                                    print('Warning: failed to delete pre_user doc: $err');
+                                                    debugPrint('Warning: failed to delete pre_user doc: $err');
                                                   });
 
-                                                  print("Firestore write completed for user ${user.uid}.");
+                                                  debugPrint("Firestore write completed for user ${user.uid}.");
 
                                                   await storage.write(
                                                     key: 'user_uid',
@@ -537,56 +535,52 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                   await ErrorHandler.setCustomKey('account_type', _selectedAccountType);
                                                   await ErrorHandler.setCustomKey('user_name', name);
 
-                                                  if (mounted) {
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                          'Signup successful!',
-                                                        ),
-                                                        backgroundColor:
-                                                            Colors.green,
-                                                      ),
-                                                    );
-                                                    Navigator.pushReplacementNamed(
-                                                      context,
-                                                      '/verify',
-                                                      arguments: email,
-                                                    );
-                                                  }
+                                                  if (!mounted) return;
+                                                  messenger.showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Signup successful!'),
+                                                      backgroundColor: Colors.green,
+                                                    ),
+                                                  );
+                                                  navigator.pushReplacementNamed(
+                                                    '/verify',
+                                                    arguments: email,
+                                                  );
                                                 } else {
                                                   // This is unexpected but handle it
-                                                  print("createUserWithEmailAndPassword returned null user.");
+                                                  debugPrint("createUserWithEmailAndPassword returned null user.");
                                                   // Attempt cleanup of the pre-user doc
                                                   await preUserRef.delete().catchError((_) {});
-                                                  showError("Signup failed. Please try again.");
+                                                  messenger.showSnackBar(
+                                                    const SnackBar(content: Text('Signup failed. Please try again.'), backgroundColor: Colors.red),
+                                                  );
                                                 }
                                               } on FirebaseAuthException catch (e) {
                                                 // Auth failed — remove the pre-user doc to avoid orphaned records
                                                 await preUserRef.delete().catchError((err) {
-                                                  print('Error deleting pre_user after auth failure: $err');
+                                                  debugPrint('Error deleting pre_user after auth failure: $err');
                                                 });
 
-                                                String message =
-                                                    'Signup failed';
+                                                String message = 'Signup failed';
                                                 if (e.code == 'email-already-in-use') {
-                                                  message =
-                                                      'Email already registered.';
+                                                  message = 'Email already registered.';
                                                 }
                                                 if (e.code == 'weak-password') {
-                                                  message =
-                                                      'Password too weak.';
+                                                  message = 'Password too weak.';
                                                 }
-                                                print("FirebaseAuthException during signup: ${e.code} - ${e.message}");
-                                                showError(message);
+                                                debugPrint("FirebaseAuthException during signup: ${e.code} - ${e.message}");
+                                                messenger.showSnackBar(
+                                                  SnackBar(content: Text(message), backgroundColor: Colors.red),
+                                                );
                                               } catch (e) {
                                                 // Any other error — try to clean up the pre-user doc
-                                                print("Exception during pre-auth or signup flow: $e");
+                                                debugPrint("Exception during pre-auth or signup flow: $e");
                                                 await preUserRef.delete().catchError((err) {
-                                                  print('Error deleting pre_user after exception: $err');
+                                                  debugPrint('Error deleting pre_user after exception: $err');
                                                 });
-                                                showError('Error: $e');
+                                                messenger.showSnackBar(
+                                                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                                                );
                                               }
                                             },
                                             style: ElevatedButton.styleFrom(
@@ -633,25 +627,30 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                         ),
                                         const SizedBox(height: 16),
                                         Center(
-                                          child: ElevatedButton.icon(
-                                            onPressed: () async {
-                                              const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v1.0.0/app-release.apk';
-                                              final ok = await openUrl(url);
-                                              if (!ok) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('Could not open download link.')),
-                                                );
-                                              }
+                                          child: Builder(
+                                            builder: (ctx) {
+                                              return ElevatedButton.icon(
+                                                onPressed: () async {
+                                                  final messenger = ScaffoldMessenger.of(ctx);
+                                                  const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v1.0.0/app-release.apk';
+                                                  final ok = await openUrl(url);
+                                                  if (!ok) {
+                                                    messenger.showSnackBar(
+                                                      const SnackBar(content: Text('Could not open download link.')),
+                                                    );
+                                                  }
+                                                },
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.white,
+                                                  foregroundColor: const Color(0xFF00A862),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                  elevation: 6,
+                                                ),
+                                                icon: const Icon(Icons.android, color: Color(0xFF00A862)),
+                                                label: const Text('Download APK (Android)', style: TextStyle(color: Color(0xFF00A862), fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+                                              );
                                             },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.white,
-                                              foregroundColor: const Color(0xFF00A862),
-                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                              elevation: 6,
-                                            ),
-                                            icon: const Icon(Icons.android, color: Color(0xFF00A862)),
-                                            label: const Text('Download APK (Android)', style: TextStyle(color: Color(0xFF00A862), fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
                                           ),
                                         ),
                                         const SizedBox(height: 8),

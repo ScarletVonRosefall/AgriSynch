@@ -37,8 +37,11 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
 
     final email = emailController.text.trim();
     
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Please enter your email')),
       );
       return;
@@ -54,21 +57,21 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
       await FirebaseAuth.instance.sendPasswordResetEmail(
         email: email,
       );
-      
+
       if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
+
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Recovery email sent! Please check your inbox and spam folder.'),
           backgroundColor: Color(0xFF00A862),
           duration: Duration(seconds: 3),
         ),
       );
-      
+
       // Navigate after a brief delay
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        navigator.pushReplacementNamed('/login');
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -88,7 +91,7 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
           errorMessage = 'Failed to send reset email. Please try again.';
       }
       
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(errorMessage),
           backgroundColor: Colors.red,
@@ -98,7 +101,7 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
     } catch (e) {
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('An unexpected error occurred. Please try again.'),
           backgroundColor: Colors.red,

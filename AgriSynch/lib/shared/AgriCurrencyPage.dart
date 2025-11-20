@@ -141,7 +141,7 @@ class _AgriCurrencyPageState extends State<AgriCurrencyPage> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
@@ -285,7 +285,7 @@ class _AgriCurrencyPageState extends State<AgriCurrencyPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -351,7 +351,7 @@ class _AgriCurrencyPageState extends State<AgriCurrencyPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -413,7 +413,7 @@ class _AgriCurrencyPageState extends State<AgriCurrencyPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withAlpha((0.2 * 255).round()),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -458,7 +458,7 @@ class _AgriCurrencyPageState extends State<AgriCurrencyPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.red, width: 1),
       ),
@@ -494,7 +494,7 @@ class _AgriCurrencyPageState extends State<AgriCurrencyPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? const Color(0xFF1B5E20).withOpacity(0.3)
+            ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
             : const Color(0xFFE8F5E8),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(

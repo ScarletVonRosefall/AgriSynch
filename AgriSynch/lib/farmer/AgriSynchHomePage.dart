@@ -663,7 +663,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -821,7 +821,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDarkMode
-              ? const Color(0xFF1B5E20).withOpacity(0.3)
+              ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
               : const Color(0xFFE8F5E8),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
@@ -870,7 +870,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? const Color(0xFF1B5E20).withOpacity(0.3)
+            ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
             : const Color(0xFFE8F5E8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -933,7 +933,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withAlpha((0.2 * 255).round()),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -1014,7 +1014,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(

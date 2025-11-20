@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../shared/notification_helper.dart';
 import '../shared/currency_helper.dart';
 
@@ -16,7 +17,7 @@ class FinanceService {
     // Get current user
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      print('No user logged in, cannot add transaction');
+      debugPrint('No user logged in, cannot add transaction');
       return;
     }
 
@@ -31,7 +32,7 @@ class FinanceService {
         .get();
     
     if (existingTransaction.docs.isNotEmpty) {
-      print('Transaction already exists for order $orderId');
+      debugPrint('Transaction already exists for order $orderId');
       return; // Don't create duplicate
     }
 
@@ -88,6 +89,6 @@ class FinanceService {
       type: 'system',
     );
     
-    print('✅ Transaction added to Firestore for order $orderId: $currencySymbol${amount.toStringAsFixed(2)}');
+    debugPrint('✅ Transaction added to Firestore for order $orderId: $currencySymbol${amount.toStringAsFixed(2)}');
   }
 }

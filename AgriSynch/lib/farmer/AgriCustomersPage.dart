@@ -324,7 +324,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withAlpha((0.2 * 255).round()),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: IconButton(
@@ -380,7 +380,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     // Search bar
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextField(
@@ -388,7 +388,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Search customers...',
-                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                          hintStyle: TextStyle(color: Colors.white.withAlpha((0.7 * 255).round())),
                           prefixIcon: const Icon(Icons.search, color: Colors.white),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
@@ -674,7 +674,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                   // Avatar
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withOpacity(0.2),
+                    backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withAlpha((0.2 * 255).round()),
                     child: Text(
                       customer.name.substring(0, 1).toUpperCase(),
                       style: TextStyle(
@@ -718,7 +718,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withOpacity(0.2),
+                      color: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withAlpha((0.2 * 255).round()),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -858,7 +858,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     children: [
                       CircleAvatar(
                         radius: 25,
-                        backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withOpacity(0.2),
+                        backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withAlpha((0.2 * 255).round()),
                         child: Text(
                           customer.name.substring(0, 1).toUpperCase(),
                           style: TextStyle(
@@ -958,7 +958,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
+                    color: statusColor.withAlpha((0.2 * 255).round()),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

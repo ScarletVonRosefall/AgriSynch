@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import '../shared/input_validator.dart';
 import '../services/rate_limit_service.dart';
 
@@ -54,7 +55,7 @@ class AuthService {
 
       return result;
     } catch (e) {
-      print('Error during sign up: $e');
+      debugPrint('Error during sign up: $e');
       return null;
     }
   }
@@ -77,7 +78,7 @@ class AuthService {
       
       return result;
     } catch (e) {
-      print('Error during sign in: $e');
+      debugPrint('Error during sign in: $e');
       return null;
     }
   }
@@ -88,7 +89,7 @@ class AuthService {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       
       if (!userDoc.exists) {
-        print('⚠️ User document missing for ${user.email}. Creating default document...');
+        debugPrint('⚠️ User document missing for ${user.email}. Creating default document...');
         await _firestore.collection('users').doc(user.uid).set({
           'email': user.email ?? '',
           'name': user.displayName ?? '',
@@ -99,10 +100,10 @@ class AuthService {
           'location': '',
           'createdAt': FieldValue.serverTimestamp(),
         });
-        print('✅ User document created for ${user.email}');
+        debugPrint('✅ User document created for ${user.email}');
       }
     } catch (e) {
-      print('❌ Error ensuring user document exists: $e');
+      debugPrint('❌ Error ensuring user document exists: $e');
     }
   }
 
@@ -120,9 +121,9 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       
-      print('✅ Signed out and cleared all local data');
+      debugPrint('✅ Signed out and cleared all local data');
     } catch (e) {
-      print('Error during sign out: $e');
+      debugPrint('Error during sign out: $e');
     }
   }
 
@@ -132,7 +133,7 @@ class AuthService {
       await _auth.sendPasswordResetEmail(email: email);
       return true;
     } catch (e) {
-      print('Error sending password reset email: $e');
+      debugPrint('Error sending password reset email: $e');
       return false;
     }
   }
@@ -147,7 +148,7 @@ class AuthService {
       }
       return false;
     } catch (e) {
-      print('Error sending email verification: $e');
+      debugPrint('Error sending email verification: $e');
       return false;
     }
   }
@@ -166,7 +167,7 @@ class AuthService {
       }
       return false;
     } on FirebaseAuthException catch (e) {
-      print('Error during reauthentication: ${e.code} - ${e.message}');
+      debugPrint('Error during reauthentication: ${e.code} - ${e.message}');
       return false;
     }
   }
@@ -224,7 +225,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error getting user data: $e');
+      debugPrint('Error getting user data: $e');
       return null;
     }
   }
@@ -242,7 +243,7 @@ class AuthService {
     try {
       User? user = _auth.currentUser;
       if (user == null) {
-        print('❌ Error: No user logged in');
+        debugPrint('❌ Error: No user logged in');
         return false;
       }
 
@@ -255,7 +256,7 @@ class AuthService {
 
       // Validate sanitized inputs
       if (sanitizedName != null && sanitizedName.isEmpty && name!.isNotEmpty) {
-        print('❌ Error: Name contains invalid characters');
+        debugPrint('❌ Error: Name contains invalid characters');
         return false;
       }
 
@@ -279,25 +280,25 @@ class AuthService {
 
       if (!userDoc.exists) {
         // Create document if it doesn't exist
-        print('⚠️ User document does not exist for ${user.uid}. Creating it now...');
+        debugPrint('⚠️ User document does not exist for ${user.uid}. Creating it now...');
         await _firestore.collection('users').doc(user.uid).set({
           'email': user.email ?? '',
           'userType': 'farmer', // Default, should be updated if known
           'createdAt': FieldValue.serverTimestamp(),
           ...updateData,
         });
-        print('✅ User document created for ${user.email}');
+        debugPrint('✅ User document created for ${user.email}');
       } else {
         // Update existing document
         await _firestore.collection('users').doc(user.uid).update(updateData);
-        print('✅ Profile updated for ${user.email}');
+        debugPrint('✅ Profile updated for ${user.email}');
       }
       
       return true;
     } catch (e) {
-      print('❌ Error updating user profile: $e');
-      print('   User: ${_auth.currentUser?.email}');
-      print('   UID: ${_auth.currentUser?.uid}');
+      debugPrint('❌ Error updating user profile: $e');
+      debugPrint('   User: ${_auth.currentUser?.email}');
+      debugPrint('   UID: ${_auth.currentUser?.uid}');
       return false;
     }
   }
@@ -311,7 +312,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error getting user type: $e');
+      debugPrint('Error getting user type: $e');
       return null;
     }
   }
@@ -362,7 +363,7 @@ class AuthService {
       }
       return false;
     } catch (e) {
-      print('Error checking profile completion: $e');
+      debugPrint('Error checking profile completion: $e');
       return false;
     }
   }
@@ -380,7 +381,7 @@ class AuthService {
       }
       return false;
     } catch (e) {
-      print('Error checking admin status: $e');
+      debugPrint('Error checking admin status: $e');
       return false;
     }
   }
@@ -393,7 +394,7 @@ class AuthService {
 
       // Validate request type
       if (requestType != 'suspension' && requestType != 'deletion') {
-        print('❌ Invalid request type: $requestType');
+        debugPrint('❌ Invalid request type: $requestType');
         return false;
       }
 
@@ -404,7 +405,7 @@ class AuthService {
       );
       if (!canRequest) {
         final errorMessage = RateLimitService.getRateLimitMessage('deletion_request');
-        print('🚫 AuthService: $errorMessage');
+        debugPrint('🚫 AuthService: $errorMessage');
         throw Exception(errorMessage);
       }
 
@@ -423,10 +424,10 @@ class AuthService {
         'status': 'pending',
       });
 
-      print('✅ Account action request submitted: $requestType for user ${user.uid}');
+      debugPrint('✅ Account action request submitted: $requestType for user ${user.uid}');
       return true;
     } catch (e) {
-      print('❌ Error submitting account action request: $e');
+      debugPrint('❌ Error submitting account action request: $e');
       return false;
     }
   }

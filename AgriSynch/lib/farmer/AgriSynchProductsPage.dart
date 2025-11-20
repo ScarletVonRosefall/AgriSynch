@@ -1154,7 +1154,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -1344,7 +1344,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                 height: 120,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: _getCategoryColor(product.category).withOpacity(0.1),
+                                  color: _getCategoryColor(product.category).withAlpha((0.1 * 255).round()),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(12),
                                     topRight: Radius.circular(12),
@@ -1370,7 +1370,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                 right: 8,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: Colors.white.withAlpha((0.9 * 255).round()),
                                     shape: BoxShape.circle,
                                   ),
                                   child: PopupMenuButton(

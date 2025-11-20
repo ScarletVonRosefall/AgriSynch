@@ -192,8 +192,8 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isCompleted
-                                ? const Color(0xFF4CAF50)
-                                : textColor.withOpacity(0.2),
+                              ? const Color(0xFF4CAF50)
+                              : textColor.withAlpha((0.2 * 255).round()),
                             border: isCurrent
                                 ? Border.all(
                                     color: const Color(0xFF4CAF50),
@@ -204,8 +204,8 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                           child: Icon(
                             step['icon'] as IconData,
                             color: isCompleted
-                                ? Colors.white
-                                : textColor.withOpacity(0.5),
+                              ? Colors.white
+                              : textColor.withAlpha((0.5 * 255).round()),
                             size: 20,
                           ),
                         ),
@@ -215,7 +215,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                             height: 40,
                             color: index < currentStep
                                 ? const Color(0xFF4CAF50)
-                                : textColor.withOpacity(0.2),
+                                : textColor.withAlpha((0.2 * 255).round()),
                           ),
                       ],
                     ),
@@ -232,9 +232,9 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                             style: TextStyle(
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.bold,
-                              color: isCompleted
-                                  ? textColor
-                                  : textColor.withOpacity(0.5),
+                                  color: isCompleted
+                                    ? textColor
+                                    : textColor.withAlpha((0.5 * 255).round()),
                               fontSize: 16,
                             ),
                           ),
@@ -242,9 +242,9 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                             step['description'] as String,
                             style: TextStyle(
                               fontFamily: 'Poppins',
-                              color: isCompleted
-                                  ? textColor.withOpacity(0.7)
-                                  : textColor.withOpacity(0.4),
+                                color: isCompleted
+                                  ? textColor.withAlpha((0.7 * 255).round())
+                                  : textColor.withAlpha((0.4 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
@@ -254,11 +254,11 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                               child: Text(
                                 'Current Status',
                                 style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  color: const Color(0xFF4CAF50),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                fontFamily: 'Poppins',
+                                color: const Color(0xFF4CAF50),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                               ),
                             ),
                         ],
@@ -271,7 +271,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                         _getStepTime(index),
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          color: textColor.withOpacity(0.5),
+                          color: textColor.withAlpha((0.5 * 255).round()),
                           fontSize: 10,
                         ),
                       ),
@@ -429,7 +429,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                   label,
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withAlpha((0.7 * 255).round()),
                     fontSize: 12,
                   ),
                 ),
@@ -518,7 +518,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                   'Select an order to track',
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withAlpha((0.7 * 255).round()),
                   ),
                 ),
                 items: deliveries
@@ -555,7 +555,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                         Icon(
                           Icons.local_shipping,
                           size: 80,
-                          color: textColor.withOpacity(0.5),
+                          color: textColor.withAlpha((0.5 * 255).round()),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -563,7 +563,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 18,
-                            color: textColor.withOpacity(0.7),
+                            color: textColor.withAlpha((0.7 * 255).round()),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -572,7 +572,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 14,
-                            color: textColor.withOpacity(0.5),
+                            color: textColor.withAlpha((0.5 * 255).round()),
                           ),
                         ),
                       ],
@@ -585,7 +585,7 @@ class _DeliveryTrackingPageState extends State<DeliveryTrackingPage> {
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 16,
-                        color: textColor.withOpacity(0.7),
+                        color: textColor.withAlpha((0.7 * 255).round()),
                       ),
                     ),
                   )

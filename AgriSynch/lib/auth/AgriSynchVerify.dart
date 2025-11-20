@@ -82,12 +82,15 @@ class _AgriSynchEmailVerificationPageState
   Future<void> checkEmailVerification() async {
     if (_navigating || !mounted) return;
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     User? user = auth.currentUser;
     if (user == null) {
       _timer?.cancel();
       if (mounted && !_navigating) {
         setState(() => _navigating = true);
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        navigator.pushNamedAndRemoveUntil('/login', (route) => false);
       }
       return;
     }
@@ -101,7 +104,7 @@ class _AgriSynchEmailVerificationPageState
         if (!mounted || _navigating) return;
 
         setState(() => _navigating = true);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Email verified successfully! Redirecting...'),
             backgroundColor: Color(0xFF00C853),
@@ -111,11 +114,12 @@ class _AgriSynchEmailVerificationPageState
         // Navigate to home - AuthWrapper will handle the rest
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+          navigator.pushNamedAndRemoveUntil('/', (route) => false);
         }
       }
     } catch (e) {
-      print('Error checking email verification: $e');
+      // avoid print in production - keep minimal logging
+      debugPrint('Error checking email verification: $e');
     }
   }
 
@@ -154,6 +158,8 @@ class _AgriSynchEmailVerificationPageState
     setState(() => isLoading = true);
     
     try {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
       User? user = auth.currentUser;
       if (user == null) {
         throw Exception('No user logged in');
@@ -165,11 +171,11 @@ class _AgriSynchEmailVerificationPageState
       
       if (user?.emailVerified == true) {
         if (!mounted) return;
-        
+
         setState(() => _navigating = true);
         _timer?.cancel(); // Stop the auto-check timer
-        
-        ScaffoldMessenger.of(context).showSnackBar(
+
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Email verified successfully! Redirecting...'),
             backgroundColor: Color(0xFF00C853),
@@ -180,13 +186,13 @@ class _AgriSynchEmailVerificationPageState
         // Add slight delay to show the success message
         await Future.delayed(const Duration(milliseconds: 1000));
         if (!mounted) return;
-        
+
         // Navigate to home - the AuthWrapper will handle routing based on verification
-        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        navigator.pushNamedAndRemoveUntil('/', (route) => false);
       } else {
         if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
+
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Email not yet verified. Please click the link in your email, then tap this button again.'),
             backgroundColor: Colors.orange,
@@ -196,7 +202,8 @@ class _AgriSynchEmailVerificationPageState
       }
     } on TimeoutException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Verification check timed out. Please try again.'),
           backgroundColor: Colors.orange,
@@ -205,7 +212,8 @@ class _AgriSynchEmailVerificationPageState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
           backgroundColor: Colors.red,

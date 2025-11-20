@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -130,7 +131,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         });
       }
     } catch (e) {
-      print('Error reloading currency: $e');
+      debugPrint('Error reloading currency: $e');
     }
   }
 
@@ -148,7 +149,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         Future.microtask(() => _loadUnreadNotifications()),
       ]);
     } catch (e) {
-      print('Error loading settings: $e');
+      debugPrint('Error loading settings: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -190,7 +191,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
             userRole = 'Farmer'; // Default role
           }
         } catch (firestoreError) {
-          print('Error fetching from Firestore: $firestoreError');
+          debugPrint('Error fetching from Firestore: $firestoreError');
           // Fallback to Firebase Auth user data
           userName = user.displayName ?? '';
           userEmail = user.email ?? '';
@@ -222,7 +223,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         userRole = await storage.read(key: 'account_type') ?? '';
       }
     } catch (e) {
-      print('Error loading user info: $e');
+      debugPrint('Error loading user info: $e');
       // Fallback to empty strings if everything fails
       userName = '';
       userEmail = '';
@@ -250,7 +251,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         });
       }
     } catch (e) {
-      print('Error loading preferences: $e');
+      debugPrint('Error loading preferences: $e');
     }
   }
 
@@ -263,7 +264,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         });
       }
     } catch (e) {
-      print('Error loading notifications: $e');
+      debugPrint('Error loading notifications: $e');
     }
   }
 
@@ -272,7 +273,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(key, value);
     } catch (e) {
-      print('Error updating preference: $e');
+      debugPrint('Error updating preference: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -464,10 +465,10 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                             return Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                color: const Color(0xFF4CAF50).withAlpha((0.1 * 255).round()),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: const Color(0xFF4CAF50).withOpacity(0.3),
+                                  color: const Color(0xFF4CAF50).withAlpha((0.3 * 255).round()),
                                 ),
                               ),
                               child: Row(
@@ -502,7 +503,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                                             Text(
                                               '($reviewCount ${reviewCount == 1 ? 'review' : 'reviews'})',
                                               style: TextStyle(
-                                                color: textColor.withOpacity(0.7),
+                                                color: textColor.withAlpha((0.7 * 255).round()),
                                                 fontSize: 12,
                                               ),
                                             ),
@@ -551,7 +552,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                                     try {
                                       await ThemeNotifier().resetTheme();
                                     } catch (e) {
-                                      print('Failed to reset theme before admin navigation: $e');
+                                      debugPrint('Failed to reset theme before admin navigation: $e');
                                     }
                                     Navigator.pushNamed(context, '/admin-dashboard');
                                   },
@@ -610,7 +611,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                           subtitle: Text(
                             "Receive alerts for tasks and orders",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
@@ -645,7 +646,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                           subtitle: Text(
                             "Use dark theme for better visibility",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
@@ -680,14 +681,14 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                           subtitle: Text(
                             "${CurrencyHelper.getCurrencyName(_selectedCurrency)} (${CurrencyHelper.getCurrencySymbol(_selectedCurrency)})",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
                           trailing: Icon(
                             Icons.arrow_forward_ios,
                             size: 16,
-                            color: textColor.withOpacity(0.7),
+                            color: textColor.withAlpha((0.7 * 255).round()),
                           ),
                           onTap: () =>
                               _showCurrencySelectionDialog(context, isDarkMode),
@@ -951,7 +952,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1325,7 +1326,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
         }
       }
     }).catchError((e) {
-      print('Error submitting feedback: $e');
+      debugPrint('Error submitting feedback: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

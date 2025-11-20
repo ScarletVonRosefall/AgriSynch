@@ -335,7 +335,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                 borderRadius: BorderRadius.circular(6),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: Colors.black.withOpacity(0.15),
+                                                    color: Colors.black.withAlpha((0.15 * 255).round()),
                                                     blurRadius: 3,
                                                     offset: const Offset(0, 1),
                                                   ),
@@ -403,6 +403,9 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                       return;
                                                     }
 
+                                                    // Capture stable objects before async gaps
+                                                    final messenger = ScaffoldMessenger.of(context);
+                                                    final navigator = Navigator.of(context);
                                                     if (!mounted) return;
                                                     isLoading.value = true;
 
@@ -426,6 +429,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                       if (!mounted) return;
 
                                                       if (user != null) {
+                                                        // messenger and navigator were captured earlier
                                                         // Add timeout for Firestore operation
                                                         final docFuture = FirebaseFirestore.instance
                                                             .collection('users')
@@ -452,14 +456,20 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         
                                                         if (isBanned) {
                                                           await FirebaseAuth.instance.signOut();
-                                                          showError('Your account has been permanently banned. Reason: ${data?['banReason'] ?? 'Violation of terms'}');
+                                                          if (!mounted) return;
+                                                          messenger.showSnackBar(
+                                                            SnackBar(content: Text('Your account has been permanently banned. Reason: ${data?['banReason'] ?? 'Violation of terms'}')),
+                                                          );
                                                           return;
                                                         }
                                                         
                                                         if (isSuspended) {
                                                           await FirebaseAuth.instance.signOut();
+                                                          if (!mounted) return;
                                                           final suspendedUntilDate = suspendedUntil.toDate();
-                                                          showError('Your account is suspended until ${suspendedUntilDate.day}/${suspendedUntilDate.month}/${suspendedUntilDate.year}. Reason: ${data?['banReason'] ?? 'Policy violation'}');
+                                                          messenger.showSnackBar(
+                                                            SnackBar(content: Text('Your account is suspended until ${suspendedUntilDate.day}/${suspendedUntilDate.month}/${suspendedUntilDate.year}. Reason: ${data?['banReason'] ?? 'Policy violation'}')),
+                                                          );
                                                           return;
                                                         }
                                                         
@@ -467,7 +477,9 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         final userName = data?['name'] ?? '';
                                                         
                                                         // Debug to verify account type
-                                                        showError("Login successful! Account type: $accountType");
+                                                        messenger.showSnackBar(
+                                                          SnackBar(content: Text("Login successful! Account type: $accountType")),
+                                                        );
 
                                                         // Store data in parallel
                                                         await Future.wait([
@@ -503,24 +515,24 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         
                                                         // Force navigation after successful login
                                                         if (!mounted) return;
-                                                        
+
                                                         try {
                                                           // Navigate based on account type with complete stack replacement
                                                           if (accountType == 'Buyer') {
-                                                            Navigator.pushNamedAndRemoveUntil(
-                                                              context, 
-                                                              '/buyer-home', 
+                                                            navigator.pushNamedAndRemoveUntil(
+                                                              '/buyer-home',
                                                               (route) => false,
                                                             );
                                                           } else {
-                                                            Navigator.pushNamedAndRemoveUntil(
-                                                              context, 
-                                                              '/home', 
+                                                            navigator.pushNamedAndRemoveUntil(
+                                                              '/home',
                                                               (route) => false,
                                                             );
                                                           }
                                                         } catch (e) {
-                                                          showError("Navigation error: $e");
+                                                          messenger.showSnackBar(
+                                                            SnackBar(content: Text("Navigation error: $e")),
+                                                          );
                                                         }
                                                       }
                                                     } on FirebaseAuthException catch (e) {
@@ -540,13 +552,14 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                           message = 'Network error. Please check your connection.';
                                                           break;
                                                       }
-                                                      showError(message);
+                                                      // Use captured messenger to avoid using BuildContext across async gaps
+                                                      messenger.showSnackBar(SnackBar(content: Text(message)));
                                                     } on TimeoutException {
                                                       if (!mounted) return;
-                                                      showError('Connection timeout. Please try again.');
+                                                      messenger.showSnackBar(const SnackBar(content: Text('Connection timeout. Please try again.')));
                                                     } catch (e) {
                                                       if (!mounted) return;
-                                                      showError('An unexpected error occurred. Please try again.');
+                                                      messenger.showSnackBar(const SnackBar(content: Text('An unexpected error occurred. Please try again.')));
                                                     } finally {
                                                       if (mounted) {
                                                         isLoading.value = false;
@@ -641,9 +654,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                             child: ElevatedButton.icon(
                                               onPressed: () async {
                                                 const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v1.0.0/app-release.apk';
+                                                final messenger = ScaffoldMessenger.of(context);
                                                 final ok = await openUrl(url);
                                                 if (!ok) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  messenger.showSnackBar(
                                                     const SnackBar(content: Text('Could not open download link.')),
                                                   );
                                                 }

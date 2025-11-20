@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/review.dart';
 
 class ReviewService {
@@ -17,7 +18,7 @@ class ReviewService {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
-        print('❌ No authenticated user');
+        debugPrint('❌ No authenticated user');
         return false;
       }
 
@@ -42,7 +43,7 @@ class ReviewService {
           'orderId': orderId,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        print('✅ Review updated');
+        debugPrint('✅ Review updated');
       } else {
         // Create new review
         final review = Review(
@@ -59,7 +60,7 @@ class ReviewService {
         );
 
         await _firestore.collection('reviews').add(review.toFirestore());
-        print('✅ Review submitted');
+        debugPrint('✅ Review submitted');
       }
 
       // Update farmer's average rating
@@ -67,7 +68,7 @@ class ReviewService {
 
       return true;
     } catch (e) {
-      print('❌ Error submitting review: $e');
+      debugPrint('❌ Error submitting review: $e');
       return false;
     }
   }
@@ -104,9 +105,9 @@ class ReviewService {
         'reviewCount': reviewCount,
       });
 
-      print('✅ Updated farmer rating: $averageRating ($reviewCount reviews)');
+      debugPrint('✅ Updated farmer rating: $averageRating ($reviewCount reviews)');
     } catch (e) {
-      print('❌ Error updating farmer rating: $e');
+      debugPrint('❌ Error updating farmer rating: $e');
     }
   }
 
@@ -139,7 +140,7 @@ class ReviewService {
         'reviewCount': data?['reviewCount'] ?? 0,
       };
     } catch (e) {
-      print('❌ Error getting farmer rating stats: $e');
+      debugPrint('❌ Error getting farmer rating stats: $e');
       return {
         'averageRating': 0.0,
         'reviewCount': 0,
@@ -164,7 +165,7 @@ class ReviewService {
 
       return Review.fromFirestore(snapshot.docs.first);
     } catch (e) {
-      print('❌ Error getting current user review: $e');
+      debugPrint('❌ Error getting current user review: $e');
       return null;
     }
   }
@@ -178,7 +179,7 @@ class ReviewService {
       // Verify ownership
       final reviewDoc = await _firestore.collection('reviews').doc(reviewId).get();
       if (!reviewDoc.exists || reviewDoc.data()?['buyerId'] != currentUser.uid) {
-        print('❌ Unauthorized to delete review');
+        debugPrint('❌ Unauthorized to delete review');
         return false;
       }
 
@@ -187,10 +188,10 @@ class ReviewService {
       // Update farmer's average rating
       await _updateFarmerRating(farmerId);
 
-      print('✅ Review deleted');
+      debugPrint('✅ Review deleted');
       return true;
     } catch (e) {
-      print('❌ Error deleting review: $e');
+      debugPrint('❌ Error deleting review: $e');
       return false;
     }
   }
@@ -225,7 +226,7 @@ class ReviewService {
 
       return farmers.take(limit).toList();
     } catch (e) {
-      print('❌ Error getting top-rated farmers: $e');
+      debugPrint('❌ Error getting top-rated farmers: $e');
       return [];
     }
   }

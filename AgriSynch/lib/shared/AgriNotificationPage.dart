@@ -54,14 +54,14 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     setState(() => isLoading = true);
     
     try {
-      print('📢 Initializing notification data...');
+      debugPrint('📢 Initializing notification data...');
       
       // Load notifications from both SharedPreferences and Firestore
       final localNotifications = await NotificationHelper.getNotifications();
-      print('📢 Loaded ${localNotifications.length} local notifications');
+      debugPrint('📢 Loaded ${localNotifications.length} local notifications');
       
       final firestoreNotifications = await _loadFirestoreNotifications();
-      print('📢 Loaded ${firestoreNotifications.length} Firestore notifications');
+      debugPrint('📢 Loaded ${firestoreNotifications.length} Firestore notifications');
 
       // Combine and sort by timestamp
       final allNotifications = [...localNotifications, ...firestoreNotifications];
@@ -69,7 +69,7 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp']))
       );
 
-      print('📢 Total notifications: ${allNotifications.length}');
+      debugPrint('📢 Total notifications: ${allNotifications.length}');
 
       if (!_mounted) return;
 
@@ -78,7 +78,7 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         isLoading = false;
       });
     } catch (e) {
-      print('❌ Error initializing data: $e');
+      debugPrint('❌ Error initializing data: $e');
       if (!_mounted) return;
       setState(() {
         notifications = [];
@@ -91,11 +91,11 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('📢 No authenticated user for notifications');
+        debugPrint('📢 No authenticated user for notifications');
         return [];
       }
 
-      print('📢 Loading Firestore notifications for user: ${user.uid}');
+      debugPrint('📢 Loading Firestore notifications for user: ${user.uid}');
       
       final snapshot = await FirebaseFirestore.instance
           .collection('notifications')
@@ -103,11 +103,11 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
           .orderBy('timestamp', descending: true)
           .get();
 
-      print('📢 Found ${snapshot.docs.length} Firestore notifications');
+      debugPrint('📢 Found ${snapshot.docs.length} Firestore notifications');
       
       final notifications = snapshot.docs.map((doc) {
         final data = doc.data();
-        print('📢 Notification: ${data['title']} - isRead: ${data['isRead']}');
+        debugPrint('📢 Notification: ${data['title']} - isRead: ${data['isRead']}');
         return {
           'id': doc.id,
           'title': data['title'] ?? '',
@@ -120,11 +120,11 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         };
       }).toList();
       
-      print('📢 Returning ${notifications.length} notifications');
+      debugPrint('📢 Returning ${notifications.length} notifications');
       return notifications;
     } catch (e) {
-      print('❌ Error loading Firestore notifications: $e');
-      print('❌ Error type: ${e.runtimeType}');
+      debugPrint('❌ Error loading Firestore notifications: $e');
+      debugPrint('❌ Error type: ${e.runtimeType}');
       return [];
     }
   }
@@ -520,7 +520,7 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
         border: Border.all(
           color: isRead
               ? (isDarkMode ? Colors.grey[700]! : Colors.grey[200]!)
-              : ThemeHelper.getHeaderColor(isDarkMode).withOpacity(0.3),
+              : ThemeHelper.getHeaderColor(isDarkMode).withAlpha((0.3 * 255).round()),
           width: isRead ? 1 : 2,
         ),
       ),
@@ -530,7 +530,7 @@ class _AgriNotificationPageState extends State<AgriNotificationPage> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: _getTypeColor(type).withOpacity(0.1),
+            color: _getTypeColor(type).withAlpha((0.1 * 255).round()),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(

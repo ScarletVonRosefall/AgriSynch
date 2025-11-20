@@ -45,45 +45,8 @@ class _AgriSynchBuyerSettingsPageState
     loadPreferences();
     _loadUnreadNotifications();
     _checkAdminStatus();
-    // Listen to theme changes
+    // Listen to theme changes (add listener early so initial load not missed)
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
-  }
-
-  Future<void> _checkAdminStatus() async {
-    final isAdmin = await AuthService.isCurrentUserAdmin();
-    if (mounted) {
-      setState(() {
-        _isAdmin = isAdmin;
-      });
-    }
-  }
-
-  void _onThemeChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  @override
-  void dispose() {
-    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
-    _supportController.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _reloadCurrency();
-    loadUserInfo(); // Reload user credentials when page regains focus
-  }
-
-  // Reload currency when page regains focus
-  void _reloadCurrency() async {
-    final currentCurrency = await CurrencyHelper.getCurrentCurrency();
-    setState(() {
-      _selectedCurrency = currentCurrency;
-    });
   }
 
   // Load user information from secure storage
@@ -112,7 +75,7 @@ class _AgriSynchBuyerSettingsPageState
             userRole = 'Buyer'; // Default role
           }
         } catch (firestoreError) {
-          print('Error fetching from Firestore: $firestoreError');
+          debugPrint('Error fetching from Firestore: $firestoreError');
           // Fallback to Firebase Auth user data
           userName = user.displayName ?? '';
           userEmail = user.email ?? '';
@@ -129,7 +92,7 @@ class _AgriSynchBuyerSettingsPageState
         setState(() {});
       }
     } catch (e) {
-      print('Error loading user info: $e');
+      debugPrint('Error loading user info: $e');
       if (mounted) {
         setState(() {
           userName = '';
@@ -159,6 +122,29 @@ class _AgriSynchBuyerSettingsPageState
       _darkModeEnabled = _themeNotifier.isDarkMode; // Use ThemeNotifier
       _selectedCurrency = prefs.getString('currency') ?? 'PHP';
     });
+  }
+
+  // Check whether current user has admin privileges
+  Future<void> _checkAdminStatus() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _isAdmin = false;
+        if (mounted) setState(() {});
+        return;
+      }
+
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      _isAdmin = doc.exists && (doc.data()?['isAdmin'] == true);
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error checking admin status: $e');
+    }
+  }
+
+  // Theme change listener
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   // Load unread notifications count
@@ -279,7 +265,8 @@ class _AgriSynchBuyerSettingsPageState
                                 size: 20,
                               ),
                               onPressed: () async {
-                                await Navigator.pushNamed(context, '/profile');
+                                final navigator = Navigator.of(context);
+                                await navigator.pushNamed('/profile');
                                 // Refresh the profile widget after returning
                                 if (mounted) {
                                   setState(() {
@@ -320,11 +307,11 @@ class _AgriSynchBuyerSettingsPageState
                       children: [
                         Text(
                           "Profile Information:",
-                          style: TextStyle(
-                            color: textColor,
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w500,
-                          ),
+                            style: TextStyle(
+                              color: textColor,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w500,
+                            ),
                         ),
                         const SizedBox(height: 12),
                         _infoRow("Name:", userName, textColor),
@@ -341,12 +328,14 @@ class _AgriSynchBuyerSettingsPageState
                                   icon: Icons.admin_panel_settings,
                                   isDarkMode: isDarkMode,
                                   onTap: () async {
+                                    final navigator = Navigator.of(context);
                                     try {
                                       await ThemeNotifier().resetTheme();
                                     } catch (e) {
-                                      print('Failed to reset theme before admin navigation: $e');
+                                      // Keep console debug for now; will sweep prints later
+                                      debugPrint('Failed to reset theme before admin navigation: $e');
                                     }
-                                    Navigator.pushNamed(context, '/admin-dashboard');
+                                    navigator.pushNamed('/admin-dashboard');
                                   },
                                 ),
                               ),
@@ -402,8 +391,8 @@ class _AgriSynchBuyerSettingsPageState
                           ),
                           subtitle: Text(
                             "Receive alerts for orders and updates",
-                            style: TextStyle(
-                              color: textColor.withOpacity(0.7),
+                              style: TextStyle(
+                              color: textColor.withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
@@ -438,7 +427,7 @@ class _AgriSynchBuyerSettingsPageState
                           subtitle: Text(
                             "Use dark theme for better visibility",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
@@ -473,14 +462,14 @@ class _AgriSynchBuyerSettingsPageState
                           subtitle: Text(
                             "${CurrencyHelper.getCurrencyName(_selectedCurrency)} (${CurrencyHelper.getCurrencySymbol(_selectedCurrency)})",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
                           ),
                           trailing: Icon(
                             Icons.arrow_forward_ios,
                             size: 16,
-                            color: textColor.withOpacity(0.7),
+                            color: textColor.withAlpha((0.7 * 255).round()),
                           ),
                           onTap: () =>
                               _showCurrencySelectionDialog(context, isDarkMode),
@@ -601,9 +590,10 @@ class _AgriSynchBuyerSettingsPageState
                                   icon: Icons.send,
                                   isDarkMode: isDarkMode,
                                   onTap: () async {
+                                    final messenger = ScaffoldMessenger.of(context);
                                     final message = _supportController.text.trim();
                                     if (message.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                           content: Text("Please enter your feedback before submitting."),
                                         ),
@@ -629,14 +619,14 @@ class _AgriSynchBuyerSettingsPageState
                                       setState(() {
                                         _feedbackCategory = 'General';
                                       });
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                           content: Text("Feedback sent. Thank you!"),
                                           backgroundColor: Color(0xFF00C853),
                                         ),
                                       );
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                           content: Text("Failed to send feedback. Please try again."),
                                           backgroundColor: Colors.red,
@@ -747,7 +737,7 @@ class _AgriSynchBuyerSettingsPageState
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -874,32 +864,32 @@ class _AgriSynchBuyerSettingsPageState
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
-              
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+
+              navigator.pop(); // Close dialog
+
               try {
                 // Clear all local data
                 final storage = const FlutterSecureStorage();
                 await storage.deleteAll();
-                
+
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.clear();
-                
+
                 // Reset theme to light mode
                 await ThemeNotifier().resetTheme();
-                
+
                 // Sign out from Firebase
                 await FirebaseAuth.instance.signOut();
-                
-                if (!mounted) return;
-                
+
                 // Navigate to root (AuthWrapper) and clear all navigation history
-                Navigator.of(context).pushNamedAndRemoveUntil(
+                navigator.pushNamedAndRemoveUntil(
                   '/',
                   (route) => false,
                 );
               } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Error logging out. Please try again.'),
                     backgroundColor: Colors.red,
@@ -1035,12 +1025,13 @@ class _AgriSynchBuyerSettingsPageState
                         )
                       : null,
                   onTap: () async {
+                    final navigator = Navigator.of(context);
                     await CurrencyHelper.setCurrency(currency['code']!);
                     setState(() {
                       _selectedCurrency = currency['code']!;
                     });
                     if (!mounted) return;
-                    Navigator.of(context).pop();
+                    navigator.pop();
                   },
                 );
               },
@@ -1049,15 +1040,7 @@ class _AgriSynchBuyerSettingsPageState
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: isDarkMode
-                      ? const Color(0xFF4CAF50)
-                      : const Color(0xFF00C853),
-                  fontFamily: 'Poppins',
-                ),
-              ),
+              child: const Text('Cancel'),
             ),
           ],
         );

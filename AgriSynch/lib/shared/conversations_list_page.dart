@@ -307,7 +307,7 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withAlpha((0.05 * 255).round()),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -391,17 +391,20 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                     ],
                   ),
                   onTap: () async {
+                    // Capture stable UI objects before async gaps
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+
                     final allowed = await canMessageUser(otherUserId);
+                    // Check mounted immediately after awaiting
+                    if (!mounted) return;
                     if (!allowed) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('You cannot message admin accounts.')),
-                        );
-                      }
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('You cannot message admin accounts.')),
+                      );
                       return;
                     }
-                    Navigator.push(
-                      context,
+                    navigator.push(
                       MaterialPageRoute(
                         builder: (context) => ChatScreen(
                           otherUserId: otherUserId,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart' show AppOrder;
@@ -22,30 +23,30 @@ class OrderService {
       );
       if (!canCreate) {
         final errorMessage = RateLimitService.getRateLimitMessage('order_create');
-        print('🚫 OrderService: $errorMessage');
+        debugPrint('🚫 OrderService: $errorMessage');
         throw Exception(errorMessage);
       }
 
-      print('📝 Creating order: ${order.id}');
+      debugPrint('📝 Creating order: ${order.id}');
       
       final orderRef = _firestore.collection('orders').doc(order.id);
       await orderRef.set(order.toFirestore());
-      print('✅ Order document created');
+      debugPrint('✅ Order document created');
       
       // Update stock individually using transactions for proper security rule validation
       for (final item in order.items) {
-        print('📦 Decrementing stock for product: ${item.productId}, quantity: ${item.quantity}');
+        debugPrint('📦 Decrementing stock for product: ${item.productId}, quantity: ${item.quantity}');
         await _decrementProductStock(item.productId, item.quantity);
-        print('✅ Stock decremented for: ${item.productId}');
+        debugPrint('✅ Stock decremented for: ${item.productId}');
       }
       
-      print('✅ All stocks updated successfully');
+      debugPrint('✅ All stocks updated successfully');
       
       await _sendOrderNotifications(order);
-      print('✅ Notifications sent');
+      debugPrint('✅ Notifications sent');
     } catch (e) {
-      print('❌ ERROR in createOrder: $e');
-      print('❌ Error type: ${e.runtimeType}');
+      debugPrint('❌ ERROR in createOrder: $e');
+      debugPrint('❌ Error type: ${e.runtimeType}');
       rethrow;
     }
   }
@@ -68,8 +69,8 @@ class OrderService {
         final currentStock = data['stock'] as int? ?? 0;
         final newStock = currentStock - quantity;
         
-        print('  📊 Current stock: $currentStock, Order quantity: $quantity, New stock: $newStock');
-        print('  📊 Current data keys: ${data.keys.toList()}');
+        debugPrint('  📊 Current stock: $currentStock, Order quantity: $quantity, New stock: $newStock');
+        debugPrint('  📊 Current data keys: ${data.keys.toList()}');
         
         if (newStock < 0) {
           throw Exception('Insufficient stock for product $productId');
@@ -80,14 +81,14 @@ class OrderService {
         updateData['isAvailable'] = newStock > 0;
         updateData['updatedAt'] = Timestamp.now();
         
-        print('  📝 Updating with keys: ${updateData.keys.toList()}');
+        debugPrint('  📝 Updating with keys: ${updateData.keys.toList()}');
         
         transaction.set(productRef, updateData, SetOptions(merge: true));
       });
-    } catch (e) {
-      print('  ❌ ERROR in _decrementProductStock for $productId: $e');
+      } catch (e) {
+      debugPrint('  ❌ ERROR in _decrementProductStock for $productId: $e');
       if (e.toString().contains('permission-denied')) {
-        print('  ⚠️  PERMISSION DENIED - Check Firestore security rules!');
+        debugPrint('  ⚠️  PERMISSION DENIED - Check Firestore security rules!');
       }
       rethrow;
     }
@@ -117,7 +118,7 @@ class OrderService {
         totalAmount: order.totalAmount,
       );
     } catch (e) {
-      print('Failed to send new order notification: $e');
+      debugPrint('Failed to send new order notification: $e');
     }
   }
 
@@ -157,15 +158,15 @@ class OrderService {
     
     try {
       final orderDoc = await _firestore.collection('orders').doc(orderId).get();
-      if (orderDoc.exists) {
+        if (orderDoc.exists) {
         final orderData = orderDoc.data();
         if (orderData == null) {
-          print('Warning: Order $orderId has no data');
+          debugPrint('Warning: Order $orderId has no data');
           return;
         }
         final buyerId = orderData['buyerId'] as String?;
         if (buyerId == null) {
-          print('Warning: Order $orderId missing buyerId');
+          debugPrint('Warning: Order $orderId missing buyerId');
           return;
         }
         final items = (orderData['items'] as List<dynamic>?) ?? [];
@@ -226,7 +227,7 @@ class OrderService {
         );
       }
     } catch (e) {
-      print('Failed to send status update notification: $e');
+      debugPrint('Failed to send status update notification: $e');
     }
   }
 
@@ -287,7 +288,7 @@ class OrderService {
             try {
               return AppOrder.fromFirestore(doc);
             } catch (e) {
-              print('Error parsing order ${doc.id}: $e');
+              debugPrint('Error parsing order ${doc.id}: $e');
               return null;
             }
           })
@@ -300,7 +301,7 @@ class OrderService {
         'hasMore': snapshot.docs.length == limit,
       };
     } catch (e) {
-      print('Error in getBuyerOrdersPaginated: $e');
+      debugPrint('Error in getBuyerOrdersPaginated: $e');
       rethrow;
     }
   }
@@ -342,7 +343,7 @@ class OrderService {
             try {
               return AppOrder.fromFirestore(doc);
             } catch (e) {
-              print('Error parsing order ${doc.id}: $e');
+              debugPrint('Error parsing order ${doc.id}: $e');
               return null;
             }
           })
@@ -355,7 +356,7 @@ class OrderService {
         'hasMore': snapshot.docs.length == limit,
       };
     } catch (e) {
-      print('Error in getMoreBuyerOrders: $e');
+      debugPrint('Error in getMoreBuyerOrders: $e');
       rethrow;
     }
   }
@@ -391,7 +392,7 @@ class OrderService {
             try {
               return AppOrder.fromFirestore(doc);
             } catch (e) {
-              print('Error parsing order ${doc.id}: $e');
+              debugPrint('Error parsing order ${doc.id}: $e');
               return null;
             }
           })
@@ -413,7 +414,7 @@ class OrderService {
         'hasMore': false,
       };
     } catch (e) {
-      print('Error in getFarmerOrdersPaginated: $e');
+      debugPrint('Error in getFarmerOrdersPaginated: $e');
       rethrow;
     }
   }

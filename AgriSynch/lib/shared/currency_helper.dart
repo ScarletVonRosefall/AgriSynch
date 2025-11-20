@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 class CurrencyHelper {
   // Frankfurter API - FREE currency exchange rates (European Central Bank)
@@ -106,7 +107,7 @@ class CurrencyHelper {
         url += '&to=${targetCurrencies.join(',')}';
       }
 
-      print('Fetching exchange rates from: $url');
+      debugPrint('Fetching exchange rates from: $url');
 
       final response = await http
           .get(Uri.parse(url))
@@ -114,7 +115,7 @@ class CurrencyHelper {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Exchange rates received: ${data['rates']}');
+        debugPrint('Exchange rates received: ${data['rates']}');
 
         // Convert rates to Map<String, double>
         final Map<String, double> rates = {};
@@ -129,7 +130,7 @@ class CurrencyHelper {
             'Failed to fetch exchange rates (${response.statusCode})');
       }
     } catch (e) {
-      print('Error fetching exchange rates: $e');
+      debugPrint('Error fetching exchange rates: $e');
       rethrow;
     }
   }
@@ -147,7 +148,7 @@ class CurrencyHelper {
 
       final url =
           '$_baseUrl/latest?amount=$amount&from=$fromCurrency&to=$toCurrency';
-      print('Converting: $amount $fromCurrency to $toCurrency');
+      debugPrint('Converting: $amount $fromCurrency to $toCurrency');
 
       final response = await http
           .get(Uri.parse(url))
@@ -156,13 +157,13 @@ class CurrencyHelper {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final convertedAmount = (data['rates'][toCurrency] as num).toDouble();
-        print('Converted: $amount $fromCurrency = $convertedAmount $toCurrency');
+        debugPrint('Converted: $amount $fromCurrency = $convertedAmount $toCurrency');
         return convertedAmount;
       } else {
         throw Exception('Failed to convert currency (${response.statusCode})');
       }
     } catch (e) {
-      print('Error converting currency: $e');
+      debugPrint('Error converting currency: $e');
       rethrow;
     }
   }
@@ -178,7 +179,7 @@ class CurrencyHelper {
       }
 
       final url = '$_baseUrl/latest?from=$fromCurrency&to=$toCurrency';
-      print('Getting rate: $fromCurrency -> $toCurrency');
+      debugPrint('Getting rate: $fromCurrency -> $toCurrency');
 
       final response = await http
           .get(Uri.parse(url))
@@ -187,13 +188,13 @@ class CurrencyHelper {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final rate = (data['rates'][toCurrency] as num).toDouble();
-        print('Rate: 1 $fromCurrency = $rate $toCurrency');
+        debugPrint('Rate: 1 $fromCurrency = $rate $toCurrency');
         return rate;
       } else {
         throw Exception('Failed to get exchange rate (${response.statusCode})');
       }
     } catch (e) {
-      print('Error getting exchange rate: $e');
+      debugPrint('Error getting exchange rate: $e');
       rethrow;
     }
   }

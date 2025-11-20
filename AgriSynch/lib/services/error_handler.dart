@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,9 +18,9 @@ class ErrorHandler {
       };
 
       _crashlyticsEnabled = true;
-      print('✅ Firebase Crashlytics initialized');
+      debugPrint('✅ Firebase Crashlytics initialized');
     } catch (e) {
-      print('⚠️ Failed to initialize Crashlytics: $e');
+      debugPrint('⚠️ Failed to initialize Crashlytics: $e');
       _crashlyticsEnabled = false;
     }
   }
@@ -34,7 +35,7 @@ class ErrorHandler {
         await FirebaseCrashlytics.instance.setCustomKey('email', email);
       }
     } catch (e) {
-      print('Error setting user identifier: $e');
+      debugPrint('Error setting user identifier: $e');
     }
   }
 
@@ -45,7 +46,7 @@ class ErrorHandler {
     try {
       await FirebaseCrashlytics.instance.setCustomKey(key, value);
     } catch (e) {
-      print('Error setting custom key: $e');
+      debugPrint('Error setting custom key: $e');
     }
   }
 
@@ -262,21 +263,21 @@ class ErrorHandler {
     }
     
     // Console logging
-    print('═══════════════════════════════════════');
+    debugPrint('═══════════════════════════════════════');
     if (context != null) {
-      print('ERROR in $context');
+      debugPrint('ERROR in $context');
     } else {
-      print('ERROR');
+      debugPrint('ERROR');
     }
-    print('Message: ${getErrorMessage(error)}');
-    print('Details: $error');
+    debugPrint('Message: ${getErrorMessage(error)}');
+    debugPrint('Details: $error');
     if (stack != null) {
-      print('Stack Trace:\n$stack');
+      debugPrint('Stack Trace:\n$stack');
     }
     if (extraData != null) {
-      print('Additional Data: $extraData');
+      debugPrint('Additional Data: $extraData');
     }
-    print('═══════════════════════════════════════');
+    debugPrint('═══════════════════════════════════════');
     
     // Send to Firebase Crashlytics
     if (_crashlyticsEnabled) {
@@ -302,20 +303,20 @@ class ErrorHandler {
           fatal: isFatal,
         );
       } catch (e) {
-        print('Failed to log to Crashlytics: $e');
+        debugPrint('Failed to log to Crashlytics: $e');
       }
     }
   }
 
   /// Log a custom message to Crashlytics
   static void logMessage(String message) {
-    print('📝 Log: $message');
+    debugPrint('📝 Log: $message');
     
     if (_crashlyticsEnabled) {
       try {
         FirebaseCrashlytics.instance.log(message);
       } catch (e) {
-        print('Failed to log message to Crashlytics: $e');
+        debugPrint('Failed to log message to Crashlytics: $e');
       }
     }
   }
@@ -400,7 +401,7 @@ class ErrorHandler {
           rethrow;
         }
 
-        print('Attempt $attempt failed. Retrying in ${delay.inSeconds}s...');
+        debugPrint('Attempt $attempt failed. Retrying in ${delay.inSeconds}s...');
         await Future.delayed(delay);
         delay = Duration(milliseconds: (delay.inMilliseconds * backoffMultiplier).round());
       }

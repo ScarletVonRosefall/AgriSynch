@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 /// Service to handle rate limiting for various operations
 /// Prevents abuse and controls costs by limiting operations per user
@@ -70,7 +71,7 @@ class RateLimitService {
 
       // Check if within limit
       if (operations.length >= config.maxOperations) {
-        print('Rate limit exceeded for $operationType: ${operations.length}/${config.maxOperations} in ${config.windowMinutes} minutes');
+        debugPrint('Rate limit exceeded for $operationType: ${operations.length}/${config.maxOperations} in ${config.windowMinutes} minutes');
         return false;
       }
 
@@ -83,7 +84,7 @@ class RateLimitService {
 
       return true;
     } catch (e) {
-      print('Error checking rate limit: $e');
+      debugPrint('Error checking rate limit: $e');
       // On error, allow the operation (fail open to not block users on technical issues)
       return true;
     }
@@ -125,7 +126,7 @@ class RateLimitService {
 
       return (config.maxOperations - operations).clamp(0, config.maxOperations);
     } catch (e) {
-      print('Error getting remaining operations: $e');
+      debugPrint('Error getting remaining operations: $e');
       return 999;
     }
   }
@@ -136,7 +137,7 @@ class RateLimitService {
       final key = '${userId}_$operationType';
       await _firestore.collection('rateLimits').doc(key).delete();
     } catch (e) {
-      print('Error resetting rate limit: $e');
+      debugPrint('Error resetting rate limit: $e');
     }
   }
 
@@ -183,9 +184,9 @@ class RateLimitService {
       }
       
       await batch.commit();
-      print('Cleaned up ${oldRecords.docs.length} old rate limit records');
+      debugPrint('Cleaned up ${oldRecords.docs.length} old rate limit records');
     } catch (e) {
-      print('Error cleaning up rate limit records: $e');
+      debugPrint('Error cleaning up rate limit records: $e');
     }
   }
 
@@ -253,7 +254,7 @@ class RateLimitService {
 
       return true;
     } catch (e) {
-      print('Error checking bulk rate limit: $e');
+      debugPrint('Error checking bulk rate limit: $e');
       return true;
     }
   }

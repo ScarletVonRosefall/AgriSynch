@@ -85,7 +85,7 @@ class _FarmerReviewsPageState extends State<FarmerReviewsPage> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDarkMode ? 0.4 : 0.08),
+                      color: Colors.black.withAlpha(((isDarkMode ? 0.4 : 0.08) * 255).round()),
                       spreadRadius: 1,
                       blurRadius: 5,
                       offset: const Offset(0, 3),
