@@ -1099,19 +1099,46 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   final price = data['price'] ?? 0.0;
                   final quantity = data['quantity'] ?? 0;
                   final farmerName = data['farmerName'] ?? 'Unknown Farmer';
+                  final isAdminOnly = data['isAdminOnly'] ?? false;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     elevation: 2,
                     color: ThemeHelper.getCardColor(isDarkMode),
                     child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Color(0xFF00A862),
-                        child: Icon(Icons.inventory, color: Colors.white),
+                      leading: CircleAvatar(
+                        backgroundColor: isAdminOnly ? Colors.orange : const Color(0xFF00A862),
+                        child: Icon(
+                          isAdminOnly ? Icons.admin_panel_settings : Icons.inventory,
+                          color: Colors.white,
+                        ),
                       ),
-                      title: Text(
-                        name,
-                        style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (isAdminOnly)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade100,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Admin Only',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 10,
+                                  color: Colors.deepOrange,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       subtitle: Text(
                         'Price: ₱$price • Qty: $quantity\nFarmer: $farmerName',
@@ -1520,33 +1547,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       ListTile(
                         leading: const Icon(Icons.block, color: Colors.red),
                         title: const Text('Ban User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                        onTap: () async {
+                        onTap: () {
                           Navigator.pop(dialogContext);
-                          if (!mounted) return;
-                          final banResult = await showDialog<Map>(
-                            context: context,
-                            builder: (context) => _buildBanUserDialog(userId, name, permanent: true),
-                          );
-                          if (!mounted) return;
-                          if (banResult != null && banResult['confirm'] == true) {
-                            await _banUser(userId, name, banResult['reason'], true, null, banResult['deleteData'] ?? false);
-                          }
+                          _showBanDialog(userId, name, permanent: true);
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.timelapse, color: Colors.orange),
                         title: const Text('Suspend User', style: TextStyle(fontFamily: 'Poppins', color: Colors.orange)),
-                        onTap: () async {
+                        onTap: () {
                           Navigator.pop(dialogContext);
-                          if (!mounted) return;
-                          final suspendResult = await showDialog<Map>(
-                            context: context,
-                            builder: (context) => _buildBanUserDialog(userId, name, permanent: false),
-                          );
-                          if (!mounted) return;
-                          if (suspendResult != null && suspendResult['confirm'] == true) {
-                            await _banUser(userId, name, suspendResult['reason'], false, suspendResult['suspendDays'], suspendResult['deleteData'] ?? false);
-                          }
+                          _showSuspendDialog(userId, name);
                         },
                       ),
                     ],
@@ -1554,34 +1565,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       ListTile(
                         leading: const Icon(Icons.check_circle, color: Colors.green),
                         title: const Text('Unban/Unsuspend', style: TextStyle(fontFamily: 'Poppins', color: Colors.green)),
-                        onTap: () async {
+                        onTap: () {
                           Navigator.pop(dialogContext);
-                          if (!mounted) return;
-                          final unbanResult = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => _buildUnbanDialog(userId, name),
-                          );
-                          if (!mounted) return;
-                          if (unbanResult == true) {
-                            await _unbanUser(userId, name);
-                          }
+                          _showUnbanDialog(userId, name);
                         },
                       ),
                     if (!isProtected)
                       ListTile(
                         leading: const Icon(Icons.delete, color: Colors.red),
                         title: const Text('Delete User', style: TextStyle(fontFamily: 'Poppins', color: Colors.red)),
-                        onTap: () async {
+                        onTap: () {
                           Navigator.pop(dialogContext);
-                          if (!mounted) return;
-                          final deleteResult = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => _buildDeleteUserDialog(userId, name),
-                          );
-                          if (!mounted) return;
-                          if (deleteResult == true) {
-                            await _performFullUserDeletion(userId);
-                          }
+                          _showDeleteDialog(userId, name);
                         },
                       ),
                   ],
@@ -1603,6 +1598,58 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         barrierDismissible: true,
         builder: (detailContext) => _buildUserDetailsDialog(userId, data),
       );
+    });
+  }
+
+  void _showBanDialog(String userId, String userName, {required bool permanent}) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => _buildBanUserDialog(userId, userName, permanent: permanent),
+    ).then((banResult) async {
+      if (!mounted) return;
+      if (banResult != null && banResult is Map && banResult['confirm'] == true) {
+        await _banUser(userId, userName, banResult['reason'], permanent, banResult['suspendDays'], banResult['deleteData'] ?? false);
+      }
+    });
+  }
+
+  void _showSuspendDialog(String userId, String userName) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => _buildBanUserDialog(userId, userName, permanent: false),
+    ).then((suspendResult) async {
+      if (!mounted) return;
+      if (suspendResult != null && suspendResult is Map && suspendResult['confirm'] == true) {
+        await _banUser(userId, userName, suspendResult['reason'], false, suspendResult['suspendDays'], suspendResult['deleteData'] ?? false);
+      }
+    });
+  }
+
+  void _showUnbanDialog(String userId, String userName) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => _buildUnbanDialog(userId, userName),
+    ).then((unbanResult) async {
+      if (!mounted) return;
+      if (unbanResult == true) {
+        await _unbanUser(userId, userName);
+      }
+    });
+  }
+
+  void _showDeleteDialog(String userId, String userName) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => _buildDeleteUserDialog(userId, userName),
+    ).then((deleteResult) async {
+      if (!mounted) return;
+      if (deleteResult == true) {
+        await _performFullUserDeletion(userId);
+      }
     });
   }
 
@@ -1910,103 +1957,219 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   // Helper method to delete user data (used by both ban and delete functions)
   Future<void> _deleteUserData(String userId) async {
     try {
-      // Delete messages sent by user
-      final messagesQuery = await FirebaseFirestore.instance
-          .collection('messages')
-          .where('senderId', isEqualTo: userId)
-          .get();
+      debugPrint('🗑️ Starting user data deletion for userId: $userId');
       
-      for (var doc in messagesQuery.docs) {
-        await doc.reference.delete();
+      // Delete messages sent by user
+      try {
+        final messagesQuery = await FirebaseFirestore.instance
+            .collection('messages')
+            .where('senderId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in messagesQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${messagesQuery.docs.length} messages sent by user');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting sent messages: $e');
       }
 
       // Delete messages received by user
-      final receivedMessagesQuery = await FirebaseFirestore.instance
-          .collection('messages')
-          .where('receiverId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in receivedMessagesQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final receivedMessagesQuery = await FirebaseFirestore.instance
+            .collection('messages')
+            .where('receiverId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in receivedMessagesQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${receivedMessagesQuery.docs.length} messages received by user');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting received messages: $e');
       }
 
       // Delete conversations where user is a participant
-      final conversationsQuery = await FirebaseFirestore.instance
-          .collection('conversations')
-          .where('participants', arrayContains: userId)
-          .get();
-      
-      for (var doc in conversationsQuery.docs) {
-        // Delete all messages in conversation
-        final messagesInConv = await doc.reference.collection('messages').get();
-        for (var msg in messagesInConv.docs) {
-          await msg.reference.delete();
+      try {
+        final conversationsQuery = await FirebaseFirestore.instance
+            .collection('conversations')
+            .where('participants', arrayContains: userId)
+            .get();
+        
+        for (var doc in conversationsQuery.docs) {
+          // Delete all messages in conversation
+          final messagesInConv = await doc.reference.collection('messages').get();
+          for (var msg in messagesInConv.docs) {
+            await msg.reference.delete();
+          }
+          // Delete conversation itself
+          await doc.reference.delete();
         }
-        // Delete conversation itself
-        await doc.reference.delete();
+        debugPrint('✅ Deleted ${conversationsQuery.docs.length} conversations');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting conversations: $e');
       }
 
       // Delete user notifications
-      final notificationsQuery = await FirebaseFirestore.instance
-          .collection('notifications')
-          .where('userId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in notificationsQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final notificationsQuery = await FirebaseFirestore.instance
+            .collection('notifications')
+            .where('userId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in notificationsQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${notificationsQuery.docs.length} notifications');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting notifications: $e');
       }
 
       // Delete user products
-      final productsQuery = await FirebaseFirestore.instance
-          .collection('products')
-          .where('farmerId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in productsQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final productsQuery = await FirebaseFirestore.instance
+            .collection('products')
+            .where('farmerId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in productsQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${productsQuery.docs.length} products');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting products: $e');
       }
 
       // Delete orders where user is buyer
-      final ordersAsBuyerQuery = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('buyerId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in ordersAsBuyerQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final ordersAsBuyerQuery = await FirebaseFirestore.instance
+            .collection('orders')
+            .where('buyerId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in ordersAsBuyerQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${ordersAsBuyerQuery.docs.length} orders as buyer');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting buyer orders: $e');
       }
 
       // Delete orders where user is seller
-      final ordersAsSellerQuery = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('sellerId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in ordersAsSellerQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final ordersAsSellerQuery = await FirebaseFirestore.instance
+            .collection('orders')
+            .where('sellerId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in ordersAsSellerQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${ordersAsSellerQuery.docs.length} orders as seller');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting seller orders: $e');
       }
 
       // Delete user feedback
-      final feedbackQuery = await FirebaseFirestore.instance
-          .collection('feedback')
-          .where('userId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in feedbackQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final feedbackQuery = await FirebaseFirestore.instance
+            .collection('feedback')
+            .where('userId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in feedbackQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${feedbackQuery.docs.length} feedback entries');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting feedback: $e');
       }
 
       // Delete account action requests for user
-      final requestsQuery = await FirebaseFirestore.instance
-          .collection('accountActionRequests')
-          .where('userId', isEqualTo: userId)
-          .get();
-      
-      for (var doc in requestsQuery.docs) {
-        await doc.reference.delete();
+      try {
+        final requestsQuery = await FirebaseFirestore.instance
+            .collection('accountActionRequests')
+            .where('userId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in requestsQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${requestsQuery.docs.length} account action requests');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting account action requests: $e');
       }
 
-      debugPrint('✅ All user data deleted for: $userId');
+      // Delete reviews created by user
+      try {
+        final reviewsByUserQuery = await FirebaseFirestore.instance
+            .collection('reviews')
+            .where('reviewerId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in reviewsByUserQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${reviewsByUserQuery.docs.length} reviews created by user');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting user reviews: $e');
+      }
+
+      // Delete reviews for user (if user is a farmer)
+      try {
+        final reviewsForUserQuery = await FirebaseFirestore.instance
+            .collection('reviews')
+            .where('farmerId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in reviewsForUserQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${reviewsForUserQuery.docs.length} reviews for user');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting reviews for user: $e');
+      }
+
+      // Delete reports created by user
+      try {
+        final reportsByUserQuery = await FirebaseFirestore.instance
+            .collection('reports')
+            .where('reporterId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in reportsByUserQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${reportsByUserQuery.docs.length} reports created by user');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting user reports: $e');
+      }
+
+      // Delete reports about the user
+      try {
+        final reportsAboutUserQuery = await FirebaseFirestore.instance
+            .collection('reports')
+            .where('reportedItemId', isEqualTo: userId)
+            .get();
+        
+        for (var doc in reportsAboutUserQuery.docs) {
+          await doc.reference.delete();
+        }
+        debugPrint('✅ Deleted ${reportsAboutUserQuery.docs.length} reports about user');
+      } catch (e) {
+        debugPrint('⚠️ Error deleting reports about user: $e');
+      }
+
+      // Delete user document from Firestore
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+        debugPrint('✅ Deleted user document');
+      } catch (e) {
+        debugPrint('❌ Error deleting user document: $e');
+        rethrow;
+      }
+
+      debugPrint('✅ All user data deleted successfully for: $userId');
     } catch (e) {
       debugPrint('❌ Error deleting user data: $e');
       rethrow;
@@ -2017,6 +2180,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     setState(() => _isProcessing = true);
 
     try {
+      debugPrint('🔄 Starting full user deletion for userId: $userId');
+      
       // Call Cloud Function to delete user from Auth + Firestore
       final callable = FirebaseFunctions.instance.httpsCallable('deleteUserAccount');
       final result = await callable.call({'userId': userId});
@@ -2024,25 +2189,36 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       if (!mounted) return;
       
       if (result.data['success'] == true) {
+        debugPrint('✅ Cloud Function deletion successful');
         _showSuccess('User and all associated data deleted successfully');
+        
+        // Refresh the user list by reloading data
+        setState(() {});
       } else {
+        debugPrint('⚠️ Cloud Function returned success=false: ${result.data['message']}');
         _showError('Failed to delete user: ${result.data['message']}');
       }
     } catch (e) {
-      debugPrint('Error calling deleteUserAccount Cloud Function: $e');
+      debugPrint('❌ Error calling deleteUserAccount Cloud Function: $e');
       
       // Fallback to local deletion (Firestore only - Auth deletion requires Cloud Function)
+      if (!mounted) return;
+      
       try {
-        // Delete all user data first
+        debugPrint('🔄 Attempting fallback local deletion...');
+        
+        // Delete all user data first (including user document)
         await _deleteUserData(userId);
 
-        // Delete user document from Firestore
-        await FirebaseFirestore.instance.collection('users').doc(userId).delete();
-
         if (!mounted) return;
+        debugPrint('✅ Fallback deletion successful');
         _showSuccess('User data deleted from Firestore. Note: User may still exist in Auth - deploy Cloud Function for complete deletion.');
+        
+        // Refresh the user list by reloading data
+        setState(() {});
       } catch (fallbackError) {
         if (!mounted) return;
+        debugPrint('❌ Fallback deletion failed: $fallbackError');
         _showError('Error deleting user: $fallbackError');
       }
     } finally {
@@ -2091,82 +2267,102 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     final priceController = TextEditingController(text: (currentData['price'] ?? 0.0).toString());
     final quantityController = TextEditingController(text: (currentData['quantity'] ?? 0).toString());
     final categoryController = TextEditingController(text: currentData['category'] ?? '');
+    bool isAdminOnly = currentData['isAdminOnly'] ?? false;
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Product', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name',
-                  labelStyle: TextStyle(fontFamily: 'Poppins'),
-                  border: OutlineInputBorder(),
-                ),
-                style: const TextStyle(fontFamily: 'Poppins'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Edit Product', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product Name',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: priceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Price (₱)',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                      prefixText: '₱',
+                    ),
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: quantityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: categoryController,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      labelStyle: TextStyle(fontFamily: 'Poppins'),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    title: const Text(
+                      'Mark as Admin-Only (Test Product)',
+                      style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: const Text(
+                      'Only visible to admin users, hidden from farmers and buyers',
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 12),
+                    ),
+                    value: isAdminOnly,
+                    onChanged: (value) => setDialogState(() => isAdminOnly = value ?? false),
+                    activeColor: const Color(0xFF00A862),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: TextStyle(fontFamily: 'Poppins'),
-                  border: OutlineInputBorder(),
-                ),
-                style: const TextStyle(fontFamily: 'Poppins'),
-                maxLines: 3,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price (₱)',
-                  labelStyle: TextStyle(fontFamily: 'Poppins'),
-                  border: OutlineInputBorder(),
-                  prefixText: '₱',
-                ),
-                style: const TextStyle(fontFamily: 'Poppins'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: quantityController,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  labelStyle: TextStyle(fontFamily: 'Poppins'),
-                  border: OutlineInputBorder(),
-                ),
-                style: const TextStyle(fontFamily: 'Poppins'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: TextStyle(fontFamily: 'Poppins'),
-                  border: OutlineInputBorder(),
-                ),
-                style: const TextStyle(fontFamily: 'Poppins'),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00A862)),
+                child: const Text('Save', style: TextStyle(fontFamily: 'Poppins')),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00A862)),
-            child: const Text('Save', style: TextStyle(fontFamily: 'Poppins')),
-          ),
-        ],
+          );
+        },
       ),
     );
 
@@ -2190,6 +2386,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           'price': price,
           'quantity': quantity,
           'category': categoryController.text.trim(),
+          'isAdminOnly': isAdminOnly,
           'updatedAt': FieldValue.serverTimestamp(),
         });
         

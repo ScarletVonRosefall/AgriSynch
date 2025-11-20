@@ -251,9 +251,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     }
   }
 
-  void _startListeningToProductChanges() {
+  void _startListeningToProductChanges() async {
     // Cancel any existing subscription
     _productsStreamSubscription?.cancel();
+    
+    // Check if current user is admin
+    final isAdmin = await _productService.isCurrentUserAdmin();
     
     // Listen to all available products from Firestore and update stock/availability in real-time
     _productsStreamSubscription = FirebaseFirestore.instance
@@ -269,6 +272,10 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
             for (final doc in snapshot.docs) {
               try {
                 final product = Product.fromFirestore(doc);
+                // Filter out admin-only products for non-admin users
+                if (!isAdmin && product.isAdminOnly) {
+                  continue;
+                }
                 updatedProducts[product.id] = product;
               } catch (e) {
                 debugPrint('Error parsing product ${doc.id} in real-time listener: $e');

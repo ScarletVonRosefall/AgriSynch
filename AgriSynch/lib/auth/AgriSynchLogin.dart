@@ -475,11 +475,6 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                         
                                                         final accountType = data?['accountType'] ?? 'Farmer';
                                                         final userName = data?['name'] ?? '';
-                                                        
-                                                        // Debug to verify account type
-                                                        messenger.showSnackBar(
-                                                          SnackBar(content: Text("Login successful! Account type: $accountType")),
-                                                        );
 
                                                         // Store data in parallel
                                                         await Future.wait([
