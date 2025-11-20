@@ -1522,12 +1522,15 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
-                                    style: const TextStyle(
-                                      color: Color(0xFF4CAF50),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                  Flexible(
+                                    child: Text(
+                                      '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
+                                      style: const TextStyle(
+                                        color: Color(0xFF4CAF50),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   const SizedBox(height: 2),

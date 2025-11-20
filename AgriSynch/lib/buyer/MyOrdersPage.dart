@@ -12,6 +12,7 @@ import '../shared/chat_screen.dart';
 import '../shared/message_permission.dart';
 import '../shared/submit_review_dialog.dart';
 import '../shared/theme_helper.dart';
+import '../shared/currency_helper.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -25,6 +26,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   final _themeNotifier = ThemeNotifier();
   List<Map<String, dynamic>> legacyOrders = []; // Legacy orders from SharedPreferences
   String selectedFilter = 'All';
+  String _currencySymbol = '₱'; // Default to PHP
 
   // Pagination
   final int _pageSize = 20;
@@ -48,6 +50,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   void initState() {
     super.initState();
     _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+    _loadCurrency();
     _loadLegacyOrders();
     _loadInitialOrders();
     _scrollController.addListener(_onScroll);
@@ -69,6 +72,20 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
       if (!_isLoadingMore && _hasMoreData) {
         _loadMoreOrders();
       }
+    }
+  }
+
+  Future<void> _loadCurrency() async {
+    try {
+      final symbol = await CurrencyHelper.getCurrentCurrencySymbol();
+      if (mounted) {
+        setState(() {
+          _currencySymbol = symbol;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading currency: $e');
+      // Keep default ₱ if there's an error
     }
   }
 
@@ -461,7 +478,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                       ),
                     ),
                     Text(
-                      '₱${(item['price'] * item['quantity']).toStringAsFixed(2)}',
+                      '${_currencySymbol}${(item['price'] * item['quantity']).toStringAsFixed(2)}',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.bold,
@@ -487,7 +504,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   ),
                 ),
                 Text(
-                  '₱${order['total'].toStringAsFixed(2)}',
+                  '${_currencySymbol}${order['total'].toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.bold,
@@ -845,16 +862,19 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Expanded(
+                                    Flexible(
                                       child: Row(
                                         children: [
-                                          Text(
-                                            'Order #${order['id']}',
-                                            style: TextStyle(
-                                              fontFamily: 'Poppins',
-                                              fontWeight: FontWeight.bold,
-                                              color: textColor,
-                                              fontSize: 16,
+                                          Flexible(
+                                            child: Text(
+                                              'Order #${order['id']}',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontFamily: 'Poppins',
+                                                fontWeight: FontWeight.bold,
+                                                color: textColor,
+                                                fontSize: 16,
+                                              ),
                                             ),
                                           ),
                                           if (isFirestore) ...[
@@ -882,34 +902,40 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                         ],
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: getStatusColor(order['status']),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            getStatusIcon(order['status']),
-                                            size: 12,
-                                            color: Colors.white,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            order['status'].toUpperCase(),
-                                            style: const TextStyle(
-                                              fontFamily: 'Poppins',
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: getStatusColor(order['status']),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              getStatusIcon(order['status']),
+                                              size: 12,
                                               color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                order['status'].toUpperCase(),
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontFamily: 'Poppins',
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -939,7 +965,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                       ),
                                     ),
                                     Text(
-                                      '₱${order['total'].toStringAsFixed(2)}',
+                                      '${_currencySymbol}${order['total'].toStringAsFixed(2)}',
                                       style: const TextStyle(
                                         fontFamily: 'Poppins',
                                         fontWeight: FontWeight.bold,

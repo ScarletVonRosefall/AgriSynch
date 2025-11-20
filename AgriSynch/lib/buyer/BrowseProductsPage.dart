@@ -807,13 +807,15 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
     // Calculate responsive columns based on screen width
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = screenWidth > 1200 ? 4 : (screenWidth > 800 ? 3 : 2);
+    // Increase aspect ratio for small screens to give cards more height
+    final childAspectRatio = screenWidth > 800 ? 0.85 : 0.75;
     
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.85,
+        childAspectRatio: childAspectRatio,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -889,12 +891,14 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             ],
                           ),
                           // Product Details
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                   Text(
                                     product.name,
                                     style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(
@@ -1012,7 +1016,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                     ],
                                   ),
                                   if (product.description.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 2),
                                     Text(
                                       product.description,
                                       style: TextStyle(
@@ -1023,7 +1027,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 6),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -1055,28 +1059,23 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: ThemeHelper.getHeaderColor(isDarkMode),
                                             side: BorderSide(color: ThemeHelper.getHeaderColor(isDarkMode)),
-                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                            minimumSize: const Size(0, 36),
+                                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                                            minimumSize: const Size(0, 32),
                                           ),
                                           child: const Icon(Icons.message, size: 14),
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      // Add to Cart Button
-                                      Expanded(
-                                        flex: 2,
-                                        child: ElevatedButton(
-                                          onPressed: product.stock > 0 
-                                              ? () => addToCart(product)
-                                              : null,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                            minimumSize: const Size(0, 36),
-                                          ),
-                                          child: const Text('Add to Cart', style: TextStyle(fontSize: 10)),
-                                        ),
+                                      // Add to Cart Button (Icon only)
+                                      IconButton(
+                                        onPressed: product.stock > 0 
+                                            ? () => addToCart(product)
+                                            : null,
+                                        icon: const Icon(Icons.shopping_cart, size: 18),
+                                        color: ThemeHelper.getHeaderColor(isDarkMode),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        tooltip: 'Add to Cart',
                                       ),
                                       const SizedBox(width: 6),
                                       // Report Button
@@ -1090,9 +1089,11 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       ),
                                     ],
                                   ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
+                          ),
                         ],
                       ),
                     );

@@ -36,6 +36,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
   final ProductService _productService = ProductService();
   final OrderService _orderService = OrderService();
   final _themeNotifier = ThemeNotifier();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   
   String userName = '';
   String _currencySymbol = 'P'; // Will be loaded from settings
@@ -856,17 +857,137 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
     );
   }
 
+  Widget _buildDrawerItem(IconData icon, String label, VoidCallback onPressed, {String? badge}) {
+    return ListTile(
+      leading: Stack(
+        children: [
+          Icon(icon, color: Colors.white),
+          if (badge != null)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(
+                  badge,
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+      title: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+      ),
+      onTap: () {
+        Navigator.pop(context);
+        onPressed();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    // Reduce horizontal padding on small screens to give text more space
+    final horizontalPadding = isMobile ? 12.0 : 20.0;
     
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      drawer: isMobile
+          ? Drawer(
+              backgroundColor: ThemeHelper.getCardColor(true),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Text(
+                        'Menu',
+                        style: ThemeHelper.getHeaderTextStyle(isDark: true),
+                      ),
+                    ),
+                    const Divider(color: Colors.white30),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          StreamBuilder<int>(
+                            stream: ChatService.getUnreadCountStream(),
+                            builder: (context, snapshot) {
+                              final unreadCount = snapshot.data ?? 0;
+                              return _buildDrawerItem(
+                                Icons.message_outlined,
+                                'Messages',
+                                () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const ConversationsListPage()),
+                                  );
+                                },
+                                badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount.toString()) : null,
+                              );
+                            },
+                          ),
+                          _buildDrawerItem(
+                            Icons.notifications_outlined,
+                            'Notifications',
+                            () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AgriNotificationPage()),
+                              );
+                              loadUnreadNotifications();
+                            },
+                            badge: unreadNotifications > 0 ? (unreadNotifications > 9 ? '9+' : unreadNotifications.toString()) : null,
+                          ),
+                          _buildDrawerItem(
+                            Icons.shopping_cart_outlined,
+                            'Shopping Cart',
+                            () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const ShoppingCartPage()),
+                              );
+                              await loadBuyerData();
+                            },
+                            badge: cart.isNotEmpty ? (cart.length > 9 ? '9+' : cart.length.toString()) : null,
+                          ),
+                          _buildDrawerItem(
+                            Icons.settings_outlined,
+                            'Settings',
+                            () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AgriSynchBuyerSettingsPage()),
+                              );
+                              loadTheme();
+                              loadBuyerData();
+                              loadUnreadNotifications();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: Column(
         children: [
           // Fixed Top Header
           Container(
-          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, MediaQuery.of(context).padding.top + 20, horizontalPadding, 20),
           width: double.infinity,
           decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
           child: Column(
@@ -875,7 +996,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
+                  Flexible(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -892,36 +1013,104 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                       ],
                     ),
                   ),
-                  // Messages Button
-                  Stack(
+                  if (isMobile)
+                    // Hamburger menu for mobile
+                    IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
+                    )
+                  else
+                    // Web layout with icons inline
+                    Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha((0.2 * 255).round()),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ConversationsListPage(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.message_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
+                        const SizedBox(width: 8),
+                        // Messages Button
                         StreamBuilder<int>(
                           stream: ChatService.getUnreadCountStream(),
                           builder: (context, snapshot) {
                             final unreadCount = snapshot.data ?? 0;
-                            if (unreadCount > 0) {
-                              return Positioned(
+                            return Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha((0.2 * 255).round()),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: IconButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ConversationsListPage(),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.message_outlined,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  ),
+                                ),
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    right: 8,
+                                    top: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 16,
+                                        minHeight: 16,
+                                      ),
+                                      child: Text(
+                                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        // Notification Button
+                        Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha((0.2 * 255).round()),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const AgriNotificationPage(),
+                                    ),
+                                  );
+                                  loadUnreadNotifications();
+                                },
+                                icon: const Icon(
+                                  Icons.notifications_outlined,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                            if (unreadNotifications > 0)
+                              Positioned(
                                 right: 8,
                                 top: 8,
                                 child: Container(
@@ -935,7 +1124,9 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                                     minHeight: 16,
                                   ),
                                   child: Text(
-                                    unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                    unreadNotifications > 9
+                                        ? '9+'
+                                        : unreadNotifications.toString(),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -944,17 +1135,11 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    // Notification Button
-                    Stack(
-                      children: [
+                        const SizedBox(width: 8),
+                        // Settings Button
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withAlpha((0.2 * 255).round()),
@@ -965,130 +1150,79 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const AgriNotificationPage(),
+                                  builder: (_) => const AgriSynchBuyerSettingsPage(),
                                 ),
                               );
+                              // Reload data when returning from settings
+                              loadTheme();
+                              loadBuyerData();
                               loadUnreadNotifications();
                             },
                             icon: const Icon(
-                              Icons.notifications_outlined,
+                              Icons.settings_outlined,
                               color: Colors.white,
                               size: 24,
                             ),
                           ),
                         ),
-                        if (unreadNotifications > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
+                        const SizedBox(width: 8),
+                        // Cart Button
+                        Stack(
+                          children: [
+                            Container(
                               decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.white.withAlpha((0.2 * 255).round()),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                unreadNotifications > 9
-                                    ? '9+'
-                                    : unreadNotifications.toString(),
-                                style: const TextStyle(
+                              child: IconButton(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ShoppingCartPage(),
+                                    ),
+                                  );
+                                  // Refresh cart count after returning
+                                  await loadBuyerData();
+                                },
+                                icon: const Icon(
+                                  Icons.shopping_cart_outlined,
                                   color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                                  size: 24,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
                             ),
-                          ),
+                            if (cart.isNotEmpty)
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    cart.length > 9 ? '9+' : cart.length.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                    const SizedBox(width: 8),
-                    // Settings Button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha((0.2 * 255).round()),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AgriSynchBuyerSettingsPage(),
-                            ),
-                          );
-                          // Reload data when returning from settings
-                          loadTheme();
-                          loadBuyerData();
-                          loadUnreadNotifications();
-                        },
-                        icon: const Icon(
-                          Icons.settings_outlined,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Cart Button
-                    Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha((0.2 * 255).round()),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ShoppingCartPage(),
-                                ),
-                              );
-                              // Refresh cart count after returning
-                              await loadBuyerData();
-                            },
-                            icon: const Icon(
-                              Icons.shopping_cart_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        if (cart.isNotEmpty)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                cart.length > 9 ? '9+' : cart.length.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                ],
+              ),
                 const SizedBox(height: 10),
                 Text(
                   "Today is ${DateFormat.yMMMMd().format(DateTime.now())}",
@@ -1801,7 +1935,7 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         String displayName = '';
         if (snapshot.hasData) {
           final data = snapshot.data!;
-          displayName = data['name'] ?? data['nickname'] ?? '';
+          displayName = data['nickname'] ?? '';
         }
         
         return Text(

@@ -424,13 +424,17 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     ],
                   ),
                 ),
-                Text(
-                  "$_currencySymbol${order['total']?.toStringAsFixed(2) ?? '0.00'}",
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF4CAF50),
-                    fontSize: 16,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    "$_currencySymbol${order['total']?.toStringAsFixed(2) ?? '0.00'}",
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4CAF50),
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

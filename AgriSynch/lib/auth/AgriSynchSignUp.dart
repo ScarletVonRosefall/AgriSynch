@@ -632,7 +632,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                               return ElevatedButton.icon(
                                                 onPressed: () async {
                                                   final messenger = ScaffoldMessenger.of(ctx);
-                                                  const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v1.0.0/app-release.apk';
+                                                  const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v1.0.1/app-release.apk';
                                                   final ok = await openUrl(url);
                                                   if (!ok) {
                                                     messenger.showSnackBar(
