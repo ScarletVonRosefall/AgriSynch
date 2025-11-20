@@ -8,6 +8,7 @@ import '../services/order_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
 import '../shared/chat_screen.dart';
+import '../shared/message_permission.dart';
 import '../shared/submit_review_dialog.dart';
 import '../shared/theme_helper.dart';
 
@@ -490,8 +491,18 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             // Message Farmer Button
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
+                child: OutlinedButton.icon(
+                onPressed: () async {
+                  final farmerId = order['farmerId'] ?? '';
+                  final allowed = await canMessageUser(farmerId);
+                  if (!allowed) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('You cannot message admin accounts.')),
+                      );
+                    }
+                    return;
+                  }
                   Navigator.pop(context);
                   Navigator.push(
                     context,

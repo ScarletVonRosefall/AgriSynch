@@ -12,6 +12,7 @@ import '../shared/currency_helper.dart';
 import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../shared/chat_screen.dart';
+import '../shared/message_permission.dart';
 import '../shared/farmer_reviews_page.dart';
 import '../services/review_service.dart';
 import '../shared/report_dialog.dart';
@@ -428,7 +429,14 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                 Row(
                   children: [
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        // If there's a previous route, pop. Otherwise navigate back to buyer home.
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacementNamed(context, '/buyer-home');
+                        }
+                      },
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                     const Expanded(
@@ -862,7 +870,16 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                       // Contact Farmer Button
                                       Expanded(
                                         child: OutlinedButton(
-                                          onPressed: () {
+                                          onPressed: () async {
+                                            final allowed = await canMessageUser(product.farmerId);
+                                            if (!allowed) {
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('You cannot message admin accounts.')),
+                                                );
+                                              }
+                                              return;
+                                            }
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(

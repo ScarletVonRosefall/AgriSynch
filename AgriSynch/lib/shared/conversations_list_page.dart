@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import 'chat_screen.dart';
+import 'message_permission.dart';
 import 'new_message_page.dart';
 import 'theme_helper.dart';
 
@@ -389,7 +390,16 @@ class _ConversationsListPageState extends State<ConversationsListPage> {
                         ),
                     ],
                   ),
-                  onTap: () {
+                  onTap: () async {
+                    final allowed = await canMessageUser(otherUserId);
+                    if (!allowed) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('You cannot message admin accounts.')),
+                        );
+                      }
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(

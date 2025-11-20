@@ -10,6 +10,7 @@ import '../services/order_service.dart';
 import '../services/error_handler.dart';
 import '../models/order.dart';
 import '../shared/chat_screen.dart';
+import '../shared/message_permission.dart';
 
 class AgriSynchOrdersPage extends StatefulWidget {
   const AgriSynchOrdersPage({super.key});
@@ -606,7 +607,16 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                final allowed = await canMessageUser(order.buyerId);
+                if (!allowed) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('You cannot message admin accounts.')),
+                    );
+                  }
+                  return;
+                }
                 Navigator.pop(context);
                 Navigator.push(
                   context,

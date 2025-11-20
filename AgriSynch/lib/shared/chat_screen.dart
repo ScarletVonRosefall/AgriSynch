@@ -241,7 +241,16 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Row(
                   children: [
-                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacementNamed(context, '/buyer-home');
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

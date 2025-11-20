@@ -17,6 +17,7 @@ import '../models/product.dart';
 import '../models/order.dart';
 import 'BrowseProductsPage.dart';
 import 'MyOrdersPage.dart';
+import 'ShoppingCartPage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import '../shared/conversations_list_page.dart';
@@ -1031,6 +1032,60 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
                           size: 24,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Cart Button
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ShoppingCartPage(),
+                                ),
+                              );
+                              // Refresh cart count after returning
+                              await loadBuyerData();
+                            },
+                            icon: const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                        if (cart.isNotEmpty)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                cart.length > 9 ? '9+' : cart.length.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),

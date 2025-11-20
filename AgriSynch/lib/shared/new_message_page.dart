@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_screen.dart';
+import 'message_permission.dart';
 import 'theme_helper.dart';
 
 class NewMessagePage extends StatefulWidget {
@@ -123,7 +124,16 @@ class _NewMessagePageState extends State<NewMessagePage> {
               children: [
                 Row(
                   children: [
-                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacementNamed(context, '/buyer-home');
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                     Text(
                       'New Message',
                       style: ThemeHelper.getHeaderTextStyle(
@@ -374,9 +384,19 @@ class _NewMessagePageState extends State<NewMessagePage> {
                   ],
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
+                onTap: () async {
+                  // Check permission before navigating to chat
+                  final allowed = await canMessageUser(user['id']);
+                  if (!allowed) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('You cannot message admin accounts.')),
+                      );
+                    }
+                    return;
+                  }
                   // Navigate to chat screen with this user
-                  Navigator.pushReplacement(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(

@@ -393,7 +393,16 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
             ),
             child: Row(
               children: [
-                const SizedBox(width: 16),
+                IconButton(
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushReplacementNamed(context, '/buyer-home');
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                ),
                 const Expanded(
                   child: Text(
                     'Shopping Cart',
