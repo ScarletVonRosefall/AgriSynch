@@ -709,37 +709,49 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => dismissAlarm(task, snooze: true),
-              child: const Text("Snooze (10 min)"),
-            ),
             ElevatedButton(
               onPressed: () async {
                 // Get task info before dismissing the dialog
                 final String taskId = task['id'];
-                final int index = tasks.indexOf(task);
+                final String taskTitle = task['title'];
                 
                 // Dismiss the alarm dialog first
                 Navigator.of(context).pop();
-                cleanupAlarm();
+                alarmContext = null;
+                isAlarmShowing = false;
                 
-                // Then update the task state
-                if (index != -1) {
+                // Mark task as complete with proper error handling
+                if (mounted) {
                   try {
                     await _taskService.completeTask(taskId);
-                    await NotificationHelper.addNotification(
-                      title: 'Task Completed',
-                      message: 'Task "${task['title']}" has been completed successfully!',
-                      type: 'task_reminder',
-                    );
-                    await _loadUnreadNotifications();
+                    
+                    // Refresh the task list to show updated state
+                    await loadTasks();
+                    
+                    if (mounted) {
+                      await NotificationHelper.addNotification(
+                        title: 'Task Completed',
+                        message: 'Task "$taskTitle" has been completed successfully!',
+                        type: 'task_reminder',
+                      );
+                      await _loadUnreadNotifications();
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Task "$taskTitle" marked as complete'),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   } catch (e) {
                     print('Error completing task: $e');
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Error marking task as complete'),
+                        SnackBar(
+                          content: Text('Error marking task as complete: $e'),
                           backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 3),
                         ),
                       );
                     }
