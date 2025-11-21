@@ -658,7 +658,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                             Center(
                                             child: ElevatedButton.icon(
                                               onPressed: () async {
-                                                const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v.1.0.2/Agrisync_V1.apk';
+                                                const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v.1.0.3/Agrisynch_V2.apk';
                                                 final messenger = ScaffoldMessenger.of(context);
                                                 final ok = await openUrl(url);
                                                 if (!ok) {

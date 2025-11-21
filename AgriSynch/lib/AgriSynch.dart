@@ -95,12 +95,26 @@ class _AgriSynchHomeState extends State<AgriSynchHome> {
     AgriSynchSettingsPage(),
   ];
 
+  // Helper to build the correct page with callback for index 0
+  Widget _buildPage() {
+    if (_currentIndex == 0) {
+      return AgriSynchHomePage(
+        onNavigateToTab: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      );
+    }
+    return pages[_currentIndex];
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
     
     return Scaffold(
-      body: pages[_currentIndex],
+      body: _buildPage(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {

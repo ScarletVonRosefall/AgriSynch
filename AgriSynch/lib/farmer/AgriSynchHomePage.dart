@@ -18,7 +18,8 @@ import '../services/order_service.dart';
 import 'dart:convert';
 
 class AgriSynchHomePage extends StatefulWidget {
-  const AgriSynchHomePage({super.key});
+  final Function(int)? onNavigateToTab;
+  const AgriSynchHomePage({super.key, this.onNavigateToTab});
 
   @override
   State<AgriSynchHomePage> createState() => _AgriSynchHomePageState();
@@ -44,6 +45,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   StreamSubscription? _tasksSubscription;
   StreamSubscription? _ordersSubscription;
   StreamSubscription? _banCheckSubscription;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -56,7 +59,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   void _onThemeChanged() {
     if (mounted) setState(() {});
   }
-
   void _setupBanListener() {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
@@ -76,12 +78,8 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                          suspendedUntil.toDate().isAfter(DateTime.now());
 
       if (isBanned || isSuspended) {
-        // User has been banned/suspended, sign them out
         await FirebaseAuth.instance.signOut();
-        
         if (!mounted) return;
-        
-        // Show message and redirect to login
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -93,8 +91,6 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             duration: const Duration(seconds: 5),
           ),
         );
-
-        // Navigate to login
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }, onError: (error) {
@@ -1078,20 +1074,37 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
+                          controller: _searchController,
                           decoration: InputDecoration(
-                            hintText: 'Search...',
+                            hintText: 'Search tasks or orders...',
                             border: InputBorder.none,
                             hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
                           ),
                           style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value.trim();
+                            });
+                          },
                         ),
                       ),
+                      if (_searchQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _searchQuery = '';
+                              _searchController.clear();
+                            });
+                          },
+                          child: Icon(Icons.close, size: 18, color: ThemeHelper.getIconColor(isDarkMode)),
+                        ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+          if (_searchQuery.isNotEmpty) _buildSearchResults(isDarkMode),
 
           // --- Scrollable Content ---
           Expanded(
@@ -1263,6 +1276,104 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
+  // Builds search results for tasks and orders
+  Widget _buildSearchResults(bool isDarkMode) {
+    final q = _searchQuery.toLowerCase();
+    final taskMatches = tasks.where((t) => (t['title'] ?? '').toString().toLowerCase().contains(q)).take(5).toList();
+    final orderMatches = orders.where((o) {
+      final buyer = (o['buyerName'] ?? '').toString().toLowerCase();
+      final status = (o['status'] ?? '').toString().toLowerCase();
+      return buyer.contains(q) || status.contains(q);
+    }).take(5).toList();
+
+    if (taskMatches.isEmpty && orderMatches.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFFE8F5E9),
+        child: Text(
+          'No matches',
+          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (taskMatches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4, bottom: 4),
+              child: Text('Tasks', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(fontWeight: FontWeight.bold)),
+            ),
+          ...taskMatches.map((t) => ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                leading: const Icon(Icons.task_alt, color: Colors.green, size: 20),
+                title: Text(
+                  (t['title'] ?? '').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                ),
+                onTap: () {
+                  // Clear search and navigate to Tasks page (index 1)
+                  setState(() {
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                  widget.onNavigateToTab?.call(1);
+                },
+              )),
+          if (orderMatches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 8, bottom: 4),
+              child: Text('Orders', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(fontWeight: FontWeight.bold)),
+            ),
+          ...orderMatches.map((o) => ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                leading: const Icon(Icons.shopping_cart, color: Colors.orange, size: 20),
+                title: Text(
+                  (o['buyerName'] ?? 'Order').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                ),
+                subtitle: Text(
+                  (o['status'] ?? '').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                ),
+                onTap: () {
+                  // Clear search and navigate to Orders page (index 3)
+                  setState(() {
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                  widget.onNavigateToTab?.call(3);
+                },
+              )),
+        ],
+      ),
+    );
+  }
   
 
   Widget _buildGreetingText() {
