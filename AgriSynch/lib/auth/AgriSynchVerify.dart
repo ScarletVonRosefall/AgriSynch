@@ -38,8 +38,8 @@ class _AgriSynchEmailVerificationPageState
       final user = auth.currentUser;
       if (user != null && !user.emailVerified) {
         await user.sendEmailVerification();
-        // Don't start auto-check immediately - let user click the button
-        // startVerificationCheck();
+        // Start automatic verification checking immediately
+        startVerificationCheck();
       }
     } catch (e) {
       if (mounted) {
@@ -67,19 +67,23 @@ class _AgriSynchEmailVerificationPageState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Auto-check stopped. Please use "Check Verification Status" button.'),
+              content: Text('Auto-check completed. Email may still need verification.'),
               backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
             ),
           );
         }
         return;
       }
       _checkAttempts++;
-      checkEmailVerification();
+      _autoCheckEmailVerification();
     });
+    
+    // Do the first check immediately
+    _autoCheckEmailVerification();
   }
 
-  Future<void> checkEmailVerification() async {
+  Future<void> _autoCheckEmailVerification() async {
     if (_navigating || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -106,8 +110,9 @@ class _AgriSynchEmailVerificationPageState
         setState(() => _navigating = true);
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Email verified successfully! Redirecting...'),
+            content: Text('✅ Email verified successfully! Redirecting...'),
             backgroundColor: Color(0xFF00C853),
+            duration: Duration(seconds: 2),
           ),
         );
         
@@ -118,7 +123,7 @@ class _AgriSynchEmailVerificationPageState
         }
       }
     } catch (e) {
-      // avoid print in production - keep minimal logging
+      // Avoid print in production - keep minimal logging
       debugPrint('Error checking email verification: $e');
     }
   }
@@ -132,10 +137,13 @@ class _AgriSynchEmailVerificationPageState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Verification email sent! Please check your inbox.'),
+              content: Text('✅ Verification email sent! Please check your inbox.'),
               backgroundColor: Color(0xFF00C853),
+              duration: Duration(seconds: 3),
             ),
           );
+          // Restart auto-check when user resends
+          startVerificationCheck();
         }
       }
     } catch (e) {
@@ -177,7 +185,7 @@ class _AgriSynchEmailVerificationPageState
 
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Email verified successfully! Redirecting...'),
+            content: Text('✅ Email verified successfully! Redirecting...'),
             backgroundColor: Color(0xFF00C853),
             duration: Duration(seconds: 2),
           ),
@@ -194,7 +202,7 @@ class _AgriSynchEmailVerificationPageState
 
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Email not yet verified. Please click the link in your email, then tap this button again.'),
+            content: Text('Email not yet verified. Please click the verification link in your email.'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 4),
           ),
@@ -237,7 +245,7 @@ class _AgriSynchEmailVerificationPageState
         automaticallyImplyLeading: false,
         title: const Text(
           'Verify Email',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontFamily: 'Poppins', fontWeight: FontWeight.bold),
         ),
       ),
       body: Padding(
@@ -246,24 +254,95 @@ class _AgriSynchEmailVerificationPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Please verify your email address",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              "Verify Your Email",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
-              "We've sent you a verification link. Click the link in the email to verify your account.",
-              style: TextStyle(fontSize: 14),
+              "We've sent a verification link to your email. Please click the link in the email to verify your account.",
+              style: TextStyle(
+                fontSize: 14,
+                fontFamily: 'Poppins',
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 24),
             
-            // Manual check button
+            // Auto-checking status indicator
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00C853).withAlpha((0.1 * 255).round()),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF00C853),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: const Color(0xFF00C853),
+                      strokeWidth: 2,
+                      value: _checkAttempts / _maxAttempts,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Auto-Checking Email Verification",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                            color: Color(0xFF00C853),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Checking every 15 seconds... (${_checkAttempts}/${_maxAttempts})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'Poppins',
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            const Text(
+              "Haven't received the email?",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Resend button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isLoading ? null : verifyEmail,
+                onPressed: isLoading ? null : resendVerificationEmail,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00C853),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -277,34 +356,32 @@ class _AgriSynchEmailVerificationPageState
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('I\'ve Verified - Check Now',
-                        style: TextStyle(fontSize: 16, color: Colors.white)),
+                    : const Text(
+                        'Resend Verification Email',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             
-            // Auto-check button (optional)
+            // Manual check button (for users who already clicked the link but auto-check didn't detect it)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: (_timer?.isActive ?? false) ? null : () {
-                  startVerificationCheck();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Auto-checking every 15 seconds...'),
-                      backgroundColor: Colors.blue,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-                icon: Icon(
-                  (_timer?.isActive ?? false) ? Icons.check_circle : Icons.autorenew,
-                  color: const Color(0xFF00C853),
-                ),
-                label: Text(
-                  (_timer?.isActive ?? false) ? 'Auto-Check Running...' : 'Start Auto-Check',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF00C853)),
+                onPressed: isLoading ? null : verifyEmail,
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text(
+                  'I\'ve Already Verified - Check Now',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -312,31 +389,29 @@ class _AgriSynchEmailVerificationPageState
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  foregroundColor: const Color(0xFF00C853),
                 ),
               ),
             ),
             
             const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: isLoading ? null : resendVerificationEmail,
-                child: const Text(
-                  "Resend Verification Email",
-                  style: TextStyle(color: Colors.green),
+            
+            // Help text
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha((0.05 * 255).round()),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                "💡 Tip: Check your spam/junk folder if you don't see the verification email.",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Poppins',
+                  color: Colors.blue,
                 ),
               ),
             ),
-            
-            if (_timer?.isActive ?? false)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Center(
-                  child: Text(
-                    'Auto-checking... (${_checkAttempts}/${_maxAttempts})',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import '../services/error_handler.dart';
 import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
@@ -459,9 +460,17 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                         );
 
                                                 final user = credential.user;
-                                                  if (user != null) {
+                                                if (user != null) {
+                                                  // Small delay to ensure auth token is propagated
+                                                  await Future.delayed(const Duration(milliseconds: 500));
+                                                  
                                                   // Send verification email
-                                                  await user.sendEmailVerification();
+                                                  try {
+                                                    await user.sendEmailVerification();
+                                                  } catch (e) {
+                                                    debugPrint('Warning: Could not send verification email: $e');
+                                                    // Don't block signup if email fails
+                                                  }
                                                   
                                                   // 2) Create user document in Firestore with consistent field names
                                                   final userRef = FirebaseFirestore
@@ -479,9 +488,14 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     'createdAt': FieldValue.serverTimestamp(),
                                                   };
 
-                                                  await userRef.set(userData);
+                                                  await userRef.set(userData).timeout(
+                                                    const Duration(seconds: 10),
+                                                    onTimeout: () {
+                                                      throw TimeoutException('Firestore write timeout - check your connection');
+                                                    },
+                                                  );
 
-                                                  debugPrint("Firestore write completed for user ${user.uid}.");
+                                                  debugPrint("✅ Firestore user document created for ${user.uid}");
 
                                                   await storage.write(
                                                     key: 'user_uid',
@@ -497,7 +511,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                   );
                                                   await storage.write(
                                                     key: 'user_email',
-                                                    value: email,
+                                                    value: sanitizedEmail,
                                                   );
                                                   await storage.write(
                                                     key: 'account_type',
@@ -510,42 +524,58 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     email: user.email,
                                                   );
                                                   await ErrorHandler.setCustomKey('account_type', _selectedAccountType);
-                                                  await ErrorHandler.setCustomKey('user_name', name);
+                                                  await ErrorHandler.setCustomKey('user_name', sanitizedName);
 
                                                   if (!mounted) return;
                                                   messenger.showSnackBar(
                                                     const SnackBar(
-                                                      content: Text('Signup successful!'),
+                                                      content: Text('✅ Signup successful! Please verify your email.'),
                                                       backgroundColor: Colors.green,
                                                     ),
                                                   );
                                                   navigator.pushReplacementNamed(
                                                     '/verify',
-                                                    arguments: email,
+                                                    arguments: sanitizedEmail,
                                                   );
                                                 } else {
                                                   // This is unexpected but handle it
-                                                  debugPrint("createUserWithEmailAndPassword returned null user.");
+                                                  debugPrint("❌ createUserWithEmailAndPassword returned null user");
                                                   messenger.showSnackBar(
-                                                    const SnackBar(content: Text('Signup failed. Please try again.'), backgroundColor: Colors.red),
+                                                    const SnackBar(
+                                                      content: Text('Signup failed. Please try again.'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
                                                   );
                                                 }
                                               } on FirebaseAuthException catch (e) {
                                                 String message = 'Signup failed';
                                                 if (e.code == 'email-already-in-use') {
-                                                  message = 'Email already registered.';
+                                                  message = 'Email already registered. Please login instead.';
+                                                } else if (e.code == 'weak-password') {
+                                                  message = 'Password is too weak. Use at least 6 characters.';
+                                                } else if (e.code == 'invalid-email') {
+                                                  message = 'Invalid email address.';
                                                 }
-                                                if (e.code == 'weak-password') {
-                                                  message = 'Password too weak.';
+                                                debugPrint("❌ FirebaseAuthException: ${e.code} - ${e.message}");
+                                                messenger.showSnackBar(
+                                                  SnackBar(content: Text(message), backgroundColor: Colors.red),
+                                                );
+                                              } on FirebaseException catch (e) {
+                                                debugPrint("❌ FirebaseException: ${e.code} - ${e.message}");
+                                                String message = 'Firestore error: ${e.message}';
+                                                if (e.code == 'permission-denied') {
+                                                  message = 'Permission denied. Please check your internet connection and try again.';
                                                 }
-                                                debugPrint("FirebaseAuthException during signup: ${e.code} - ${e.message}");
                                                 messenger.showSnackBar(
                                                   SnackBar(content: Text(message), backgroundColor: Colors.red),
                                                 );
                                               } catch (e) {
-                                                debugPrint("Exception during signup flow: $e");
+                                                debugPrint("❌ Exception during signup: $e");
                                                 messenger.showSnackBar(
-                                                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                                                  SnackBar(
+                                                    content: Text('Error: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
                                                 );
                                               }
                                             },
