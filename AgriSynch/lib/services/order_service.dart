@@ -156,6 +156,11 @@ class OrderService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
     
+    // If order is cancelled, create automatic reversal transaction
+    if (status.toLowerCase() == 'cancelled') {
+      await _createReversalTransaction(orderId);
+    }
+    
     try {
       final orderDoc = await _firestore.collection('orders').doc(orderId).get();
         if (orderDoc.exists) {
@@ -200,7 +205,7 @@ class OrderService {
             break;
           case 'cancelled':
             title = '❌ Order Cancelled';
-            body = 'Your order for $productName has been cancelled.';
+            body = 'Your order for $productName has been cancelled. Financial reversal has been recorded.';
             break;
           default:
             title = '📬 Order Update';
@@ -228,6 +233,38 @@ class OrderService {
       }
     } catch (e) {
       debugPrint('Failed to send status update notification: $e');
+    }
+  }
+
+  /// Create automatic reversal transaction when order is cancelled
+  Future<void> _createReversalTransaction(String orderId) async {
+    try {
+      final order = await getOrderById(orderId);
+      if (order == null) {
+        debugPrint('⚠️ Cannot create reversal: Order $orderId not found');
+        return;
+      }
+
+      // Create reversal transaction in farmer's transaction history
+      await _firestore
+          .collection('users')
+          .doc(order.farmerId)
+          .collection('transactions')
+          .add({
+            'type': 'reversal',
+            'category': 'Order Cancellation',
+            'amount': -order.totalAmount, // Negative amount reverses the sale
+            'description': 'Cancellation reversal - Order #${orderId.substring(0, 8)}...',
+            'linkedOrderId': orderId,
+            'linkedOrderStatus': 'cancelled',
+            'isReversal': true,
+            'date': DateTime.now().toIso8601String(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+      debugPrint('✅ Reversal transaction created for cancelled order $orderId');
+    } catch (e) {
+      debugPrint('❌ Error creating reversal transaction: $e');
     }
   }
 

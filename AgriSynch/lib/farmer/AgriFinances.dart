@@ -112,6 +112,7 @@ class _AgriFinancesState extends State<AgriFinances> {
     'Labor',
     'Fuel',
     'Maintenance',
+    'Order Cancellation',
     'Other',
   ];
 
@@ -1511,7 +1512,8 @@ class _AgriFinancesState extends State<AgriFinances> {
 
   Widget _buildTransactionCard(Map<String, dynamic> transaction) {
     final isDarkMode = _themeNotifier.isDarkMode;
-    final isIncome = transaction['type'] == 'income';
+    final isReversal = transaction['isReversal'] == true;
+    final isIncome = transaction['type'] == 'income' && !isReversal;
     
     // Cache these expensive operations
     final amount = transaction['amount'] as double;
@@ -1531,15 +1533,20 @@ class _AgriFinancesState extends State<AgriFinances> {
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: isReversal ? Border.all(color: Colors.orange.shade300, width: 2) : null,
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isIncome
-              ? const Color(0x1A4CAF50)
-              : const Color(0x1AF44336),
+          backgroundColor: isReversal
+              ? const Color(0x1AFFA500)
+              : (isIncome ? const Color(0x1A4CAF50) : const Color(0x1AF44336)),
           child: Icon(
-            isIncome ? Icons.trending_up : Icons.trending_down,
-            color: isIncome ? Colors.green : Colors.red,
+            isReversal
+                ? Icons.undo
+                : (isIncome ? Icons.trending_up : Icons.trending_down),
+            color: isReversal
+                ? Colors.orange
+                : (isIncome ? Colors.green : Colors.red),
             size: 20,
           ),
         ),
@@ -1550,38 +1557,66 @@ class _AgriFinancesState extends State<AgriFinances> {
             fontWeight: FontWeight.w500,
             fontSize: 14,
             color: isDarkMode ? Colors.white : Colors.black,
+            decoration: isReversal ? TextDecoration.lineThrough : null,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          '$category • ${DateFormat.MMMd().format(date)}',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            color: isDarkMode ? Colors.white70 : Colors.black54,
-          ),
+        subtitle: Row(
+          children: [
+            Text(
+              '$category • ${DateFormat.MMMd().format(date)}',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            if (isReversal)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'REVERSAL',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade700,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${isIncome ? '+' : '-'}$currencySymbol${amount.toStringAsFixed(2)}',
+              '${isIncome ? '+' : '-'}$currencySymbol${amount.abs().toStringAsFixed(2)}',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.bold,
-                color: isIncome ? Colors.green : Colors.red,
+                color: isReversal
+                    ? Colors.orange
+                    : (isIncome ? Colors.green : Colors.red),
                 fontSize: 14,
               ),
             ),
-            IconButton(
-              icon: Icon(
-                Icons.edit,
-                color: isDarkMode ? Colors.white54 : Colors.grey,
-                size: 20,
+            if (!isReversal)
+              IconButton(
+                icon: Icon(
+                  Icons.edit,
+                  color: isDarkMode ? Colors.white54 : Colors.grey,
+                  size: 20,
+                ),
+                onPressed: () => _editTransaction(transaction),
               ),
-              onPressed: () => _editTransaction(transaction),
-            ),
             IconButton(
               icon: Icon(
                 Icons.delete_outline,

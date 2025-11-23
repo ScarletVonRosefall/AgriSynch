@@ -449,26 +449,8 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 return;
                                               }
 
-                                              // Prepare a reference for a pre-auth Firestore document
-                                              final preUserRef = FirebaseFirestore.instance
-                                                  .collection('pre_users')
-                                                  .doc(); // auto-id
-
                                               try {
-                                                // 1) Save the collected data to Firestore BEFORE creating the Auth account.
-                                                //    We mark it as 'pending_auth' so backend/admins can track pending signups if needed.
-                                                final preUserData = {
-                                                  'name': sanitizedName,
-                                                  'email': sanitizedEmail,
-                                                  'accountType': _selectedAccountType,
-                                                  'status': 'pending_auth',
-                                                  'createdAt': FieldValue.serverTimestamp(),
-                                                };
-
-                                                await preUserRef.set(preUserData);
-                                                debugPrint('Pre-auth Firestore doc created: ${preUserRef.id}');
-
-                                                // 2) Create account with Firebase Auth
+                                                // 1) Create account with Firebase Auth
                                                 final credential =
                                                     await FirebaseAuth.instance
                                                         .createUserWithEmailAndPassword(
@@ -481,7 +463,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                   // Send verification email
                                                   await user.sendEmailVerification();
                                                   
-                                                  // 3) Move/merge the pre-user data into the canonical 'users' collection keyed by uid
+                                                  // 2) Create user document in Firestore with consistent field names
                                                   final userRef = FirebaseFirestore
                                                       .instance
                                                       .collection('users')
@@ -492,17 +474,12 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                     'name': sanitizedName,
                                                     'email': sanitizedEmail,
                                                     'accountType': _selectedAccountType,
+                                                    'userType': _selectedAccountType.toLowerCase(), // Store as 'farmer' or 'buyer' (lowercase)
                                                     'profileComplete': false,
                                                     'createdAt': FieldValue.serverTimestamp(),
                                                   };
 
                                                   await userRef.set(userData);
-
-                                                  // Optionally delete the pre-auth doc to avoid duplicates
-                                                  await preUserRef.delete().catchError((err) {
-                                                    // Not critical if delete fails; log for debugging
-                                                    debugPrint('Warning: failed to delete pre_user doc: $err');
-                                                  });
 
                                                   debugPrint("Firestore write completed for user ${user.uid}.");
 
@@ -549,18 +526,11 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                 } else {
                                                   // This is unexpected but handle it
                                                   debugPrint("createUserWithEmailAndPassword returned null user.");
-                                                  // Attempt cleanup of the pre-user doc
-                                                  await preUserRef.delete().catchError((_) {});
                                                   messenger.showSnackBar(
                                                     const SnackBar(content: Text('Signup failed. Please try again.'), backgroundColor: Colors.red),
                                                   );
                                                 }
                                               } on FirebaseAuthException catch (e) {
-                                                // Auth failed — remove the pre-user doc to avoid orphaned records
-                                                await preUserRef.delete().catchError((err) {
-                                                  debugPrint('Error deleting pre_user after auth failure: $err');
-                                                });
-
                                                 String message = 'Signup failed';
                                                 if (e.code == 'email-already-in-use') {
                                                   message = 'Email already registered.';
@@ -573,11 +543,7 @@ class _SignUpPageState extends State<AgriSynchSignUpPage>
                                                   SnackBar(content: Text(message), backgroundColor: Colors.red),
                                                 );
                                               } catch (e) {
-                                                // Any other error — try to clean up the pre-user doc
-                                                debugPrint("Exception during pre-auth or signup flow: $e");
-                                                await preUserRef.delete().catchError((err) {
-                                                  debugPrint('Error deleting pre_user after exception: $err');
-                                                });
+                                                debugPrint("Exception during signup flow: $e");
                                                 messenger.showSnackBar(
                                                   SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                                                 );
