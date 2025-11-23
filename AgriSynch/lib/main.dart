@@ -29,7 +29,7 @@ import 'shared/HelpFeedbackPage.dart';
 import 'buyer/MyOrdersPage.dart';
 import 'shared/profile_page.dart';
 import 'auth/auth_wrapper.dart';
-import 'auth/AgriSynchSignUp.dart';
+import 'auth/AgriSynchSignUpComprehensive.dart';
 import 'admin/admin_portal.dart';
 import 'admin/admin_dashboard.dart';
 
@@ -82,7 +82,7 @@ class AgriSynchApp extends StatelessWidget {
       routes: {
         '/': (context) => const AuthWrapper(),
         '/login': (context) => const AgriSynchLoginPage(),
-        '/signup': (context) => const AgriSynchSignUpPage(),
+        '/signup': (context) => const AgriSynchComprehensiveSignUpPage(),
         '/home': (context) =>
             const AgriSynchHome(), // Use bottom navigation version
         '/buyer-home': (context) =>
