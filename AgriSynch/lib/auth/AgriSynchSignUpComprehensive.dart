@@ -337,6 +337,13 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
     return parts.join(', ');
   }
 
+  TapGestureRecognizer _tapGestureRecognizer() {
+    return TapGestureRecognizer()
+      ..onTap = () {
+        Navigator.pushReplacementNamed(context, '/login');
+      };
+  }
+
   Widget _buildTextField(
     String label,
     TextEditingController controller, {
@@ -758,12 +765,5 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
         ),
       ),
     );
-  }
-
-  TapGestureRecognizer _tapGestureRecognizer() {
-    return TapGestureRecognizer()
-      ..onTap = () {
-        Navigator.pushReplacementNamed(context, '/login');
-      };
   }
 }
