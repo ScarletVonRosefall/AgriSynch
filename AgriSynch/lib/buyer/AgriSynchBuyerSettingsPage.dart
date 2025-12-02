@@ -165,17 +165,11 @@ class _AgriSynchBuyerSettingsPageState
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    final backgroundColor = isDarkMode
-        ? const Color(0xFF121212)
-        : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFF00C853);
-    final cardColor = isDarkMode
-        ? const Color(0xFF1E1E1E)
-        : const Color(0xFFC5E1A5);
-    final textColor = isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87;
+    final isDarkMode = true; // Force dark mode
+    final backgroundColor = const Color(0xFF0F172A);
+    final headerColor = const Color(0xFF1A2332);
+    final cardColor = const Color(0xFF1A2332);
+    final textColor = const Color(0xFFE0E0E0);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -188,9 +182,16 @@ class _AgriSynchBuyerSettingsPageState
             decoration: BoxDecoration(
               color: headerColor,
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,15 +206,24 @@ class _AgriSynchBuyerSettingsPageState
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        children: const [
                           Text(
                             'Settings',
-                            style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: 'Poppins',
+                            ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 4),
                           Text(
                             'Manage account & preferences',
-                            style: ThemeHelper.getSubHeaderTextStyle(isDark: isDarkMode),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFFB0BEC5),
+                              fontFamily: 'Poppins',
+                            ),
                           ),
                         ],
                       ),
@@ -510,18 +520,18 @@ class _AgriSynchBuyerSettingsPageState
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                            color: const Color(0xFF263238),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
+                              color: const Color(0xFF37474F),
                             ),
                           ),
                           child: DropdownButton<String>(
                             value: _feedbackCategory,
                             isExpanded: true,
                             underline: const SizedBox(),
-                            dropdownColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-                            style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+                            dropdownColor: const Color(0xFF263238),
+                            style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'Poppins'),
                             items: const [
                               DropdownMenuItem(value: 'General', child: Text('General Question/Comment')),
                               DropdownMenuItem(value: 'Bug Report', child: Text('Bug Report')),
@@ -733,11 +743,11 @@ class _AgriSynchBuyerSettingsPageState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        color: const Color(0xFF1A2332),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha((0.05 * 255).round()),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -746,11 +756,11 @@ class _AgriSynchBuyerSettingsPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Quick Actions",
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
+              color: Colors.white,
               fontFamily: 'Poppins',
               fontSize: 16,
             ),
@@ -805,26 +815,24 @@ class _AgriSynchBuyerSettingsPageState
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
+          color: const Color(0xFF263238),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade200,
+            color: const Color(0xFF37474F),
           ),
         ),
         child: Column(
           children: [
             Icon(
               icon,
-              color: isDarkMode
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFF00C853),
+              color: const Color(0xFF1DBF73),
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black87,
+              style: const TextStyle(
+                color: Color(0xFFE0E0E0),
                 fontSize: 12,
                 fontFamily: 'Poppins',
               ),
@@ -940,10 +948,10 @@ class _AgriSynchBuyerSettingsPageState
       style: ElevatedButton.styleFrom(
         backgroundColor: isDestructive
             ? Colors.red.shade400
-            : (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFFDCE775)),
+            : const Color(0xFF1DBF73),
         foregroundColor: isDestructive
             ? Colors.white
-            : (isDarkMode ? Colors.white : Colors.black),
+            : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
@@ -968,11 +976,11 @@ class _AgriSynchBuyerSettingsPageState
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: isDarkMode ? const Color(0xFF263238) : Colors.white,
+          backgroundColor: const Color(0xFF263238),
           title: Text(
             'Select Currency',
-            style: TextStyle(
-              color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+            style: const TextStyle(
+              color: Color(0xFFE0E0E0),
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
             ),
@@ -1002,7 +1010,7 @@ class _AgriSynchBuyerSettingsPageState
                   title: Text(
                     currency['name']!,
                     style: TextStyle(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : Colors.black87,
+                      color: const Color(0xFFE0E0E0),
                       fontFamily: 'Poppins',
                       fontWeight: isSelected
                           ? FontWeight.bold
@@ -1011,8 +1019,8 @@ class _AgriSynchBuyerSettingsPageState
                   ),
                   subtitle: Text(
                     '${currency['code']} (${currency['symbol']})',
-                    style: TextStyle(
-                      color: isDarkMode ? const Color(0xFFBDBDBD) : Colors.black54,
+                    style: const TextStyle(
+                      color: Color(0xFFB0BEC5),
                       fontFamily: 'Poppins',
                     ),
                   ),
