@@ -184,21 +184,50 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
     Widget? suffixIcon,
     int maxLines = 1,
   }) {
-    final isDark = _themeNotifier.isDarkMode;
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       maxLines: maxLines,
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 14,
+        color: Color(0xFFE0E0E0),
+      ),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: const TextStyle(
+          fontFamily: 'Poppins',
+          color: Color(0xFFB0BEC5),
+        ),
         hintText: hint,
+        hintStyle: const TextStyle(
+          fontFamily: 'Poppins',
+          color: Color(0xFF78909C),
+        ),
         filled: true,
-        fillColor: isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade100,
+        fillColor: const Color(0xFF263238),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(
+            color: Color(0xFF37474F),
+            width: 1.5,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFF37474F),
+            width: 1.5,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFF1DBF73),
+            width: 2,
+          ),
         ),
         suffixIcon: suffixIcon != null ? Padding(
           padding: const EdgeInsets.only(right: 8),
@@ -212,7 +241,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
 
   @override
   Widget build(BuildContext context) {
-    final isDark = _themeNotifier.isDarkMode;
+    final isDark = true; // Force dark mode
     final screenWidth = MediaQuery.of(context).size.width;
     
     // Responsive sizing: adapt to mobile, tablet, and desktop
@@ -237,38 +266,185 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
     }
     
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Create Account',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: screenWidth < 768
+          ? AppBar(
+              elevation: 0,
+              backgroundColor: const Color(0xFF1A2332),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: const Text(
+                'Create Account',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                ),
+              ),
+              centerTitle: true,
+            )
+          : null, // No AppBar on web/tablet
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
+        child: screenWidth < 768
+            ? _buildMobileLayout(isDark, maxWidth, horizontalPadding)
+            : _buildWebLayout(isDark),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(bool isDark, double maxWidth, double horizontalPadding) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 24,
+          ),
+          child: _buildFormContent(isDark),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebLayout(bool isDark) {
+    return Row(
+      children: [
+        // Left side - Branding and info
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: const Color(0xFF1A2332),
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Logo/Brand
+                Text(
+                  'AgriSynch',
+                  style: const TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Smart Farming Platform',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                // Features list
+                _buildFeature(
+                  icon: Icons.shopping_cart_outlined,
+                  title: 'Browse Products',
+                  description: 'Discover fresh products directly from farmers',
+                ),
+                const SizedBox(height: 32),
+                _buildFeature(
+                  icon: Icons.location_on_outlined,
+                  title: 'Find Local Farmers',
+                  description: 'Connect with farmers in your area',
+                ),
+                const SizedBox(height: 32),
+                _buildFeature(
+                  icon: Icons.verified_outlined,
+                  title: 'Secure & Trusted',
+                  description: 'Safe transactions and verified sellers',
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Right side - Form
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: const Color(0xFF0F172A),
+            padding: const EdgeInsets.symmetric(vertical: 60),
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: 24,
+                horizontal: MediaQuery.of(context).size.width < 1200 ? 24 : 48,
               ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header
+                      Text(
+                        'Create Account',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Join AgriSynch and start shopping fresh',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFFB0BEC5),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      _buildFormContent(isDark),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeature({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.white, size: 32),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white.withOpacity(0.85),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormContent(bool isDark) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
                     // Account Type - Buyer only for new registrations
                     // (Existing farmer accounts are preserved in database)
                     Padding(
@@ -276,14 +452,14 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.green.shade50,
+                          color: const Color(0xFF1E3A34),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.shade300),
+                          border: Border.all(color: const Color(0xFF1DBF73)),
                         ),
                         child: Row(
-                          children: [
-                            Icon(Icons.shopping_cart, color: Colors.green.shade700),
-                            const SizedBox(width: 12),
+                          children: const [
+                            Icon(Icons.shopping_cart, color: Color(0xFF1DBF73)),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,7 +467,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                                   Text(
                                     'Account Type: Buyer',
                                     style: TextStyle(
-                                      color: Colors.green.shade700,
+                                      color: Color(0xFF1DBF73),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 16,
                                     ),
@@ -299,7 +475,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                                   Text(
                                     'Browse products from farmers',
                                     style: TextStyle(
-                                      color: Colors.green.shade600,
+                                      color: Color(0xFF64B5A6),
                                       fontSize: 12,
                                     ),
                                   ),
@@ -318,6 +494,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                         'Basic Information',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                       ),
                     ),
@@ -349,6 +526,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                         'Contact Details',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                       ),
                     ),
@@ -382,6 +560,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                         'Delivery Location',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                       ),
                     ),
@@ -390,15 +569,19 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                       padding: const EdgeInsets.only(bottom: 12),
                       child: ElevatedButton.icon(
                         onPressed: _openGoogleLocationPicker,
-                        icon: const Icon(Icons.location_on),
-                        label: Text(_selectedAddress != null ? 'Change Location' : 'Select Location on Map'),
+                        icon: const Icon(Icons.location_on, color: Colors.white),
+                        label: Text(
+                          _selectedAddress != null ? 'Change Location' : 'Select Location on Map',
+                          style: const TextStyle(color: Colors.white),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
+                          backgroundColor: const Color(0xFF1DBF73),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 4,
                         ),
                       ),
                     ),
@@ -440,6 +623,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                         'Security',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                       ),
                     ),
@@ -500,9 +684,17 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                         onChanged: (value) {
                           setState(() => _acceptedTerms = value ?? false);
                         },
-                        title: const Text('I agree to Terms & Privacy Policy'),
+                        title: const Text(
+                          'I agree to Terms & Privacy Policy',
+                          style: TextStyle(
+                            color: Color(0xFFE0E0E0),
+                            fontSize: 14,
+                          ),
+                        ),
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
+                        checkColor: Colors.white,
+                        activeColor: const Color(0xFF1DBF73),
                       ),
                     ),
 
@@ -512,12 +704,13 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signUp,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          disabledBackgroundColor: Colors.grey.shade400,
+                          backgroundColor: const Color(0xFF1DBF73),
+                          disabledBackgroundColor: const Color(0xFF555B62),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 4,
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -546,12 +739,14 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                         child: RichText(
                           text: TextSpan(
                             text: 'Already have an account? ',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            children: [
+                            style: const TextStyle(
+                              color: Color(0xFFB0BEC5),
+                            ),
+                            children: const [
                               TextSpan(
                                 text: 'Log In',
                                 style: TextStyle(
-                                  color: Colors.green.shade600,
+                                  color: Color(0xFF1DBF73),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -562,11 +757,6 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+            );
+          }
+        }

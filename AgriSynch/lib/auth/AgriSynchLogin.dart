@@ -187,14 +187,13 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _themeNotifier.isDarkMode;
     final emailController = TextEditingController();
     final passController = TextEditingController();
     final ValueNotifier<bool> isLoading = ValueNotifier(false);
     final ValueNotifier<bool> showPassword = ValueNotifier(false);
 
     return Scaffold(
-      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      backgroundColor: const Color(0xFF0F172A), // Dark background
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -209,74 +208,80 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                     ),
                     child: IntrinsicHeight(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 40),
-                            Center(
-                              child: Column(
-                                children: [
-                                  GestureDetector(
-                                    onTap: _handleTextTap,
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Text(
-                                      "Log in to continue",
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.of(context).size.width < 600 ? 16 : 40,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 450),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 60),
+                                Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _handleTextTap,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: const Text(
+                                        "Log in to continue",
+                                        style: TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 14,
+                                          color: Color(0xFFB0BEC5),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      "AgriSynch",
                                       style: TextStyle(
                                         fontFamily: 'Poppins',
-                                        fontSize: 16,
-                                        color: ThemeHelper.getTextColor(isDarkMode),
+                                        fontSize: 36,
+                                        color: Color(0xFF1DBF73),
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                  ),
-                                  const Text(
-                                    "AgriSynch",
-                                    style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 28,
-                                      color: Color(0xFF1DBF73),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  GestureDetector(
-                                    onTap: _handleLogoTap,
-                                    behavior: HitTestBehavior.opaque,
-                                    child: TweenAnimationBuilder<double>(
-                                      duration: const Duration(
-                                        milliseconds: 1200,
-                                      ),
-                                      tween: Tween<double>(begin: 0.0, end: 1.0),
-                                      builder: (context, value, child) {
-                                        return Transform.scale(
-                                          scale: value,
-                                          child: Opacity(
-                                            opacity: value,
-                                            child: Image.asset(
-                                              'assets/AgriSynchLogoNB2.png',
-                                              height: 100,
+                                    const SizedBox(height: 16),
+                                    GestureDetector(
+                                      onTap: _handleLogoTap,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: TweenAnimationBuilder<double>(
+                                        duration: const Duration(
+                                          milliseconds: 1200,
+                                        ),
+                                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                                        builder: (context, value, child) {
+                                          return Transform.scale(
+                                            scale: value,
+                                            child: Opacity(
+                                              opacity: value,
+                                              child: Image.asset(
+                                                'assets/AgriSynchLogoNB2.png',
+                                                height: 80,
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      },
+                                          );
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: Container(
-                                width: double.infinity,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF00A862),
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(24),
-                                    topRight: Radius.circular(24),
-                                  ),
+                                  ],
                                 ),
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
+                                const SizedBox(height: 48),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A2332),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.5),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(32),
+                                  child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
@@ -293,6 +298,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                       "Email",
                                       emailController,
                                       keyboardType: TextInputType.emailAddress,
+                                      iconPrefix: Icons.email_outlined,
                                     ),
                                     const SizedBox(height: 12),
                                     ValueListenableBuilder<bool>(
@@ -302,12 +308,13 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                           "Password",
                                           passController,
                                           obscure: !value,
+                                          iconPrefix: Icons.lock_outline,
                                           suffixIcon: IconButton(
                                             icon: Icon(
                                               value
                                                   ? Icons.visibility
                                                   : Icons.visibility_off,
-                                              color: Colors.grey,
+                                              color: const Color(0xFF64B5A6),
                                             ),
                                             onPressed: () =>
                                                 showPassword.value = !value,
@@ -327,33 +334,26 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                 vertical: 6,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: Colors.amber.shade50,
+                                                color: const Color(0xFF37474F),
                                                 border: Border.all(
-                                                  color: Colors.orange.shade600,
-                                                  width: 2,
+                                                  color: const Color(0xFFFFA726),
+                                                  width: 1.5,
                                                 ),
-                                                borderRadius: BorderRadius.circular(6),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withAlpha((0.15 * 255).round()),
-                                                    blurRadius: 3,
-                                                    offset: const Offset(0, 1),
-                                                  ),
-                                                ],
+                                                borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Row(
                                                 children: [
-                                                  Icon(
+                                                  const Icon(
                                                     Icons.info_outline,
-                                                    color: Colors.orange.shade700,
+                                                    color: Color(0xFFFFA726),
                                                     size: 14,
                                                   ),
                                                   const SizedBox(width: 6),
                                                   Expanded(
                                                     child: Text(
                                                       _invalidCharWarning,
-                                                      style: TextStyle(
-                                                        color: Colors.orange.shade800,
+                                                      style: const TextStyle(
+                                                        color: Color(0xFFFFB74D),
                                                         fontSize: 11,
                                                         fontFamily: 'Poppins',
                                                         fontWeight: FontWeight.w500,
@@ -572,19 +572,17 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                     }
                                                   },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xFF1B4D3E,
-                                              ),
+                                              backgroundColor: const Color(0xFF1DBF73),
+                                              disabledBackgroundColor: const Color(0xFF555B62),
                                               foregroundColor: Colors.white,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 32,
-                                                    vertical: 14,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 32,
+                                                vertical: 14,
                                               ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              elevation: 4,
                                             ),
                                             child: loading
                                                 ? const SizedBox(
@@ -620,7 +618,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                               style: TextStyle(
                                                 fontFamily: 'Poppins',
                                                 fontSize: 13,
-                                                color: Colors.white,
+                                                color: Color(0xFF64B5A6),
                                               ),
                                             ),
                                           ),
@@ -633,7 +631,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                 style: TextStyle(
                                                   fontFamily: 'Poppins',
                                                   fontSize: 13,
-                                                  color: Colors.white70,
+                                                  color: Color(0xFFB0BEC5),
                                                 ),
                                               ),
                                               GestureDetector(
@@ -646,7 +644,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                   style: TextStyle(
                                                     fontFamily: 'Poppins',
                                                     fontSize: 13,
-                                                    color: Colors.white,
+                                                    color: Color(0xFF1DBF73),
                                                     fontWeight: FontWeight.bold,
                                                     decoration: TextDecoration.underline,
                                                   ),
@@ -668,14 +666,14 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                 }
                                               },
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.white,
-                                                foregroundColor: const Color(0xFF00A862),
+                                                backgroundColor: const Color(0xFF1DBF73),
+                                                foregroundColor: Colors.white,
                                                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                                elevation: 6,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                elevation: 4,
                                               ),
-                                              icon: const Icon(Icons.android, color: Color(0xFF00A862)),
-                                              label: const Text('Download APK (Android)', style: TextStyle(color: Color(0xFF00A862), fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+                                              icon: const Icon(Icons.android, color: Colors.white),
+                                              label: const Text('Download APK (Android)', style: TextStyle(color: Colors.white, fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
                                             ),
                                           ),
                                           const SizedBox(height: 8),
@@ -683,10 +681,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                             child: Text(
                                               'Tip: This APK is downloaded via your browser. You may need to allow "Install unknown apps" or "Unknown sources" in your Android settings before installing.',
                                               textAlign: TextAlign.center,
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontFamily: 'Poppins',
                                                 fontSize: 12,
-                                                color: Colors.white70,
+                                                color: Color(0xFFB0BEC5),
                                               ),
                                             ),
                                           ),
@@ -695,9 +693,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                     ),
                                   ],
                                 ),
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -717,6 +716,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     bool obscure = false,
     TextInputType? keyboardType,
     Widget? suffixIcon,
+    IconData? iconPrefix,
   }) {
     // Light validation - only block obviously problematic characters
     List<TextInputFormatter> formatters = [];
@@ -742,19 +742,49 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
       obscureText: obscure,
       keyboardType: keyboardType,
       inputFormatters: formatters,
-      style: const TextStyle(fontFamily: 'Poppins'),
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+        color: Color(0xFFE0E0E0),
+      ),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: const Color(0xFFD9F2E6),
-        hintStyle: const TextStyle(fontFamily: 'Poppins'),
+        fillColor: const Color(0xFF263238),
+        hintStyle: const TextStyle(
+          fontFamily: 'Poppins',
+          color: Color(0xFF78909C),
+        ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
+          horizontal: 16,
           vertical: 16,
         ),
+        prefixIcon: iconPrefix != null
+            ? Icon(
+                iconPrefix,
+                color: const Color(0xFF64B5A6),
+                size: 20,
+              )
+            : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFF37474F),
+            width: 1.5,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFF37474F),
+            width: 1.5,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFF1DBF73),
+            width: 2,
+          ),
         ),
         suffixIcon: suffixIcon,
       ),
