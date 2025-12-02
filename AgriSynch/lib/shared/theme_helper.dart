@@ -18,8 +18,8 @@ class ThemeNotifier {
 
   Future<void> _loadTheme() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _darkModeNotifier.value = prefs.getBool('dark_mode') ?? false;
+      // Force dark mode for all users
+      _darkModeNotifier.value = true;
     } catch (e) {
       debugPrint('Error loading theme: $e');
     }
@@ -79,13 +79,14 @@ class ThemeHelper {
   static const Color lightSecondaryText = Color(0xFF616161);
 
   // Dark theme colors - improved contrast and readability
-  static const Color darkBackground = Color(0xFF121212);
-  static const Color darkHeader = Color(0xFF2E7D32);
-  static const Color darkCard = Color(0xFF1E1E1E);
+  static const Color darkBackground = Color(0xFF0F172A); // Deep navy
+  static const Color darkHeader = Color(0xFF1A2332); // Dark slate
+  static const Color darkCard = Color(0xFF1A2332);
   static const Color darkText = Color(0xFFE0E0E0); // Lighter for better readability
-  static const Color darkSecondaryCard = Color(0xFF2A2A2A);
-  static const Color darkSecondaryText = Color(0xFFB0B0B0);
-  static const Color darkDivider = Color(0xFF424242);
+  static const Color darkSecondaryCard = Color(0xFF263238);
+  static const Color darkSecondaryText = Color(0xFFB0BEC5);
+  static const Color darkDivider = Color(0xFF37474F);
+  static const Color darkAccent = Color(0xFF1DBF73); // Green accent
 
   // Get colors based on theme
   static Color getBackgroundColor(bool isDark) =>
@@ -104,7 +105,11 @@ class ThemeHelper {
   
   static Color getDividerColor(bool isDark) => isDark ? darkDivider : const Color(0xFFE0E0E0);
   
-  static Color getInputFillColor(bool isDark) => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFD9F2E6);
+  static Color getInputFillColor(bool isDark) => isDark ? const Color(0xFF263238) : const Color(0xFFD9F2E6);
+  
+  static Color getAppBarColor(bool isDark) => isDark ? darkHeader : lightHeader;
+  
+  static Color getAccentColor(bool isDark) => isDark ? darkAccent : const Color(0xFF1DBF73);
 
   // Common text styles with Poppins font
   static TextStyle getTextStyle({

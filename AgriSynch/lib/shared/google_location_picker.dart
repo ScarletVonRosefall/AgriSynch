@@ -251,17 +251,24 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300, width: 1),
+                      border: Border.all(color: const Color(0xFF37474F), width: 1.5),
                     ),
                     child: TextField(
                       controller: _searchCtrl,
                       textInputAction: TextInputAction.search,
+                      style: const TextStyle(
+                        color: Color(0xFFE0E0E0),
+                        fontSize: 14,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search address...',
-                        prefixIcon: const Icon(Icons.location_on, color: Colors.green),
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF78909C),
+                        ),
+                        prefixIcon: const Icon(Icons.location_on, color: Color(0xFF1DBF73)),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear),
+                                icon: const Icon(Icons.clear, color: Color(0xFF64B5A6)),
                                 onPressed: () {
                                   _searchCtrl.clear();
                                   setState(() => _suggestions = []);
@@ -271,7 +278,7 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: const Color(0xFF263238),
                       ),
                       onChanged: (text) {
                         setState(() {}); // Trigger rebuild for clear button
@@ -283,33 +290,40 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
                 if (_loadingSuggestions)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
-                    child: LinearProgressIndicator(minHeight: 2),
+                    child: LinearProgressIndicator(
+                      minHeight: 2,
+                      backgroundColor: Color(0xFF37474F),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DBF73)),
+                    ),
                   ),
                 if (_suggestions.isNotEmpty)
                   Container(
                     margin: const EdgeInsets.only(top: 8),
                     constraints: const BoxConstraints(maxHeight: 280),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFF1A2332),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: const Color(0xFF37474F)),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+                        BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2)),
                       ],
                     ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: _suggestions.length,
-                      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFF37474F)),
                       itemBuilder: (context, index) {
                         final s = _suggestions[index];
                         return ListTile(
-                          leading: Icon(Icons.location_on_outlined, color: Colors.green.shade600),
+                          leading: const Icon(Icons.location_on_outlined, color: Color(0xFF1DBF73)),
                           title: Text(
                             s.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 14),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFFE0E0E0),
+                            ),
                           ),
                           onTap: () {
                             print('Tapped suggestion: ${s.description}');
@@ -327,6 +341,11 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
             left: 16,
             right: 16,
             child: Card(
+              color: const Color(0xFF1A2332),
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -335,14 +354,21 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
                   children: [
                     Text(
                       _selectedAddress ?? 'Tap the map or search to pick an address',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFFE0E0E0),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _selectedLat != null && _selectedLon != null
                           ? 'Lat: ${_selectedLat!.toStringAsFixed(6)}, Lng: ${_selectedLon!.toStringAsFixed(6)}'
                           : 'No location selected',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFB0BEC5),
+                      ),
                     ),
                   ],
                 ),
@@ -423,15 +449,26 @@ class _GoogleLocationPickerPageState extends State<GoogleLocationPickerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: const Text('Select Location'),
+        title: const Text(
+          'Select Location',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
+        backgroundColor: const Color(0xFF1A2332),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _picker,
       floatingActionButton: _selectedLat != null
           ? FloatingActionButton(
               onPressed: _confirmLocation,
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF1DBF73),
               child: const Icon(Icons.check),
             )
           : null,
