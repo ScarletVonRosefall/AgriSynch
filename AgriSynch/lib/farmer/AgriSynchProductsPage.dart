@@ -194,7 +194,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedUnit,
+                        initialValue: selectedUnit,
                         decoration: const InputDecoration(labelText: 'Unit'),
                         items: units.map((unit) => DropdownMenuItem(
                           value: unit,
@@ -209,7 +209,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: _categories.where((c) => c != 'All').map((category) =>
                     DropdownMenuItem(value: category, child: Text(category)),
@@ -385,7 +385,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedUnit,
+                        initialValue: selectedUnit,
                         decoration: const InputDecoration(labelText: 'Unit'),
                         items: units.map((unit) => DropdownMenuItem(
                           value: unit,
@@ -400,7 +400,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: _categories.where((c) => c != 'All').map((category) =>
                     DropdownMenuItem(value: category, child: Text(category)),
@@ -567,7 +567,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                   color: ThemeHelper.getTextColor(isDarkMode),
                 )),
                 const SizedBox(height: 8),
-                Container(
+                SizedBox(
                   height: 80,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,

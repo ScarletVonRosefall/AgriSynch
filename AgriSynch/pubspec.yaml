@@ -39,6 +39,8 @@ dependencies:
   fl_chart: ^1.1.1
   http: ^1.1.0
   geolocator: ^14.0.2
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
   image_picker: ^1.2.1
   pdf: ^3.10.1
   printing: ^5.10.0
@@ -61,6 +63,7 @@ dependencies:
   firebase_messaging: ^16.0.4
   flutter_local_notifications: ^19.5.0
   rxdart: ^0.28.0
+  google_maps_flutter: ^2.14.0
   
 dev_dependencies:
   flutter_test:

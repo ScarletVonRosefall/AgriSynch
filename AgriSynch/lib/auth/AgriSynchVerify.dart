@@ -310,7 +310,7 @@ class _AgriSynchEmailVerificationPageState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Checking every 15 seconds... (${_checkAttempts}/${_maxAttempts})',
+                          'Checking every 15 seconds... ($_checkAttempts/$_maxAttempts)',
                           style: const TextStyle(
                             fontSize: 12,
                             fontFamily: 'Poppins',

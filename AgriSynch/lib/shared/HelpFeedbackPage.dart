@@ -40,9 +40,11 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
     final isDarkMode = _themeNotifier.isDarkMode;
     // keep controllers in state so text persists while editing
     messageController.addListener(() {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _messageChars = messageController.text.length;
       });
+      }
     });
 
     return Scaffold(

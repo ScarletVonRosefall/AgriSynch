@@ -55,9 +55,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
 
   String formatDateTime(DateTime? dateTime) {
     if (dateTime == null) return 'No date';
-    return DateFormat('MMM d, y').format(dateTime) + 
-           ' at ' + 
-           DateFormat('h:mm a').format(dateTime);
+    return '${DateFormat('MMM d, y').format(dateTime)} at ${DateFormat('h:mm a').format(dateTime)}';
   }
 
   @override
@@ -177,7 +175,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: priority,
+                    initialValue: priority,
                     decoration: InputDecoration(
                       labelText: "Priority",
                       border: OutlineInputBorder(
@@ -282,7 +280,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               decoration: InputDecoration(
                 labelText: "Category",
                 border: OutlineInputBorder(
@@ -338,7 +336,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
             ),
             if (isRecurring)
               DropdownButtonFormField<String>(
-                value: recurringType,
+                initialValue: recurringType,
                 decoration: InputDecoration(
                   labelText: "Repeat",
                   border: OutlineInputBorder(

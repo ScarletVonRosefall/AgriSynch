@@ -3,6 +3,7 @@
 /// 
 /// This fixes products where images field is set to 'true' (boolean)
 /// instead of an array/list of URLs
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -65,7 +66,7 @@ Future<void> fixProductImages() async {
       }
     }
     
-    print('\n' + '=' * 50);
+    print('\n${'=' * 50}');
     print('🎉 Cleanup Complete!');
     print('=' * 50);
     print('Total products checked: ${snapshot.docs.length}');

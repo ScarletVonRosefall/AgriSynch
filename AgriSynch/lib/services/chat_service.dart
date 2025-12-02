@@ -18,7 +18,7 @@ class ChatService {
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     final random = Random().nextInt(100000);
     final messageHash = message.hashCode.abs();
-    return '${senderId}_${timestamp}_${messageHash}_${random}';
+    return '${senderId}_${timestamp}_${messageHash}_$random';
   }
 
   static Future<bool> sendMessage({

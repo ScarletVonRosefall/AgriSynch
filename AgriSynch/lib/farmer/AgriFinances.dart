@@ -412,7 +412,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                             alignment: pw.Alignment.centerLeft,
                             child: pw.Container(width: barWidth, height: 12, color: PdfColors.blue))),
                     pw.SizedBox(width: 8),
-                    pw.Flexible(child: pw.Text('${e.value.toStringAsFixed(2)}', style: pw.TextStyle(font: ttf, fontSize: 10))),
+                    pw.Flexible(child: pw.Text(e.value.toStringAsFixed(2), style: pw.TextStyle(font: ttf, fontSize: 10))),
                   ]),
                 ));
               }
@@ -2130,7 +2130,7 @@ class _EditTransactionDialogState extends State<EditTransactionDialog> {
             children: [
               // Type dropdown
               DropdownButtonFormField<String>(
-                value: selectedType,
+                initialValue: selectedType,
                 dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
                 decoration: InputDecoration(
                   labelText: 'Type',
@@ -2170,7 +2170,7 @@ class _EditTransactionDialogState extends State<EditTransactionDialog> {
               const SizedBox(height: 12),
               // Category dropdown
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                initialValue: selectedCategory,
                 dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
                 decoration: InputDecoration(
                   labelText: 'Category',

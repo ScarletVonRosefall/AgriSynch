@@ -552,7 +552,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
               const Text('Select new status for this order:'),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedStatus,
+                initialValue: selectedStatus,
                 decoration: const InputDecoration(
                   labelText: 'Status',
                   border: OutlineInputBorder(),

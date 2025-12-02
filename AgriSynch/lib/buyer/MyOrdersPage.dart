@@ -478,7 +478,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                       ),
                     ),
                     Text(
-                      '${_currencySymbol}${(item['price'] * item['quantity']).toStringAsFixed(2)}',
+                      '$_currencySymbol${(item['price'] * item['quantity']).toStringAsFixed(2)}',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.bold,
@@ -504,7 +504,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   ),
                 ),
                 Text(
-                  '${_currencySymbol}${order['total'].toStringAsFixed(2)}',
+                  '$_currencySymbol${order['total'].toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.bold,
@@ -965,7 +965,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                                       ),
                                     ),
                                     Text(
-                                      '${_currencySymbol}${order['total'].toStringAsFixed(2)}',
+                                      '$_currencySymbol${order['total'].toStringAsFixed(2)}',
                                       style: const TextStyle(
                                         fontFamily: 'Poppins',
                                         fontWeight: FontWeight.bold,

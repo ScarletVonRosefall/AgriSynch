@@ -33,9 +33,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
 
   String formatDateTime(DateTime? dateTime) {
     if (dateTime == null) return 'No date';
-    return DateFormat('MMM d, y').format(dateTime) + 
-           ' at ' + 
-           DateFormat('h:mm a').format(dateTime);
+    return '${DateFormat('MMM d, y').format(dateTime)} at ${DateFormat('h:mm a').format(dateTime)}';
   }
 
   @override
@@ -135,7 +133,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: priority,
+                    initialValue: priority,
                     decoration: const InputDecoration(
                       labelText: "Priority",
                       border: OutlineInputBorder(),
@@ -209,7 +207,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               decoration: const InputDecoration(
                 labelText: "Category",
                 border: OutlineInputBorder(),
@@ -243,7 +241,7 @@ class _TaskEditDialogState extends State<TaskEditDialog> {
             ),
             if (isRecurring)
               DropdownButtonFormField<String>(
-                value: recurringType,
+                initialValue: recurringType,
                 decoration: const InputDecoration(
                   labelText: "Repeat",
                   border: OutlineInputBorder(),

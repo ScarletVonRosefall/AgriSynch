@@ -262,7 +262,7 @@ class AuthService {
       // Sanitize all text inputs before saving to database
       final sanitizedName = name != null ? InputValidator.sanitizeName(name) : null;
       final sanitizedNickname = nickname != null ? InputValidator.sanitizeName(nickname) : null;
-      final sanitizedPhone = phone != null ? phone.trim() : null;
+      final sanitizedPhone = phone?.trim();
       final sanitizedBio = bio != null ? InputValidator.sanitizeDescription(bio, maxLength: 500) : null;
       final sanitizedLocation = location != null ? InputValidator.sanitizeAddress(location) : null;
 
