@@ -637,7 +637,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                                 ),
                                               ),
                                               GestureDetector(
-                                                onTap: () => Navigator.pushReplacementNamed(
+                                                onTap: () => Navigator.pushNamed(
                                                   context,
                                                   '/signup',
                                                 ),

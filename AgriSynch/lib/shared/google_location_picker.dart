@@ -227,8 +227,7 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
       zoom: 15,
     );
 
-    return Scaffold(
-      body: Stack(
+    return Stack(
         children: [
           GoogleMap(
             initialCameraPosition: initial,
@@ -351,8 +350,7 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 

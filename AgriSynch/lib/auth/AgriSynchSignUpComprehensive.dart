@@ -214,9 +214,28 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
   Widget build(BuildContext context) {
     final isDark = _themeNotifier.isDarkMode;
     final screenWidth = MediaQuery.of(context).size.width;
-    final maxWidth = screenWidth > 800 ? 600.0 : double.infinity;
-    final isMobile = screenWidth < 600;
-
+    
+    // Responsive sizing: adapt to mobile, tablet, and desktop
+    double maxWidth;
+    double horizontalPadding;
+    if (screenWidth < 480) {
+      // Small mobile
+      maxWidth = double.infinity;
+      horizontalPadding = 16;
+    } else if (screenWidth < 768) {
+      // Large mobile/small tablet
+      maxWidth = double.infinity;
+      horizontalPadding = 20;
+    } else if (screenWidth < 1024) {
+      // Tablet
+      maxWidth = 500;
+      horizontalPadding = 24;
+    } else {
+      // Desktop
+      maxWidth = 600;
+      horizontalPadding = 32;
+    }
+    
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -242,7 +261,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
             constraints: BoxConstraints(maxWidth: maxWidth),
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 16 : 24,
+                horizontal: horizontalPadding,
                 vertical: 24,
               ),
               child: Form(
