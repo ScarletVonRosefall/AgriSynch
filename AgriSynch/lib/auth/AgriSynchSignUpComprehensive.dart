@@ -84,11 +84,25 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
     );
 
     if (result != null && mounted) {
+      print('Location received from picker: ${result.address} (${result.latitude}, ${result.longitude})');
       setState(() {
         _latitude = result.latitude;
         _longitude = result.longitude;
         _selectedAddress = result.address;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Location saved! Ready to sign up.')),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1DBF73),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -126,10 +140,7 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
       final User? user = userCredential.user;
 
       if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
+        final userData = {
           'firstName': _firstNameController.text.trim(),
           'lastName': _lastNameController.text.trim(),
           'email': _emailController.text.trim(),
@@ -142,7 +153,16 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
           },
           'acceptedTermsAndPrivacy': true,
           'createdAt': FieldValue.serverTimestamp(),
-        });
+        };
+        
+        print('Saving user data to Firestore: $userData');
+        
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set(userData);
+        
+        print('User data saved successfully to Firestore!');
 
         String? token = await user.getIdToken();
         if (token != null) {

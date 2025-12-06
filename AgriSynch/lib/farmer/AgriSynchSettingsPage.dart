@@ -83,7 +83,6 @@ class AgriSynchSettingsPage extends StatefulWidget {
 class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
   final List<bool> _expanded = List.generate(6, (_) => false);
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
   int unreadNotifications = 0;
   String _selectedCurrency = 'PHP';
   final _themeNotifier = ThemeNotifier();
@@ -246,7 +245,6 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
       if (mounted) {
         setState(() {
           _notificationsEnabled = prefs.getBool('notifications') ?? true;
-          _darkModeEnabled = _themeNotifier.isDarkMode; // Use ThemeNotifier instead
           _selectedCurrency = currentCurrency;
         });
       }
@@ -540,6 +538,19 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                         const SizedBox(height: 16),
                         Column(
                           children: [
+                            // Edit Profile Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: _actionButton(
+                                "Edit Profile",
+                                icon: Icons.edit,
+                                isDarkMode: isDarkMode,
+                                onTap: () {
+                                  Navigator.pushNamed(context, '/profile');
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 10),
                             // Admin Dashboard Button (only visible to admins)
                             if (_isAdmin) ...[
                               SizedBox(
@@ -629,41 +640,6 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                   ),
                   _buildTile(
                     index: 2,
-                    title: "Appearance",
-                    icon: Icons.palette_outlined,
-                    cardColor: cardColor,
-                    textColor: textColor,
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          title: Text(
-                            "Dark Mode",
-                            style: TextStyle(
-                              color: textColor,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          subtitle: Text(
-                            "Use dark theme for better visibility",
-                            style: TextStyle(
-                              color: textColor.withAlpha((0.7 * 255).round()),
-                              fontSize: 12,
-                            ),
-                          ),
-                          value: _darkModeEnabled,
-                          activeThumbColor: const Color(0xFF00C853),
-                          onChanged: (value) async {
-                            setState(() {
-                              _darkModeEnabled = value;
-                            });
-                            await _themeNotifier.setDarkMode(value);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  _buildTile(
-                    index: 3,
                     title: "Currency",
                     icon: Icons.monetization_on_outlined,
                     cardColor: cardColor,
@@ -869,7 +845,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _infoRow("Version:", "1.0.0", textColor),
+                        _infoRow("Version:", "1.0", textColor),
                         _infoRow("Developer:", "Team AgriSynch", textColor),
                         _infoRow(
                           "Copyright:",
@@ -946,63 +922,47 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
 
   Widget _buildQuickActions({required bool isDarkMode}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1A2332),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF37474F),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha((0.05 * 255).round()),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withAlpha((0.2 * 255).round()),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Quick Actions",
             style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
               fontFamily: 'Poppins',
-              fontSize: 16,
+              fontSize: 18,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _quickActionButton(
-                  "Notifications",
-                  _notificationsEnabled
-                      ? Icons.notifications
-                      : Icons.notifications_off,
-                  isDarkMode,
-                  () {
-                    setState(() {
-                      _notificationsEnabled = !_notificationsEnabled;
-                    });
-                    updatePreference('notifications', _notificationsEnabled);
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _quickActionButton(
-                  "Dark Mode",
-                  _darkModeEnabled ? Icons.light_mode : Icons.dark_mode,
-                  isDarkMode,
-                  () async {
-                    setState(() {
-                      _darkModeEnabled = !_darkModeEnabled;
-                    });
-                    await _themeNotifier.setDarkMode(_darkModeEnabled);
-                  },
-                ),
-              ),
-            ],
+          const SizedBox(height: 16),
+          _quickActionButton(
+            "Notifications",
+            _notificationsEnabled
+                ? Icons.notifications_active
+                : Icons.notifications_off_outlined,
+            isDarkMode,
+            () {
+              setState(() {
+                _notificationsEnabled = !_notificationsEnabled;
+              });
+              updatePreference('notifications', _notificationsEnabled);
+            },
           ),
         ],
       ),
@@ -1015,37 +975,71 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
     bool isDarkMode,
     VoidCallback onTap,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade200,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF263238),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _notificationsEnabled ? const Color(0xFF1DBF73) : const Color(0xFF37474F),
+              width: 2,
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isDarkMode
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFF00C853),
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black87,
-                fontSize: 12,
-                fontFamily: 'Poppins',
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _notificationsEnabled 
+                      ? const Color(0xFF1DBF73).withAlpha((0.2 * 255).round())
+                      : const Color(0xFF37474F).withAlpha((0.3 * 255).round()),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  color: _notificationsEnabled 
+                      ? const Color(0xFF1DBF73)
+                      : const Color(0xFF78909C),
+                  size: 28,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFFE0E0E0),
+                    fontSize: 16,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _notificationsEnabled 
+                      ? const Color(0xFF1DBF73)
+                      : const Color(0xFF37474F),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _notificationsEnabled ? 'ON' : 'OFF',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

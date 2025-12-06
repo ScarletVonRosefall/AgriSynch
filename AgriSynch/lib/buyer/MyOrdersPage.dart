@@ -644,15 +644,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    final backgroundColor = isDarkMode
-        ? const Color(0xFF121212)
-        : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFF00C853);
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final backgroundColor = const Color(0xFF0F172A);
+    final headerColor = const Color(0xFF1A2332);
+    final cardColor = const Color(0xFF1A2332);
+    final textColor = Colors.white;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -724,10 +719,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                 ),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
                     const Expanded(
                       child: Text(
                         'My Orders',
@@ -740,7 +731,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(width: 48),
                   ],
                 ),
               ),
@@ -798,17 +788,18 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                         Icon(
                           Icons.receipt_long,
                           size: 80,
-                          color: textColor.withAlpha((0.5 * 255).round()),
+                          color: Colors.white.withAlpha((0.5 * 255).round()),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           selectedFilter == 'All'
                               ? 'No orders yet'
                               : 'No ${selectedFilter.toLowerCase()} orders',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 18,
-                            color: textColor.withAlpha((0.7 * 255).round()),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -817,7 +808,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 14,
-                            color: textColor.withAlpha((0.5 * 255).round()),
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
                           ),
                         ),
                       ],

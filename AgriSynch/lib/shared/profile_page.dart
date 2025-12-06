@@ -71,24 +71,50 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (userData != null && userData.exists) {
         final data = userData.data() as Map<String, dynamic>;
-        final fullName = data['name'] ?? '';
         
-        // Parse the full name into parts
-        _parseFullName(fullName);
+        // Check if profile has been set up (has 'name' field)
+        final hasProfileSetup = data.containsKey('name') && (data['name'] as String).isNotEmpty;
         
-        setState(() {
-          _nicknameController.text = data['nickname'] ?? '';
-          _emailController.text = userEmail; // Always use Firebase Auth email
-          _phoneController.text = data['phone'] ?? '';
-          _bioController.text = data['bio'] ?? '';
-          _locationController.text = data['location'] ?? '';
-          _profileImageBase64 = data['profileImage'] ?? '';
-          _isLoading = false;
-          // Auto-enable editing if profile is required
-          if (widget.isRequired) {
-            _isEditing = true;
-          }
-        });
+        if (hasProfileSetup) {
+          // Load existing profile data
+          final fullName = data['name'] ?? '';
+          _parseFullName(fullName);
+          
+          setState(() {
+            _nicknameController.text = data['nickname'] ?? '';
+            _emailController.text = userEmail;
+            _phoneController.text = data['phone'] ?? '';
+            _bioController.text = data['bio'] ?? '';
+            _locationController.text = data['location'] ?? '';
+            _profileImageBase64 = data['profileImage'] ?? '';
+            _isLoading = false;
+            if (widget.isRequired) {
+              _isEditing = true;
+            }
+          });
+        } else {
+          // Pre-fill from signup data
+          final firstName = data['firstName'] ?? '';
+          final lastName = data['lastName'] ?? '';
+          final phone = data['phone'] ?? '';
+          final address = data['address'] ?? '';
+          
+          setState(() {
+            _surnameController.text = lastName;
+            _firstNameController.text = firstName;
+            _middleNameController.text = ''; // Not collected during signup
+            _nicknameController.text = ''; // Not collected during signup
+            _emailController.text = userEmail;
+            _phoneController.text = phone;
+            _bioController.text = '';
+            _locationController.text = address;
+            _profileImageBase64 = '';
+            _isLoading = false;
+            if (widget.isRequired) {
+              _isEditing = true;
+            }
+          });
+        }
       } else {
         // Fallback to local storage for offline capability
         final name = await _storage.read(key: 'user_name') ?? '';
@@ -366,8 +392,8 @@ class _ProfilePageState extends State<ProfilePage> {
         height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFF4CAF50), width: 3),
+          color: const Color(0xFF263238),
+          border: Border.all(color: const Color(0xFF1DBF73), width: 3),
         ),
         child: ClipOval(
           child: _profileImageBase64 != null && _profileImageBase64!.isNotEmpty
@@ -404,31 +430,33 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
           automaticallyImplyLeading: !widget.isRequired, // Hide back button if required
           title: Text(widget.isRequired ? 'Complete Your Profile' : 'Profile', style: const TextStyle(
             fontFamily: 'Poppins',
             color: Colors.white,
           )),
-          backgroundColor: const Color(0xFF4CAF50),
+          backgroundColor: const Color(0xFF1A2332),
           foregroundColor: Colors.white,
         ),
         body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DBF73)),
           ),
         ),
       );
     }
 
     final scaffold = Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         automaticallyImplyLeading: !widget.isRequired, // Hide back button if required
         title: Text(widget.isRequired ? 'Complete Your Profile' : 'Profile', style: const TextStyle(
           fontFamily: 'Poppins',
           color: Colors.white,
         )),
-        backgroundColor: const Color(0xFF4CAF50),
+        backgroundColor: const Color(0xFF1A2332),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -512,7 +540,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       icon: const Icon(Icons.camera_alt),
                       label: const Text('Change Photo'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
+                        backgroundColor: const Color(0xFF1DBF73),
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -528,7 +556,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: Color(0xFF4CAF50),
+                color: Color(0xFF1DBF73),
               ),
             ),
             const SizedBox(height: 12),
@@ -605,9 +633,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                  color: const Color(0xFF263238),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                  border: Border.all(color: const Color(0xFF37474F), width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,15 +646,15 @@ class _ProfilePageState extends State<ProfilePage> {
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Color(0xFF4CAF50),
+                        color: Color(0xFF1DBF73),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Tap the edit button to update your profile information.',
                       style: TextStyle(
                         fontFamily: 'Poppins',
-                        color: Colors.grey[600],
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -680,9 +708,9 @@ class _ProfilePageState extends State<ProfilePage> {
               label,
               style: const TextStyle(
                 fontFamily: 'Poppins',
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 14,
-                color: Color(0xFF4CAF50),
+                color: Color(0xFFB0BEC5),
               ),
             ),
             if (isReadOnly) ...[
@@ -701,11 +729,11 @@ class _ProfilePageState extends State<ProfilePage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isReadOnly 
-                  ? Colors.grey[300]! 
-                  : (_isEditing ? const Color(0xFF4CAF50) : Colors.grey[300]!),
+                  ? const Color(0xFF37474F)
+                  : (_isEditing ? const Color(0xFF1DBF73) : const Color(0xFF37474F)),
               width: 1.5,
             ),
-            color: isReadOnly ? Colors.grey[100] : null,
+            color: isReadOnly ? const Color(0xFF1A1F2E) : const Color(0xFF263238),
           ),
           child: TextFormField(
             controller: controller,
@@ -716,14 +744,14 @@ class _ProfilePageState extends State<ProfilePage> {
             style: TextStyle(
               fontFamily: 'Poppins', 
               fontSize: 16,
-              color: isReadOnly ? Colors.grey[700] : null,
+              color: isReadOnly ? const Color(0xFF78909C) : const Color(0xFFE0E0E0),
             ),
             decoration: InputDecoration(
               prefixIcon: Icon(
                 icon,
                 color: isReadOnly 
-                    ? Colors.grey[500]
-                    : (_isEditing ? const Color(0xFF4CAF50) : Colors.grey[500]),
+                    ? const Color(0xFF78909C)
+                    : (_isEditing ? const Color(0xFF1DBF73) : const Color(0xFF78909C)),
               ),
               suffixIcon: isReadOnly 
                   ? Tooltip(
@@ -731,7 +759,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Icon(
                         Icons.info_outline,
                         size: 18,
-                        color: Colors.grey[500],
+                        color: const Color(0xFF78909C),
                       ),
                     )
                   : null,
@@ -756,9 +784,9 @@ class _ProfilePageState extends State<ProfilePage> {
           'Bio/Description',
           style: TextStyle(
             fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             fontSize: 14,
-            color: Color(0xFF4CAF50),
+            color: Color(0xFFB0BEC5),
           ),
         ),
         const SizedBox(height: 8),
@@ -766,23 +794,28 @@ class _ProfilePageState extends State<ProfilePage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _isEditing ? const Color(0xFF4CAF50) : Colors.grey[300]!,
+              color: _isEditing ? const Color(0xFF1DBF73) : const Color(0xFF37474F),
               width: 1.5,
             ),
+            color: const Color(0xFF263238),
           ),
           child: TextFormField(
             controller: _bioController,
             enabled: _isEditing,
             maxLines: 4,
-            style: const TextStyle(fontFamily: 'Poppins', fontSize: 16),
+            style: const TextStyle(
+              fontFamily: 'Poppins', 
+              fontSize: 16,
+              color: Color(0xFFE0E0E0),
+            ),
             decoration: InputDecoration(
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 60),
                 child: Icon(
                   Icons.description,
                   color: _isEditing
-                      ? const Color(0xFF4CAF50)
-                      : Colors.grey[500],
+                      ? const Color(0xFF1DBF73)
+                      : const Color(0xFF78909C),
                 ),
               ),
               border: InputBorder.none,
@@ -793,6 +826,9 @@ class _ProfilePageState extends State<ProfilePage> {
               hintText: _isEditing
                   ? 'Tell others about your farming experience, crops, specialties...'
                   : '',
+              hintStyle: const TextStyle(
+                color: Color(0xFF78909C),
+              ),
               hintMaxLines: 3,
             ),
           ),

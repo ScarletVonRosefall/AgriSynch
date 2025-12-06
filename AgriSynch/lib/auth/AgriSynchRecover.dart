@@ -129,6 +129,7 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -140,7 +141,7 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
                 icon: const Icon(
                   Icons.arrow_back,
                   size: 24,
-                  color: Colors.black,
+                  color: Colors.white,
                 ),
                 onPressed: () => Navigator.pop(context),
               ),
@@ -150,7 +151,11 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
                   children: [
                     const Text(
                       "Forgot Your Password?",
-                      style: TextStyle(fontFamily: 'Poppins', fontSize: 16),
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                     const Text(
                       "AgriSynch",
@@ -169,7 +174,7 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
               const SizedBox(height: 16),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00A862),
+                  color: const Color(0xFF1A2332),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 padding: const EdgeInsets.all(24),
@@ -203,7 +208,7 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _sendRecoveryEmail,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1B4D3E),
+                          backgroundColor: const Color(0xFF1DBF73),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
@@ -243,12 +248,18 @@ class _AgriSynchRecoverPageState extends State<AgriSynchRecoverPage> {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.emailAddress,
-      style: const TextStyle(fontFamily: 'Poppins'),
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+        color: Colors.white,
+      ),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: const Color(0xFFD9F2E6),
-        hintStyle: const TextStyle(fontFamily: 'Poppins'),
+        fillColor: const Color(0xFF263238),
+        hintStyle: const TextStyle(
+          fontFamily: 'Poppins',
+          color: Colors.white70,
+        ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,

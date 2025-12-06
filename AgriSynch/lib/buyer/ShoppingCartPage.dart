@@ -446,15 +446,10 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    final backgroundColor = isDarkMode
-        ? const Color(0xFF121212)
-        : const Color(0xFFF2FBE0);
-    final headerColor = isDarkMode
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFF00C853);
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final backgroundColor = const Color(0xFF0F172A);
+    final headerColor = const Color(0xFF1DBF73);
+    final cardColor = const Color(0xFF1A2332);
+    final textColor = Colors.white;
 
     return WillPopScope(
       onWillPop: () async {
@@ -547,15 +542,16 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                     Icon(
                       Icons.shopping_cart_outlined,
                       size: 80,
-                      color: textColor.withAlpha((0.5 * 255).round()),
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
                     ),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'Your cart is empty',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 18,
-                        color: textColor.withAlpha((0.7 * 255).round()),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -564,7 +560,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,
-                        color: textColor.withAlpha((0.5 * 255).round()),
+                        color: Colors.white.withAlpha((0.7 * 255).round()),
                       ),
                     ),
                   ],
@@ -608,11 +604,11 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                             ),
                             Text(
                               'Total: P${getTotalPrice().toStringAsFixed(2)}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontFamily: 'Poppins',
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF4CAF50),
+                                color: Color(0xFF1DBF73),
                               ),
                             ),
                           ],
@@ -620,7 +616,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                         ElevatedButton(
                           onPressed: checkout,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
+                            backgroundColor: const Color(0xFF1DBF73),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -704,9 +700,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                       const SizedBox(height: 4),
                                       Text(
                                         'P${item['price'].toStringAsFixed(2)} ${item['unit']}',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontFamily: 'Poppins',
-                                          color: const Color(0xFF4CAF50),
+                                          color: Color(0xFF1DBF73),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -727,13 +723,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                           ),
                                           child: Container(
                                             padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[300],
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF37474F),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(
                                               Icons.remove,
                                               size: 16,
+                                              color: Colors.white,
                                             ),
                                           ),
                                         ),
@@ -759,7 +756,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                           child: Container(
                                             padding: const EdgeInsets.all(4),
                                             decoration: const BoxDecoration(
-                                              color: Color(0xFF4CAF50),
+                                              color: Color(0xFF1DBF73),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(

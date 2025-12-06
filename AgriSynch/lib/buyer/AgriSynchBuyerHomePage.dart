@@ -57,29 +57,47 @@ class _AgriSynchBuyerHomePageState extends State<AgriSynchBuyerHomePage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: IndexedStack(index: _currentIndex, children: pages),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          navigationBarTheme: NavigationBarThemeData(
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              return const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w500,
+              );
+            }),
+          ),
+        ),
+        child: NavigationBar(
         selectedIndex: _currentIndex,
         backgroundColor: const Color(0xFF1A2332),
         indicatorColor: const Color(0xFF1DBF73),
         surfaceTintColor: const Color(0xFF1A2332),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.storefront),
+            icon: const Icon(Icons.storefront, color: Colors.white),
+            selectedIcon: const Icon(Icons.storefront, color: Colors.white),
             label: 'Products',
             tooltip: 'Browse Products',
           ),
           NavigationDestination(
-            icon: const Icon(Icons.receipt_long),
+            icon: const Icon(Icons.receipt_long, color: Colors.white),
+            selectedIcon: const Icon(Icons.receipt_long, color: Colors.white),
             label: 'Orders',
             tooltip: 'My Orders',
           ),
           NavigationDestination(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, color: Colors.white),
+            selectedIcon: const Icon(Icons.settings, color: Colors.white),
             label: 'Settings',
             tooltip: 'Settings',
           ),
         ],
+      ),
       ),
     );
   }

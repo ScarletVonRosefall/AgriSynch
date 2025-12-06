@@ -588,17 +588,6 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      onPressed: () {
-                        // If there's a previous route, pop. Otherwise navigate back to buyer home.
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.pop(context);
-                        } else {
-                          Navigator.pushReplacementNamed(context, '/buyer-home');
-                        }
-                      },
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
                     const Expanded(
                       child: Text(
                         'Browse Products',
@@ -701,16 +690,14 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                               _loadInitialProducts(); // Reload products when category changes
                             },
                             backgroundColor: Colors.white.withAlpha((0.85 * 255).round()),
-                            selectedColor: Colors.white,
+                            selectedColor: const Color(0xFF1DBF73),
                             labelStyle: TextStyle(
-                              color: const Color(0xFF2E7D32),
+                              color: isSelected ? Colors.white : const Color(0xFF2E7D32),
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                               fontSize: 14,
                             ),
-                            checkmarkColor: const Color(0xFF2E7D32),
-                            side: isSelected 
-                              ? const BorderSide(color: Color(0xFF2E7D32), width: 2)
-                              : BorderSide.none,
+                            checkmarkColor: Colors.white,
+                            side: BorderSide.none,
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                         );
@@ -1057,12 +1044,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                             );
                                           },
                                           style: OutlinedButton.styleFrom(
-                                            foregroundColor: ThemeHelper.getHeaderColor(isDarkMode),
-                                            side: BorderSide(color: ThemeHelper.getHeaderColor(isDarkMode)),
+                                            foregroundColor: Colors.white,
+                                            side: const BorderSide(color: Colors.white),
                                             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                                             minimumSize: const Size(0, 32),
                                           ),
-                                          child: const Icon(Icons.message, size: 14),
+                                          child: const Icon(Icons.message, size: 14, color: Colors.white),
                                         ),
                                       ),
                                       const SizedBox(width: 6),
@@ -1072,7 +1059,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                                             ? () => addToCart(product)
                                             : null,
                                         icon: const Icon(Icons.shopping_cart, size: 18),
-                                        color: ThemeHelper.getHeaderColor(isDarkMode),
+                                        color: Colors.white,
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(),
                                         tooltip: 'Add to Cart',

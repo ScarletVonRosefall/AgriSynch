@@ -42,6 +42,7 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
   List<_PlaceSuggestion> _suggestions = [];
   bool _loadingSuggestions = false;
   bool _isLocatingMe = false;
+  bool _isSelectMode = false;
 
   @override
   void initState() {
@@ -132,26 +133,85 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
   Future<void> _onMapTap(LatLng pos) async {
     _setMarker(pos.latitude, pos.longitude);
     await _reverseGeocode(pos.latitude, pos.longitude);
+    
+    // Show confirmation feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: const [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text('Location selected! Confirm below to save.')),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: const Color(0xFF1DBF73),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    
+    // Disable select mode after selecting
+    if (_isSelectMode) {
+      setState(() {
+        _isSelectMode = false;
+      });
+    }
   }
 
   Future<void> _reverseGeocode(double lat, double lon) async {
-    if (_apiKey == null || _apiKey!.isEmpty) return;
-    final uri = Uri.parse(
-      'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lon&key=${_apiKey!}',
-    );
-    try {
-      final res = await http.get(uri);
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body) as Map<String, dynamic>;
-        final results = (data['results'] as List?) ?? [];
-        final formatted = results.isNotEmpty ? results.first['formatted_address'] as String? : null;
-        setState(() {
-          _selectedAddress = formatted;
-        });
-        widget.onLocationSelected?.call(lat, lon, formatted);
+    String? address;
+    
+    // Try Google Maps API first if key is available
+    if (_apiKey != null && _apiKey.isNotEmpty) {
+      try {
+        final uri = Uri.parse(
+          'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lon&key=$_apiKey',
+        );
+        final res = await http.get(uri);
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body) as Map<String, dynamic>;
+          final results = (data['results'] as List?) ?? [];
+          if (results.isNotEmpty) {
+            address = results.first['formatted_address'] as String?;
+          }
+        }
+      } catch (e) {
+        print('Google geocoding error: $e');
       }
-    } catch (_) {
-      // ignore network errors
+    }
+    
+    // Fallback to Nominatim (OpenStreetMap) if Google failed or no API key
+    if (address == null) {
+      try {
+        final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json',
+        );
+        final res = await http.get(
+          uri,
+          headers: {'User-Agent': 'AgriSynch-App'},
+        );
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body) as Map<String, dynamic>;
+          address = data['display_name'] as String?;
+        }
+      } catch (e) {
+        print('Nominatim geocoding error: $e');
+      }
+    }
+    
+    // Update state and notify callback
+    if (address != null) {
+      setState(() {
+        _selectedAddress = address;
+      });
+      widget.onLocationSelected?.call(lat, lon, address);
+    } else {
+      // Even if address fetch failed, still provide coordinates with a default address
+      final defaultAddress = 'Lat: ${lat.toStringAsFixed(6)}, Lng: ${lon.toStringAsFixed(6)}';
+      setState(() {
+        _selectedAddress = defaultAddress;
+      });
+      widget.onLocationSelected?.call(lat, lon, defaultAddress);
     }
   }
 
@@ -239,6 +299,50 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
             compassEnabled: true,
             zoomControlsEnabled: true,
           ),
+          // Selection mode hint overlay
+          if (_isSelectMode)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black.withOpacity(0.1),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1DBF73),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.touch_app,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Tap anywhere on the map to select location',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 12,
             left: 12,
@@ -334,6 +438,74 @@ class _GoogleLocationPickerState extends State<GoogleLocationPicker> {
                     ),
                   ),
               ],
+            ),
+          ),
+          // Floating button for manual map selection
+          Positioned(
+            top: 280,
+            right: 12,
+            child: Tooltip(
+              message: 'Select location by tapping on map',
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _isSelectMode ? const Color(0xFF1DBF73) : const Color(0xFF1A2332),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _isSelectMode ? Colors.white : const Color(0xFF37474F),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      setState(() {
+                        _isSelectMode = !_isSelectMode;
+                      });
+                      // Show snackbar when enabled
+                      if (_isSelectMode) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tap anywhere on the map to select your location'),
+                            duration: Duration(seconds: 2),
+                            backgroundColor: Color(0xFF1DBF73),
+                          ),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isSelectMode ? Icons.gps_fixed : Icons.gps_not_fixed,
+                            color: _isSelectMode ? Colors.white : const Color(0xFF1DBF73),
+                            size: 28,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Select',
+                            style: TextStyle(
+                              color: _isSelectMode ? Colors.white : const Color(0xFF64B5A6),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           Positioned(
@@ -435,12 +607,21 @@ class _GoogleLocationPickerPageState extends State<GoogleLocationPickerPage> {
 
   void _confirmLocation() {
     if (_selectedLat != null && _selectedLon != null && _selectedAddress != null) {
+      print('Confirming location: $_selectedAddress ($_selectedLat, $_selectedLon)');
       Navigator.pop(
         context,
         LocationPickerResult(
           latitude: _selectedLat!,
           longitude: _selectedLon!,
           address: _selectedAddress!,
+        ),
+      );
+    } else {
+      print('Cannot confirm - missing data: lat=$_selectedLat, lon=$_selectedLon, address=$_selectedAddress');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a location first by tapping on the map'),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -464,14 +645,47 @@ class _GoogleLocationPickerPageState extends State<GoogleLocationPickerPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _picker,
-      floatingActionButton: _selectedLat != null
-          ? FloatingActionButton(
-              onPressed: _confirmLocation,
-              backgroundColor: const Color(0xFF1DBF73),
-              child: const Icon(Icons.check),
-            )
-          : null,
+      body: Column(
+        children: [
+          Expanded(child: _picker),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A2332),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: _selectedLat != null && _selectedLon != null && _selectedAddress != null
+                  ? _confirmLocation
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1DBF73),
+                disabledBackgroundColor: const Color(0xFF37474F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                _selectedLat != null ? 'Confirm Location' : 'Tap the map to select location',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
