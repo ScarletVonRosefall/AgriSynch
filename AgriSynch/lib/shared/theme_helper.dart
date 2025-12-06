@@ -71,12 +71,12 @@ class ThemeHelper {
   }
 
   // Light theme colors - improved contrast
-  static const Color lightBackground = Color(0xFFF2FBE0);
-  static const Color lightHeader = Color(0xFF00C853);
-  static const Color lightCard = Colors.white;
-  static const Color lightText = Color(0xFF212121); // Darker for better readability
-  static const Color lightSecondaryCard = Color(0xFFC5E1A5);
-  static const Color lightSecondaryText = Color(0xFF616161);
+  static const Color lightBackground = Color(0xFF0F172A);
+  static const Color lightHeader = Color(0xFF1A2332);
+  static const Color lightCard = Color(0xFF1A2332);
+  static const Color lightText = Color(0xFFE0E0E0); // Light text for dark background
+  static const Color lightSecondaryCard = Color(0xFF263238);
+  static const Color lightSecondaryText = Color(0xFFB0BEC5);
 
   // Dark theme colors - improved contrast and readability
   static const Color darkBackground = Color(0xFF0F172A); // Deep navy
@@ -105,7 +105,7 @@ class ThemeHelper {
   
   static Color getDividerColor(bool isDark) => isDark ? darkDivider : const Color(0xFFE0E0E0);
   
-  static Color getInputFillColor(bool isDark) => isDark ? const Color(0xFF263238) : const Color(0xFFD9F2E6);
+  static Color getInputFillColor(bool isDark) => const Color(0xFF263238);
   
   static Color getAppBarColor(bool isDark) => isDark ? darkHeader : lightHeader;
   
@@ -178,9 +178,7 @@ class ThemeHelper {
   // Button styles
   static ButtonStyle getPrimaryButtonStyle({required bool isDark}) {
     return ElevatedButton.styleFrom(
-      backgroundColor: isDark
-          ? const Color(0xFF4CAF50)
-          : const Color(0xFF00C853),
+      backgroundColor: const Color(0xFF1DBF73),
       foregroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
@@ -188,10 +186,8 @@ class ThemeHelper {
 
   static ButtonStyle getSecondaryButtonStyle({required bool isDark}) {
     return ElevatedButton.styleFrom(
-      backgroundColor: isDark
-          ? const Color(0xFF388E3C)
-          : const Color(0xFFDCE775),
-      foregroundColor: isDark ? Colors.white : const Color(0xFF212121),
+      backgroundColor: const Color(0xFF263238),
+      foregroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
@@ -235,11 +231,11 @@ class ThemeHelper {
   
   // Dialog theme
   static Color getDialogBackground(bool isDark) =>
-      isDark ? const Color(0xFF2A2A2A) : Colors.white;
+      const Color(0xFF1A2332);
   
   // Status colors that work in both themes
   static Color getSuccessColor(bool isDark) =>
-      isDark ? const Color(0xFF66BB6A) : const Color(0xFF4CAF50);
+      const Color(0xFF1DBF73);
   
   static Color getErrorColor(bool isDark) =>
       isDark ? const Color(0xFFEF5350) : const Color(0xFFF44336);

@@ -111,7 +111,7 @@ class _AgriSynchEmailVerificationPageState
         messenger.showSnackBar(
           const SnackBar(
             content: Text('✅ Email verified successfully! Redirecting...'),
-            backgroundColor: Color(0xFF00C853),
+            backgroundColor: Color(0xFF1DBF73),
             duration: Duration(seconds: 2),
           ),
         );
@@ -138,7 +138,7 @@ class _AgriSynchEmailVerificationPageState
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ Verification email sent! Please check your inbox.'),
-              backgroundColor: Color(0xFF00C853),
+              backgroundColor: Color(0xFF1DBF73),
               duration: Duration(seconds: 3),
             ),
           );
@@ -186,7 +186,7 @@ class _AgriSynchEmailVerificationPageState
         messenger.showSnackBar(
           const SnackBar(
             content: Text('✅ Email verified successfully! Redirecting...'),
-            backgroundColor: Color(0xFF00C853),
+            backgroundColor: Color(0xFF1DBF73),
             duration: Duration(seconds: 2),
           ),
         );
@@ -238,9 +238,9 @@ class _AgriSynchEmailVerificationPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2FBE0),
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF00C853),
+        backgroundColor: const Color(0xFF1DBF73),
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
@@ -276,10 +276,10 @@ class _AgriSynchEmailVerificationPageState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF00C853).withAlpha((0.1 * 255).round()),
+                color: const Color(0xFF1DBF73).withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xFF00C853),
+                  color: const Color(0xFF1DBF73),
                   width: 1,
                 ),
               ),
@@ -289,7 +289,7 @@ class _AgriSynchEmailVerificationPageState
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
-                      color: const Color(0xFF00C853),
+                      color: const Color(0xFF1DBF73),
                       strokeWidth: 2,
                       value: _checkAttempts / _maxAttempts,
                     ),
@@ -305,7 +305,7 @@ class _AgriSynchEmailVerificationPageState
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'Poppins',
-                            color: Color(0xFF00C853),
+                            color: Color(0xFF1DBF73),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -341,7 +341,7 @@ class _AgriSynchEmailVerificationPageState
               child: ElevatedButton(
                 onPressed: isLoading ? null : resendVerificationEmail,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C853),
+                  backgroundColor: const Color(0xFF1DBF73),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -385,11 +385,11 @@ class _AgriSynchEmailVerificationPageState
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: const BorderSide(color: Color(0xFF00C853)),
+                  side: const BorderSide(color: Color(0xFF1DBF73)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  foregroundColor: const Color(0xFF00C853),
+                  foregroundColor: const Color(0xFF1DBF73),
                 ),
               ),
             ),

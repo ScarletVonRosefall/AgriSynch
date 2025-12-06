@@ -694,7 +694,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                 icon: const Icon(Icons.camera_alt),
                 label: Text(product.images.isEmpty ? 'Take Photo' : 'Add Photo (Camera)'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: const Color(0xFF1DBF73),
                   minimumSize: const Size(double.infinity, 45),
                 ),
               ),
@@ -710,7 +710,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                 icon: const Icon(Icons.photo_library),
                 label: Text(product.images.isEmpty ? 'Choose from Gallery' : 'Add Photo (Gallery)'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: const Color(0xFF1DBF73),
                   minimumSize: const Size(double.infinity, 45),
                 ),
               ),
@@ -802,7 +802,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Photo added successfully!'),
-              backgroundColor: Color(0xFF4CAF50),
+              backgroundColor: Color(0xFF1DBF73),
             ),
           );
         }
@@ -892,7 +892,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Photo added successfully!'),
-          backgroundColor: Color(0xFF4CAF50),
+          backgroundColor: Color(0xFF1DBF73),
         ),
       );
     } catch (e) {
@@ -977,7 +977,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
               icon: const Icon(Icons.camera_alt),
               label: const Text('Take New Photo'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: const Color(0xFF1DBF73),
                 minimumSize: const Size(double.infinity, 45),
               ),
             ),
@@ -990,7 +990,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
               icon: const Icon(Icons.photo_library),
               label: const Text('Choose from Gallery'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: const Color(0xFF1DBF73),
                 minimumSize: const Size(double.infinity, 45),
               ),
             ),
@@ -1068,7 +1068,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Photo replaced successfully!'),
-            backgroundColor: Color(0xFF4CAF50),
+            backgroundColor: Color(0xFF1DBF73),
           ),
         );
       }
@@ -1147,7 +1147,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Photo replaced successfully!'),
-            backgroundColor: Color(0xFF4CAF50),
+            backgroundColor: Color(0xFF1DBF73),
           ),
         );
       }
@@ -1432,13 +1432,13 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                             Icon(
                                               product.images.isEmpty ? Icons.add_photo_alternate : Icons.refresh,
                                               size: 20,
-                                              color: product.images.isEmpty ? Color(0xFF4CAF50) : Colors.orange,
+                                              color: product.images.isEmpty ? Color(0xFF1DBF73) : Colors.orange,
                                             ),
                                             SizedBox(width: 8),
                                             Text(
                                               product.images.isEmpty ? 'Add Photos' : 'Replace Photo',
                                               style: TextStyle(
-                                                color: product.images.isEmpty ? Color(0xFF4CAF50) : Colors.orange,
+                                                color: product.images.isEmpty ? Color(0xFF1DBF73) : Colors.orange,
                                               ),
                                             ),
                                           ],
@@ -1526,7 +1526,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                     child: Text(
                                       '$_currencySymbol${product.price.toStringAsFixed(2)} ${product.unit}',
                                       style: const TextStyle(
-                                        color: Color(0xFF4CAF50),
+                                        color: Color(0xFF1DBF73),
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
@@ -1587,13 +1587,13 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
                                                         ? '${product.name} is now available'
                                                         : '${product.name} marked as unavailable',
                                                   ),
-                                                  backgroundColor: const Color(0xFF4CAF50),
+                                                  backgroundColor: const Color(0xFF1DBF73),
                                                   duration: const Duration(seconds: 2),
                                                 ),
                                               );
                                             }
                                           },
-                                          activeThumbColor: const Color(0xFF4CAF50),
+                                          activeThumbColor: const Color(0xFF1DBF73),
                                         ),
                                       ),
                                       Flexible(
@@ -1649,7 +1649,7 @@ class _AgriSynchProductsPageState extends State<AgriSynchProductsPage> {
       case 'crops':
         return const Color(0xFF66BB6A);
       case 'vegetables':
-        return const Color(0xFF4CAF50);
+        return const Color(0xFF1DBF73);
       case 'fruits':
         return const Color(0xFFEC407A);
       case 'dairy':

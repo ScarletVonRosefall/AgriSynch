@@ -271,7 +271,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 ),
               ),
               value: weatherDependent,
-              activeThumbColor: const Color(0xFF4CAF50),
+              activeThumbColor: const Color(0xFF1DBF73),
               onChanged: (bool value) {
                 setState(() {
                   weatherDependent = value;
@@ -324,7 +324,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
                 ),
               ),
               value: isRecurring,
-              activeThumbColor: const Color(0xFF4CAF50),
+              activeThumbColor: const Color(0xFF1DBF73),
               onChanged: (bool value) {
                 setState(() {
                   isRecurring = value;
@@ -399,7 +399,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
             }
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4CAF50),
+            backgroundColor: const Color(0xFF1DBF73),
             foregroundColor: Colors.white,
           ),
           child: const Text("Create Task"),

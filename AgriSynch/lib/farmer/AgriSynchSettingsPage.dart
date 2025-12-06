@@ -44,9 +44,9 @@ class ThemeProvider extends ChangeNotifier {
 
   ThemeData get lightTheme => ThemeData(
     primarySwatch: Colors.green,
-    scaffoldBackgroundColor: const Color(0xFFF2FBE0),
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF00C853),
+      backgroundColor: Color(0xFF1A2332),
       foregroundColor: Colors.white,
     ),
     cardColor: Colors.white,
@@ -59,12 +59,12 @@ class ThemeProvider extends ChangeNotifier {
 
   ThemeData get darkTheme => ThemeData(
     primarySwatch: Colors.green,
-    scaffoldBackgroundColor: const Color(0xFF121212),
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF2E7D32),
+      backgroundColor: Color(0xFF1A2332),
       foregroundColor: Colors.white,
     ),
-    cardColor: const Color(0xFF1E1E1E),
+    cardColor: const Color(0xFF1A2332),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'Poppins'),
       bodyMedium: TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'Poppins'),
@@ -1290,7 +1290,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Sending feedback... Thank you!"),
-        backgroundColor: Color(0xFF00A862),
+        backgroundColor: Color(0xFF1DBF73),
         duration: Duration(seconds: 2),
       ),
     );
@@ -1305,7 +1305,7 @@ class _AgriSynchSettingsPageState extends State<AgriSynchSettingsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("✓ Feedback sent successfully!"),
-              backgroundColor: Color(0xFF00C853),
+              backgroundColor: Color(0xFF1DBF73),
               duration: Duration(seconds: 2),
             ),
           );

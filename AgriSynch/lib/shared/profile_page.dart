@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/auth_service.dart';
 import '../services/validation_service.dart';
 import 'theme_helper.dart';
+import 'google_location_picker.dart';
 import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
@@ -171,6 +172,37 @@ class _ProfilePageState extends State<ProfilePage> {
       _surnameController.text = words.isNotEmpty ? words[0] : '';
       _firstNameController.text = words.length > 1 ? words[1] : '';
       _middleNameController.text = words.length > 2 ? words.sublist(2).join(' ') : '';
+    }
+  }
+
+  Future<void> _openGoogleLocationPicker() async {
+    final result = await Navigator.push<LocationPickerResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const GoogleLocationPickerPage(),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _locationController.text = result.address;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Location set: ${result.address}')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1DBF73),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -619,12 +651,75 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 20),
-            _buildProfileField(
-              label: 'Location',
-              controller: _locationController,
-              icon: Icons.location_on,
-              hintText: 'Farm location, city, region',
-            ),
+            // Location Section - matches signup style
+            if (_isEditing) ...[
+              const Text(
+                'Location',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFB0BEC5),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _openGoogleLocationPicker,
+                  icon: const Icon(Icons.location_on, color: Colors.white),
+                  label: Text(
+                    _locationController.text.isNotEmpty ? 'Change Location' : 'Select Location on Map',
+                    style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DBF73),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
+              ),
+              if (_locationController.text.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1DBF73).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF1DBF73)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Color(0xFF1DBF73)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _locationController.text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ] else ...[
+              _buildProfileField(
+                label: 'Location',
+                controller: _locationController,
+                icon: Icons.location_on,
+                hintText: 'Farm location, city, region',
+              ),
+            ],
             const SizedBox(height: 20),
             _buildBioField(),
             const SizedBox(height: 40),

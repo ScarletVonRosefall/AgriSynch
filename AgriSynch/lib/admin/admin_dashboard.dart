@@ -119,8 +119,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 // Prevent back navigation on admin dashboard
               },
               child: Scaffold(
+                backgroundColor: const Color(0xFF0F172A),
                 appBar: AppBar(
-                  backgroundColor: const Color(0xFF00A862),
+                  backgroundColor: const Color(0xFF1A2332),
                   automaticallyImplyLeading: false,
                   title: const Text('Admin Dashboard', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, color: Colors.white)),
                   centerTitle: true,
@@ -176,9 +177,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     controller: _tabController,
                     isScrollable: true,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    indicatorColor: Colors.white,
+                    indicatorColor: const Color(0xFF1DBF73),
+                    indicatorWeight: 3,
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
+                    unselectedLabelColor: const Color(0xFFB0BEC5),
                     labelStyle: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w600,
@@ -203,11 +205,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(color: Color(0xFF00A862)),
+                          CircularProgressIndicator(color: Color(0xFF1DBF73)),
                           SizedBox(height: 16),
                           Text(
                             'Processing...',
-                            style: TextStyle(fontFamily: 'Poppins', fontSize: 16),
+                            style: TextStyle(fontFamily: 'Poppins', fontSize: 16, color: Colors.white),
                           ),
                         ],
                       ),
@@ -238,13 +240,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Platform Overview',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: ThemeHelper.getTextColor(isDarkMode),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 16),
@@ -486,7 +488,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF00A862)),
+            child: CircularProgressIndicator(color: Color(0xFF1DBF73)),
           );
         }
 
@@ -732,6 +734,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 onChanged: (value) => setState(() => _userSearchQuery = value.toLowerCase()),
               ),
               const SizedBox(height: 12),
+              // Create User Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _showCreateUserDialog,
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Create New User', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DBF73),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               // Filter chips with Select All
               Container(
                 height: 70,
@@ -772,10 +789,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       FilterChip(
                         label: const Text('All', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                         selected: _userTypeFilter == 'all',
-                        selectedColor: const Color(0xFF00A862),
+                        selectedColor: const Color(0xFF1DBF73),
+                        backgroundColor: const Color(0xFF1A2332),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         labelStyle: TextStyle(
-                          color: _userTypeFilter == 'all' ? Colors.white : Colors.black,
+                          color: _userTypeFilter == 'all' ? Colors.white : const Color(0xFFB0BEC5),
                         ),
                         onSelected: (selected) => setState(() => _userTypeFilter = 'all'),
                       ),
@@ -783,10 +801,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       FilterChip(
                         label: const Text('Farmers', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                         selected: _userTypeFilter == 'Farmer',
-                        selectedColor: const Color(0xFF00A862),
+                        selectedColor: const Color(0xFF1DBF73),
+                        backgroundColor: const Color(0xFF1A2332),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         labelStyle: TextStyle(
-                          color: _userTypeFilter == 'Farmer' ? Colors.white : Colors.black,
+                          color: _userTypeFilter == 'Farmer' ? Colors.white : const Color(0xFFB0BEC5),
                         ),
                         onSelected: (selected) => setState(() => _userTypeFilter = 'Farmer'),
                       ),
@@ -794,10 +813,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                       FilterChip(
                         label: const Text('Buyers', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                         selected: _userTypeFilter == 'Buyer',
-                        selectedColor: const Color(0xFF00A862),
+                        selectedColor: const Color(0xFF1DBF73),
+                        backgroundColor: const Color(0xFF1A2332),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         labelStyle: TextStyle(
-                          color: _userTypeFilter == 'Buyer' ? Colors.white : Colors.black,
+                          color: _userTypeFilter == 'Buyer' ? Colors.white : const Color(0xFFB0BEC5),
                         ),
                         onSelected: (selected) => setState(() => _userTypeFilter = 'Buyer'),
                       ),
@@ -806,9 +826,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         label: const Text('Admins', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                         selected: _userTypeFilter == 'Admin',
                         selectedColor: Colors.red,
+                        backgroundColor: const Color(0xFF1A2332),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         labelStyle: TextStyle(
-                          color: _userTypeFilter == 'Admin' ? Colors.white : Colors.black,
+                          color: _userTypeFilter == 'Admin' ? Colors.white : const Color(0xFFB0BEC5),
                         ),
                         onSelected: (selected) => setState(() => _userTypeFilter = 'Admin'),
                       ),
@@ -887,7 +908,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF1DBF73)));
               }
 
               var users = snapshot.data?.docs ?? [];
@@ -934,6 +955,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   final email = data['email'] ?? '';
                   final accountType = data['accountType'] ?? 'Unknown';
                   final isAdmin = data['isAdmin'] == true;
+                  final isProtectedByName = name.toLowerCase() == 'name'; // Protect account with name 'name'
                   final isBanned = data['banned'] == true;
                   final suspendedUntil = data['suspendedUntil'] as Timestamp?;
                   final isSuspended = suspendedUntil != null && 
@@ -960,7 +982,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         children: [
                           Checkbox(
                             value: _selectedUserIds.contains(user.id),
-                            onChanged: (isAdmin || user.id.isEmpty) ? null : (selected) {
+                            onChanged: (isAdmin || isProtectedByName || user.id.isEmpty) ? null : (selected) {
                               setState(() {
                                 if (selected == true) {
                                   _selectedUserIds.add(user.id);
@@ -973,7 +995,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                           CircleAvatar(
                             backgroundColor: isBanned 
                                 ? Colors.red 
-                                : (isAdmin ? Colors.purple : const Color(0xFF00A862)),
+                                : (isAdmin ? Colors.purple : const Color(0xFF1DBF73)),
                             child: Icon(
                               isBanned 
                                   ? Icons.block 
@@ -1009,7 +1031,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                               ],
                             ),
                           ),
-                          _buildUserActionsMenu(context, user.id, name, data, isAdmin, isBanned, isSuspended),
+                          _buildUserActionsMenu(context, user.id, name, data, isAdmin, isProtectedByName, isBanned, isSuspended),
                         ],
                       ),
                     ),
@@ -1064,7 +1086,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF1DBF73)));
               }
 
               var products = snapshot.data?.docs ?? [];
@@ -1107,7 +1129,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     color: ThemeHelper.getCardColor(isDarkMode),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: isAdminOnly ? Colors.orange : const Color(0xFF00A862),
+                        backgroundColor: isAdminOnly ? Colors.orange : const Color(0xFF1DBF73),
                         child: Icon(
                           isAdminOnly ? Icons.admin_panel_settings : Icons.inventory,
                           color: Colors.white,
@@ -1149,7 +1171,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit, color: Color(0xFF00A862)),
+                            icon: const Icon(Icons.edit, color: Color(0xFF1DBF73)),
                             onPressed: () => _editProduct(product.id, data),
                           ),
                           IconButton(
@@ -1203,10 +1225,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               FilterChip(
                 label: const Text('All', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'all',
-                selectedColor: const Color(0xFF00A862),
+                selectedColor: const Color(0xFF1DBF73),
+                backgroundColor: const Color(0xFF1A2332),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
-                  color: _orderStatusFilter == 'all' ? Colors.white : Colors.black,
+                  color: _orderStatusFilter == 'all' ? Colors.white : const Color(0xFFB0BEC5),
                 ),
                 onSelected: (selected) => setState(() => _orderStatusFilter = 'all'),
               ),
@@ -1215,9 +1238,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 label: const Text('Pending', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'pending',
                 selectedColor: Colors.orange,
+                backgroundColor: const Color(0xFF1A2332),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
-                  color: _orderStatusFilter == 'pending' ? Colors.white : Colors.black,
+                  color: _orderStatusFilter == 'pending' ? Colors.white : const Color(0xFFB0BEC5),
                 ),
                 onSelected: (selected) => setState(() => _orderStatusFilter = 'pending'),
               ),
@@ -1226,9 +1250,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 label: const Text('Confirmed', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'confirmed',
                 selectedColor: Colors.blue,
+                backgroundColor: const Color(0xFF1A2332),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
-                  color: _orderStatusFilter == 'confirmed' ? Colors.white : Colors.black,
+                  color: _orderStatusFilter == 'confirmed' ? Colors.white : const Color(0xFFB0BEC5),
                 ),
                 onSelected: (selected) => setState(() => _orderStatusFilter = 'confirmed'),
               ),
@@ -1237,9 +1262,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 label: const Text('Delivered', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'delivered',
                 selectedColor: Colors.green,
+                backgroundColor: const Color(0xFF1A2332),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
-                  color: _orderStatusFilter == 'delivered' ? Colors.white : Colors.black,
+                  color: _orderStatusFilter == 'delivered' ? Colors.white : const Color(0xFFB0BEC5),
                 ),
                 onSelected: (selected) => setState(() => _orderStatusFilter = 'delivered'),
               ),
@@ -1248,9 +1274,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                 label: const Text('Cancelled', style: TextStyle(fontFamily: 'Poppins', fontSize: 16)),
                 selected: _orderStatusFilter == 'cancelled',
                 selectedColor: Colors.red,
+                backgroundColor: const Color(0xFF1A2332),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 labelStyle: TextStyle(
-                  color: _orderStatusFilter == 'cancelled' ? Colors.white : Colors.black,
+                  color: _orderStatusFilter == 'cancelled' ? Colors.white : const Color(0xFFB0BEC5),
                 ),
                 onSelected: (selected) => setState(() => _orderStatusFilter = 'cancelled'),
               ),
@@ -1269,7 +1296,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF1DBF73)));
               }
 
               var orders = snapshot.data?.docs ?? [];
@@ -1391,7 +1418,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF1DBF73)));
               }
 
               var conversations = snapshot.data?.docs ?? [];
@@ -1446,7 +1473,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     color: ThemeHelper.getCardColor(isDarkMode),
                     child: ListTile(
                       leading: const CircleAvatar(
-                        backgroundColor: Color(0xFF00A862),
+                        backgroundColor: Color(0xFF1DBF73),
                         child: Icon(Icons.chat, color: Colors.white),
                       ),
                       title: Text(
@@ -1464,7 +1491,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.visibility, color: Color(0xFF00A862)),
+                            icon: const Icon(Icons.visibility, color: Color(0xFF1DBF73)),
                             tooltip: 'View conversation',
                             onPressed: () => _viewConversationDetails(conversation.id, buyerName, farmerName, buyerId, farmerId),
                           ),
@@ -1515,9 +1542,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     }
   }
 
-  Widget _buildUserActionsMenu(BuildContext context, String userId, String name, Map<String, dynamic> data, bool isAdmin, bool isBanned, bool isSuspended) {
+  Widget _buildUserActionsMenu(BuildContext context, String userId, String name, Map<String, dynamic> data, bool isAdmin, bool isProtectedByName, bool isBanned, bool isSuspended) {
     final isDarkMode = _themeNotifier.isDarkMode;
-    final isProtected = isAdmin || userId.isEmpty;
+    final isProtected = isAdmin || isProtectedByName || userId.isEmpty;
 
     return IconButton(
       icon: Icon(
@@ -1676,7 +1703,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           CircleAvatar(
             backgroundColor: isBanned 
                 ? Colors.red 
-                : (isAdmin ? Colors.purple : const Color(0xFF00A862)),
+                : (isAdmin ? Colors.purple : const Color(0xFF1DBF73)),
             child: Icon(
               isBanned 
                   ? Icons.block 
@@ -1895,6 +1922,177 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         );
       },
     );
+  }
+
+  // Create new user dialog
+  Future<void> _showCreateUserDialog() async {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    String selectedAccountType = 'Farmer';
+    bool obscurePassword = true;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Create New User', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    labelStyle: TextStyle(fontFamily: 'Poppins'),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  style: const TextStyle(fontFamily: 'Poppins'),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    labelStyle: TextStyle(fontFamily: 'Poppins'),
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  style: const TextStyle(fontFamily: 'Poppins'),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: const TextStyle(fontFamily: 'Poppins'),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setDialogState(() => obscurePassword = !obscurePassword),
+                    ),
+                  ),
+                  style: const TextStyle(fontFamily: 'Poppins'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedAccountType,
+                  decoration: const InputDecoration(
+                    labelText: 'Account Type',
+                    labelStyle: TextStyle(fontFamily: 'Poppins'),
+                    prefixIcon: Icon(Icons.account_circle),
+                  ),
+                  style: const TextStyle(fontFamily: 'Poppins', color: Colors.black),
+                  items: const [
+                    DropdownMenuItem(value: 'Farmer', child: Text('Farmer')),
+                    DropdownMenuItem(value: 'Buyer', child: Text('Buyer')),
+                  ],
+                  onChanged: (value) => setDialogState(() => selectedAccountType = value!),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel', style: TextStyle(fontFamily: 'Poppins')),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a name')),
+                  );
+                  return;
+                }
+                if (emailController.text.trim().isEmpty || !emailController.text.contains('@')) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid email')),
+                  );
+                  return;
+                }
+                if (passwordController.text.trim().length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Password must be at least 6 characters')),
+                  );
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1DBF73)),
+              child: const Text('Create', style: TextStyle(fontFamily: 'Poppins')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _createNewUser(
+        nameController.text.trim(),
+        emailController.text.trim(),
+        passwordController.text.trim(),
+        selectedAccountType,
+      );
+    }
+  }
+
+  Future<void> _createNewUser(String name, String email, String password, String accountType) async {
+    setState(() => _isProcessing = true);
+
+    try {
+      // Create user with Firebase Auth
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final userId = credential.user!.uid;
+
+      // Update display name
+      await credential.user!.updateDisplayName(name);
+
+      // Create user document in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'name': name,
+        'email': email,
+        'accountType': accountType,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isAdmin': false,
+        'isBanned': false,
+        'createdBy': 'admin',
+      });
+
+      if (!mounted) return;
+      
+      _showSuccess('User "$name" created successfully as $accountType');
+      
+      // Sign out the newly created user so admin stays logged in
+      await FirebaseAuth.instance.signOut();
+      
+      // Re-authenticate admin
+      // Note: Admin will need to log back in
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User created. Please log back in as admin.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+      // Navigate back to login
+      Navigator.of(context).pushReplacementNamed('/login');
+      
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Error creating user: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 
   Widget _buildUnbanDialog(String userId, String userName) {
@@ -2344,7 +2542,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     ),
                     value: isAdminOnly,
                     onChanged: (value) => setDialogState(() => isAdminOnly = value ?? false),
-                    activeColor: const Color(0xFF00A862),
+                    activeColor: const Color(0xFF1DBF73),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ],
@@ -2357,7 +2555,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00A862)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1DBF73)),
                 child: const Text('Save', style: TextStyle(fontFamily: 'Poppins')),
               ),
             ],
@@ -2422,7 +2620,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF00A862),
+                  color: Color(0xFF1DBF73),
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(12),
                     topRight: Radius.circular(12),
@@ -2476,7 +2674,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     }
 
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: Color(0xFF00A862)));
+                      return const Center(child: CircularProgressIndicator(color: Color(0xFF1DBF73)));
                     }
 
                     var messages = snapshot.data?.docs ?? [];
@@ -2545,7 +2743,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: isBuyer ? Colors.blue[50] : const Color(0xFF00A862),
+                                    color: isBuyer ? Colors.blue[50] : const Color(0xFF1DBF73),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Column(
@@ -2777,11 +2975,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   // Bulk Actions Methods
   void _toggleSelectAllUsers() {
     if (_selectedUserIds.isEmpty) {
-      // Select all visible users
+      // Select all visible users (excluding admins and protected accounts)
       FirebaseFirestore.instance.collection('users').get().then((snapshot) {
         if (mounted) {
           setState(() {
-            _selectedUserIds = snapshot.docs.map((doc) => doc.id).toSet();
+            _selectedUserIds = snapshot.docs
+                .where((doc) {
+                  final data = doc.data();
+                  final isAdmin = data['isAdmin'] == true;
+                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  final isProtectedByName = name == 'name';
+                  return !(isAdmin || isProtectedByName); // Exclude admin accounts and 'name' account
+                })
+                .map((doc) => doc.id)
+                .toSet();
           });
         }
       }).catchError((e) {

@@ -790,7 +790,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
       backgroundColor: backgroundColor,
       floatingActionButton: FloatingActionButton(
         onPressed: addTask,
-        backgroundColor: const Color(0xFF00C853),
+        backgroundColor: const Color(0xFF1DBF73),
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Column(
@@ -970,7 +970,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                             fontFamily: 'Poppins',
                           ),
                         ),
-                        selectedColor: const Color(0xFF00C853),
+                        selectedColor: const Color(0xFF1DBF73),
                         backgroundColor: isDarkMode
                             ? const Color(0xFF2C2C2C)
                             : Colors.grey.shade100,
@@ -1183,7 +1183,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                                 IconButton(
                                   icon: const Icon(Icons.edit),
                                   onPressed: () => editTask(originalIndex),
-                                  color: const Color(0xFF00C853),
+                                  color: const Color(0xFF1DBF73),
                                   tooltip: 'Edit task',
                                 ),
                                 IconButton(
@@ -1243,7 +1243,7 @@ class _AgriSynchTasksPageState extends State<AgriSynchTasksPage> {
                                     value: task['completed'] == true,
                                     onChanged: (value) =>
                                         toggleDone(originalIndex, value ?? false),
-                                    activeColor: const Color(0xFF00C853),
+                                    activeColor: const Color(0xFF1DBF73),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4),
                                     ),

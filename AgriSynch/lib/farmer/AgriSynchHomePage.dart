@@ -41,12 +41,13 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   Timer? _debounceTimer;
   Timer? _refreshTimer;
   Timer? _reloadTimer;
-  
+
   StreamSubscription? _tasksSubscription;
   StreamSubscription? _ordersSubscription;
   StreamSubscription? _banCheckSubscription;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _summaryPeriod = 'today'; // 'today', 'week', or 'month'
 
   @override
   void initState() {
@@ -59,6 +60,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   void _onThemeChanged() {
     if (mounted) setState(() {});
   }
+
   void _setupBanListener() {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
@@ -68,34 +70,40 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         .doc(currentUser.uid)
         .snapshots()
         .timeout(const Duration(seconds: 10))
-        .listen((snapshot) async {
-      if (!snapshot.exists || !mounted) return;
+        .listen(
+          (snapshot) async {
+            if (!snapshot.exists || !mounted) return;
 
-      final data = snapshot.data();
-      final isBanned = data?['banned'] == true;
-      final suspendedUntil = data?['suspendedUntil'] as Timestamp?;
-      final isSuspended = suspendedUntil != null && 
-                         suspendedUntil.toDate().isAfter(DateTime.now());
+            final data = snapshot.data();
+            final isBanned = data?['banned'] == true;
+            final suspendedUntil = data?['suspendedUntil'] as Timestamp?;
+            final isSuspended =
+                suspendedUntil != null &&
+                suspendedUntil.toDate().isAfter(DateTime.now());
 
-      if (isBanned || isSuspended) {
-        await FirebaseAuth.instance.signOut();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isBanned 
-                ? 'Your account has been banned. Reason: ${data?['banReason'] ?? 'Terms violation'}'
-                : 'Your account has been suspended until ${suspendedUntil?.toDate().toString().split(' ')[0]}',
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
+            if (isBanned || isSuspended) {
+              await FirebaseAuth.instance.signOut();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isBanned
+                        ? 'Your account has been banned. Reason: ${data?['banReason'] ?? 'Terms violation'}'
+                        : 'Your account has been suspended until ${suspendedUntil?.toDate().toString().split(' ')[0]}',
+                  ),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/login', (route) => false);
+            }
+          },
+          onError: (error) {
+            print('Ban check subscription error: $error');
+          },
         );
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-      }
-    }, onError: (error) {
-      print('Ban check subscription error: $error');
-    });
   }
 
   @override
@@ -118,9 +126,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         _isLoading = true;
       });
 
-      await Future.wait([
-        loadTheme(),
-      ]).timeout(const Duration(seconds: 3));
+      await Future.wait([loadTheme()]).timeout(const Duration(seconds: 3));
 
       if (!mounted) return;
 
@@ -167,8 +173,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
           loadTasksAndOrders(),
           loadUnreadNotifications(),
         ]).timeout(const Duration(seconds: 5));
-      } catch (e) {
-      }
+      } catch (e) {}
     });
   }
 
@@ -177,7 +182,9 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
     // Load these independently without blocking each other
     loadWeather().catchError((e) => print('Weather load failed: $e'));
-    checkAndCreateSampleNotifications().catchError((e) => print('Notifications check failed: $e'));
+    checkAndCreateSampleNotifications().catchError(
+      (e) => print('Notifications check failed: $e'),
+    );
   }
 
   Future<void> loadTheme() async {
@@ -192,75 +199,86 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       _ordersSubscription?.cancel();
 
       // Add timeout wrapper for task stream
-      _tasksSubscription = _taskService.getTasks(limit: 100)
-        .timeout(const Duration(seconds: 10))
-        .listen((snapshot) {
-          if (!mounted) return;
-          
-          final newTasks = snapshot.docs.map((doc) {
-            final data = doc.data();
-            return {
-              'id': doc.id,
-              'title': data['title'] ?? '',
-              'description': data['description'] ?? '',
-              'completed': data['completed'] ?? false,
-              'dueDate': data['dueDate'],
-              'priority': data['priority'] ?? 'Medium',
-              'category': data['category'] ?? '',
-              'createdAt': data['createdAt'],
-            };
-          }).toList();
-          
-          if (mounted && !_areListsEqual(tasks, newTasks)) {
-            setState(() {
-              tasks = newTasks;
-            });
-          }
-        }, onError: (error) {
-          print('Error loading tasks: $error');
-          if (mounted) {
-            setState(() {
-              tasks = [];
-            });
-          }
-        });
+      _tasksSubscription = _taskService
+          .getTasks(limit: 100)
+          .timeout(const Duration(seconds: 10))
+          .listen(
+            (snapshot) {
+              if (!mounted) return;
+
+              final newTasks = snapshot.docs.map((doc) {
+                final data = doc.data();
+                return {
+                  'id': doc.id,
+                  'title': data['title'] ?? '',
+                  'description': data['description'] ?? '',
+                  'completed': data['completed'] ?? false,
+                  'dueDate': data['dueDate'],
+                  'priority': data['priority'] ?? 'Medium',
+                  'category': data['category'] ?? '',
+                  'createdAt': data['createdAt'],
+                };
+              }).toList();
+
+              if (mounted && !_areListsEqual(tasks, newTasks)) {
+                setState(() {
+                  tasks = newTasks;
+                });
+              }
+            },
+            onError: (error) {
+              print('Error loading tasks: $error');
+              if (mounted) {
+                setState(() {
+                  tasks = [];
+                });
+              }
+            },
+          );
 
       // Add timeout wrapper for orders stream
-      _ordersSubscription = _orderService.getMyFarmerOrders()
-        .timeout(const Duration(seconds: 10))
-        .listen((ordersList) {
-          if (!mounted) return;
-          
-          final newOrders = ordersList.map((order) {
-            return {
-              'id': order.id,
-              'buyerName': order.buyerName,
-              'status': order.status,
-              'totalAmount': order.totalAmount,
-              'createdAt': Timestamp.fromDate(order.orderDate),
-              'items': order.items.map((item) => {
-                'productId': item.productId,
-                'name': item.name,
-                'quantity': item.quantity,
-                'price': item.price,
-              }).toList(),
-            };
-          }).toList();
-          
-          if (mounted && !_areListsEqual(orders, newOrders)) {
-            setState(() {
-              orders = newOrders;
-            });
-          }
-        }, onError: (error) {
-          print('Error loading orders: $error');
-          if (mounted) {
-            setState(() {
-              orders = [];
-            });
-          }
-        });
+      _ordersSubscription = _orderService
+          .getMyFarmerOrders()
+          .timeout(const Duration(seconds: 10))
+          .listen(
+            (ordersList) {
+              if (!mounted) return;
 
+              final newOrders = ordersList.map((order) {
+                return {
+                  'id': order.id,
+                  'buyerName': order.buyerName,
+                  'status': order.status,
+                  'totalAmount': order.totalAmount,
+                  'createdAt': Timestamp.fromDate(order.orderDate),
+                  'items': order.items
+                      .map(
+                        (item) => {
+                          'productId': item.productId,
+                          'name': item.name,
+                          'quantity': item.quantity,
+                          'price': item.price,
+                        },
+                      )
+                      .toList(),
+                };
+              }).toList();
+
+              if (mounted && !_areListsEqual(orders, newOrders)) {
+                setState(() {
+                  orders = newOrders;
+                });
+              }
+            },
+            onError: (error) {
+              print('Error loading orders: $error');
+              if (mounted) {
+                setState(() {
+                  orders = [];
+                });
+              }
+            },
+          );
     } catch (e) {
       print('Error setting up task/order streams: $e');
       if (mounted) {
@@ -272,7 +290,10 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     }
   }
 
-  bool _areListsEqual(List<Map<String, dynamic>> list1, List<Map<String, dynamic>> list2) {
+  bool _areListsEqual(
+    List<Map<String, dynamic>> list1,
+    List<Map<String, dynamic>> list2,
+  ) {
     if (list1.length != list2.length) return false;
     for (int i = 0; i < list1.length; i++) {
       if (!_areMapContentsEqual(list1[i], list2[i])) return false;
@@ -280,7 +301,10 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     return true;
   }
 
-  bool _areMapContentsEqual(Map<String, dynamic> map1, Map<String, dynamic> map2) {
+  bool _areMapContentsEqual(
+    Map<String, dynamic> map1,
+    Map<String, dynamic> map2,
+  ) {
     return json.encode(map1) == json.encode(map2);
   }
 
@@ -309,20 +333,22 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
     try {
       // Don't block UI - fire and forget with callback
-      WeatherHelper.getCurrentWeather().then((weather) {
-        if (mounted) {
-          setState(() {
-            currentWeather = weather;
+      WeatherHelper.getCurrentWeather()
+          .then((weather) {
+            if (mounted) {
+              setState(() {
+                currentWeather = weather;
+              });
+            }
+          })
+          .catchError((e) {
+            print('Weather load error: $e');
+            if (mounted) {
+              setState(() {
+                currentWeather = null;
+              });
+            }
           });
-        }
-      }).catchError((e) {
-        print('Weather load error: $e');
-        if (mounted) {
-          setState(() {
-            currentWeather = null;
-          });
-        }
-      });
     } catch (e) {
       // Silently fail - weather is optional
       print('Weather init error: $e');
@@ -362,122 +388,180 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
   Widget _buildStatisticsSection() {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: Stream.value(tasks),
       builder: (context, snapshot) {
         int totalTasks = tasks.length;
-        int completedTasks = tasks.where((t) => t['completed'] == true).length;
         int totalOrders = orders.length;
         int pendingTasks = tasks.where((t) => t['completed'] != true).length;
-        int pendingOrders = orders.where((o) => 
-          o['status']?.toLowerCase() != 'delivered' && 
-          o['status']?.toLowerCase() != 'cancelled'
-        ).length;
+        int pendingOrders = orders
+            .where(
+              (o) =>
+                  o['status']?.toLowerCase() != 'delivered' &&
+                  o['status']?.toLowerCase() != 'cancelled',
+            )
+            .length;
+
+        // Calculate revenue based on selected period
+        double periodRevenue = 0;
+        double pendingPayments = 0;
+
+        final now = DateTime.now();
+        DateTime periodStart;
+        String periodLabel;
+
+        switch (_summaryPeriod) {
+          case 'today':
+            periodStart = DateTime(now.year, now.month, now.day);
+            periodLabel = "Today's";
+            break;
+          case 'week':
+            periodStart = now.subtract(Duration(days: 7));
+            periodLabel = "This Week's";
+            break;
+          case 'month':
+            periodStart = DateTime(now.year, now.month, 1);
+            periodLabel = "This Month's";
+            break;
+          default:
+            periodStart = DateTime(now.year, now.month, now.day);
+            periodLabel = "Today's";
+        }
+
+        for (var order in orders) {
+          final orderDate = (order['createdAt'] as Timestamp?)?.toDate();
+          final amount = (order['totalAmount'] ?? 0.0) as num;
+          final status = (order['status'] ?? '').toString().toLowerCase();
+
+          if (orderDate != null && orderDate.isAfter(periodStart)) {
+            periodRevenue += amount.toDouble();
+          }
+
+          if (status == 'pending' || status == 'confirmed') {
+            pendingPayments += amount.toDouble();
+          }
+        }
 
         return Column(
           children: [
-            // Quick Stats Row
-            Row(
-              children: [
-                _buildQuickStat(
-                  "Total Tasks",
-                  "$totalTasks",
-                  Icons.assignment,
-                  Colors.blue,
-                ),
-                const SizedBox(width: 12),
-                _buildQuickStat(
-                  "Completed",
-                  "$completedTasks",
-                  Icons.check_circle,
-                  Colors.green,
-                ),
-                const SizedBox(width: 12),
-                _buildQuickStat(
-                  "Orders",
-                  "$totalOrders",
-                  Icons.shopping_cart,
-                  Colors.orange,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             // Summary Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDarkMode
-                    ? const Color(0xFF2E7D32)
-                    : const Color(0xFF00E676),
+                    ? const Color(0xFF1A2332)
+                    : const Color(0xFF1A2332),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Today's Summary",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
+                  // Period selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Summary",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "• $totalTasks Total Tasks",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          "• $pendingTasks Pending Tasks",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          "• $totalOrders Total Orders",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          "• $pendingOrders Pending Orders",
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFFFAFAFA) : Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.eco,
-                        color: isDarkMode ? const Color(0xFFFF6F00) : Colors.orange,
-                        size: 26,
                       ),
-                    ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildPeriodChip('Today', 'today'),
+                          const SizedBox(width: 4),
+                          _buildPeriodChip('Week', 'week'),
+                          const SizedBox(width: 4),
+                          _buildPeriodChip('Month', 'month'),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "• $totalTasks Total Tasks",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• $pendingTasks Pending Tasks",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• $totalOrders Total Orders",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• $pendingOrders Pending Orders",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• ₱${periodRevenue.toStringAsFixed(2)} $periodLabel Revenue",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Color(0xFF1DBF73),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              "• ₱${pendingPayments.toStringAsFixed(2)} Pending Payments",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.orange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFFFAFAFA)
+                              : Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.eco,
+                            color: isDarkMode
+                                ? const Color(0xFFFF6F00)
+                                : Colors.orange,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -493,7 +577,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
   Widget _buildCompactWeatherCard() {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     if (currentWeather == null) {
       return GestureDetector(
         onTap: loadWeather,
@@ -501,17 +585,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isDarkMode
-                ? const Color(0xFF2E7D32)
-                : const Color(0xFF00C853),
+                ? const Color(0xFF1A2332)
+                : const Color(0xFF1DBF73),
             borderRadius: BorderRadius.circular(18),
           ),
           child: const Center(
             child: Text(
               'Tap to load weather',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: Colors.white,
-              ),
+              style: TextStyle(fontFamily: 'Poppins', color: Colors.white),
             ),
           ),
         ),
@@ -521,9 +602,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode
-            ? const Color(0xFF2E7D32)
-            : const Color(0xFF00C853),
+        color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -618,14 +697,16 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
   Widget _buildWeatherDetailsSection() {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     if (currentWeather == null) {
       return GestureDetector(
         onTap: loadWeather,
         child: Container(
           padding: const EdgeInsets.all(40),
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+            color: isDarkMode
+                ? const Color(0xFF1A2332)
+                : const Color(0xFF1A2332),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(
@@ -655,7 +736,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+        color: isDarkMode ? const Color(0xFF1A2332) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -810,18 +891,20 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
 
   Widget _buildFarmingAdviceSection() {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     if (currentWeather == null) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDarkMode
-              ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
-              : const Color(0xFFE8F5E8),
+              ? const Color(0xFF1A2332).withAlpha((0.8 * 255).round())
+              : const Color(0xFF1A2332),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF81C784),
+            color: isDarkMode
+                ? const Color(0xFF1DBF73)
+                : const Color(0xFF1DBF73),
             width: 1,
           ),
         ),
@@ -832,7 +915,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
               children: [
                 Icon(
                   Icons.agriculture,
-                  color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1A2332),
                   size: 18,
                 ),
                 const SizedBox(width: 8),
@@ -842,7 +925,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                     fontFamily: 'Poppins',
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                    color: isDarkMode ? Colors.white : Colors.white,
                   ),
                 ),
               ],
@@ -853,7 +936,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 12,
-                color: isDarkMode ? Colors.white70 : const Color(0xFF1B5E20),
+                color: isDarkMode ? Colors.white70 : Colors.white70,
               ),
             ),
           ],
@@ -866,11 +949,11 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? const Color(0xFF1B5E20).withAlpha((0.3 * 255).round())
-            : const Color(0xFFE8F5E8),
+            ? const Color(0xFF1A2332).withAlpha((0.8 * 255).round())
+            : const Color(0xFF1A2332),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF81C784),
+          color: isDarkMode ? const Color(0xFF1DBF73) : const Color(0xFF1DBF73),
           width: 1,
         ),
       ),
@@ -881,7 +964,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             children: [
               Icon(
                 Icons.agriculture,
-                color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                color: isDarkMode ? Colors.white : const Color(0xFF1A2332),
                 size: 18,
               ),
               const SizedBox(width: 8),
@@ -891,7 +974,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                   fontFamily: 'Poppins',
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : const Color(0xFF2E7D32),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1A2332),
                 ),
               ),
             ],
@@ -905,7 +988,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 12,
-              color: isDarkMode ? Colors.white70 : const Color(0xFF1B5E20),
+              color: isDarkMode ? Colors.white70 : const Color(0xFF1A2332),
             ),
           ),
         ],
@@ -913,65 +996,14 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     );
   }
 
-  Widget _buildQuickStat(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    final isDarkMode = _themeNotifier.isDarkMode;
-    
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withAlpha((0.2 * 255).round()),
-              spreadRadius: 1,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -981,7 +1013,12 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         children: [
           // --- Fixed Top Green Header ---
           Container(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.of(context).padding.top + 8,
+              20,
+              8,
+            ),
             width: double.infinity,
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
@@ -995,7 +1032,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildGreetingText(),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           Text(
                             "Let's Get Tasks Done!",
                             style: ThemeHelper.getSubHeaderTextStyle(
@@ -1066,11 +1103,16 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                 // Search bar
                 Container(
                   height: 42,
-                  decoration: ThemeHelper.getContainerDecoration(isDark: isDarkMode),
+                  decoration: ThemeHelper.getContainerDecoration(
+                    isDark: isDarkMode,
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: ThemeHelper.getIconColor(isDarkMode)),
+                      Icon(
+                        Icons.search,
+                        color: ThemeHelper.getIconColor(isDarkMode),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
@@ -1078,9 +1120,13 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                           decoration: InputDecoration(
                             hintText: 'Search tasks or orders...',
                             border: InputBorder.none,
-                            hintStyle: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+                            hintStyle: ThemeHelper.getHintTextStyle(
+                              isDark: isDarkMode,
+                            ),
                           ),
-                          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+                          style: ThemeHelper.getBodyTextStyle(
+                            isDark: isDarkMode,
+                          ),
                           onChanged: (value) {
                             setState(() {
                               _searchQuery = value.trim();
@@ -1096,7 +1142,11 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               _searchController.clear();
                             });
                           },
-                          child: Icon(Icons.close, size: 18, color: ThemeHelper.getIconColor(isDarkMode)),
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: ThemeHelper.getIconColor(isDarkMode),
+                          ),
                         ),
                     ],
                   ),
@@ -1126,9 +1176,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
                               Expanded(
                                 flex: 2,
                                 child: Column(
-                                  children: [
-                                    _buildStatisticsSection(),
-                                  ],
+                                  children: [_buildStatisticsSection()],
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -1250,12 +1298,12 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
     VoidCallback? onTap,
   }) {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
-      color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
+      color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73),
       child: ListTile(
         leading: Icon(icon, color: Colors.white),
         title: Text(
@@ -1279,18 +1327,24 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
   // Builds search results for tasks and orders
   Widget _buildSearchResults(bool isDarkMode) {
     final q = _searchQuery.toLowerCase();
-    final taskMatches = tasks.where((t) => (t['title'] ?? '').toString().toLowerCase().contains(q)).take(5).toList();
-    final orderMatches = orders.where((o) {
-      final buyer = (o['buyerName'] ?? '').toString().toLowerCase();
-      final status = (o['status'] ?? '').toString().toLowerCase();
-      return buyer.contains(q) || status.contains(q);
-    }).take(5).toList();
+    final taskMatches = tasks
+        .where((t) => (t['title'] ?? '').toString().toLowerCase().contains(q))
+        .take(5)
+        .toList();
+    final orderMatches = orders
+        .where((o) {
+          final buyer = (o['buyerName'] ?? '').toString().toLowerCase();
+          final status = (o['status'] ?? '').toString().toLowerCase();
+          return buyer.contains(q) || status.contains(q);
+        })
+        .take(5)
+        .toList();
 
     if (taskMatches.isEmpty && orderMatches.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        color: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFFE8F5E9),
+        color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFFE8F5E9),
         child: Text(
           'No matches',
           style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
@@ -1303,7 +1357,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2E7D32) : Colors.white,
+        color: isDarkMode ? const Color(0xFF1A2332) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -1319,66 +1373,87 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
           if (taskMatches.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 4, top: 4, bottom: 4),
-              child: Text('Tasks', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(fontWeight: FontWeight.bold)),
+              child: Text(
+                'Tasks',
+                style: ThemeHelper.getBodyTextStyle(
+                  isDark: isDarkMode,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
-          ...taskMatches.map((t) => ListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                leading: const Icon(Icons.task_alt, color: Colors.green, size: 20),
-                title: Text(
-                  (t['title'] ?? '').toString(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                ),
-                onTap: () {
-                  // Clear search and navigate to Tasks page (index 1)
-                  setState(() {
-                    _searchQuery = '';
-                    _searchController.clear();
-                  });
-                  widget.onNavigateToTab?.call(1);
-                },
-              )),
+          ...taskMatches.map(
+            (t) => ListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(
+                Icons.task_alt,
+                color: Colors.green,
+                size: 20,
+              ),
+              title: Text(
+                (t['title'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+              ),
+              onTap: () {
+                // Clear search and navigate to Tasks page (index 1)
+                setState(() {
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+                widget.onNavigateToTab?.call(1);
+              },
+            ),
+          ),
           if (orderMatches.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 4, top: 8, bottom: 4),
-              child: Text('Orders', style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode).copyWith(fontWeight: FontWeight.bold)),
+              child: Text(
+                'Orders',
+                style: ThemeHelper.getBodyTextStyle(
+                  isDark: isDarkMode,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
-          ...orderMatches.map((o) => ListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                leading: const Icon(Icons.shopping_cart, color: Colors.orange, size: 20),
-                title: Text(
-                  (o['buyerName'] ?? 'Order').toString(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
-                ),
-                subtitle: Text(
-                  (o['status'] ?? '').toString(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
-                ),
-                onTap: () {
-                  // Clear search and navigate to Orders page (index 3)
-                  setState(() {
-                    _searchQuery = '';
-                    _searchController.clear();
-                  });
-                  widget.onNavigateToTab?.call(3);
-                },
-              )),
+          ...orderMatches.map(
+            (o) => ListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(
+                Icons.shopping_cart,
+                color: Colors.orange,
+                size: 20,
+              ),
+              title: Text(
+                (o['buyerName'] ?? 'Order').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+              ),
+              subtitle: Text(
+                (o['status'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+              ),
+              onTap: () {
+                // Clear search and navigate to Orders page (index 3)
+                setState(() {
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+                widget.onNavigateToTab?.call(3);
+              },
+            ),
+          ),
         ],
       ),
     );
   }
-  
 
   Widget _buildGreetingText() {
     final isDarkMode = _themeNotifier.isDarkMode;
-    
+
     return FutureBuilder<Map<String, String?>>(
       future: _loadUserProfileData(),
       builder: (context, snapshot) {
@@ -1386,7 +1461,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         if (snapshot.hasData) {
           final data = snapshot.data!;
           final fullName = data['name'] ?? data['nickname'] ?? '';
-          
+
           // Extract surname and first name only (first two parts)
           if (fullName.isNotEmpty) {
             final nameParts = fullName.split(',').map((e) => e.trim()).toList();
@@ -1395,7 +1470,10 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
               displayName = '${nameParts[0]}, ${nameParts[1].split(' ').first}';
             } else {
               // If no comma, just take first two words
-              final words = fullName.split(' ').where((w) => w.isNotEmpty).toList();
+              final words = fullName
+                  .split(' ')
+                  .where((w) => w.isNotEmpty)
+                  .toList();
               if (words.length >= 2) {
                 displayName = '${words[0]} ${words[1]}';
               } else {
@@ -1404,7 +1482,7 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
             }
           }
         }
-        
+
         return Text(
           "${_getGreeting()}${displayName.isNotEmpty ? ' $displayName' : ''}!",
           style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
@@ -1429,11 +1507,13 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         };
       } else {
         // Fallback to local storage
-        final name = await storage.read(key: 'user_name') ?? 
-                     await storage.read(key: 'name') ?? '';
+        final name =
+            await storage.read(key: 'user_name') ??
+            await storage.read(key: 'name') ??
+            '';
         final nickname = await storage.read(key: 'user_nickname') ?? '';
         final profileImage = await storage.read(key: 'profile_image') ?? '';
-        
+
         return {
           'name': name,
           'nickname': nickname,
@@ -1441,11 +1521,35 @@ class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
         };
       }
     } catch (e) {
-      return {
-        'name': '',
-        'nickname': '',
-        'profileImage': '',
-      };
+      return {'name': '', 'nickname': '', 'profileImage': ''};
     }
+  }
+
+  Widget _buildPeriodChip(String label, String value) {
+    final isSelected = _summaryPeriod == value;
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 11,
+          color: isSelected ? Colors.white : const Color(0xFFB0BEC5),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: const Color(0xFF1DBF73),
+      backgroundColor: const Color(0xFF1A2332),
+      checkmarkColor: Colors.white,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _summaryPeriod = value;
+          });
+        }
+      },
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
   }
 }

@@ -224,7 +224,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
       case 'shipped':
         return Colors.purple;
       case 'delivered':
-        return const Color(0xFF4CAF50);
+        return const Color(0xFF1DBF73);
       case 'cancelled':
         return Colors.red;
       default:
@@ -236,7 +236,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
     if (_isInitialLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DBF73)),
         ),
       );
     }
@@ -362,7 +362,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
             padding: EdgeInsets.all(16.0),
             child: Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DBF73)),
               ),
             ),
           );
@@ -431,7 +431,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF4CAF50),
+                      color: Color(0xFF1DBF73),
                       fontSize: 16,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -586,13 +586,13 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withAlpha((0.1 * 255).round()),
+                    color: const Color(0xFF1DBF73).withAlpha((0.1 * 255).round()),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF4CAF50)),
+                    border: Border.all(color: const Color(0xFF1DBF73)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.account_balance_wallet, color: Color(0xFF4CAF50), size: 20),
+                      const Icon(Icons.account_balance_wallet, color: Color(0xFF1DBF73), size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -600,7 +600,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF4CAF50),
+                            color: Color(0xFF1DBF73),
                           ),
                         ),
                       ),
@@ -711,7 +711,7 @@ class _AgriSynchOrdersPageState extends State<AgriSynchOrdersPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: const Color(0xFF1DBF73),
               ),
               child: const Text('Update'),
             ),

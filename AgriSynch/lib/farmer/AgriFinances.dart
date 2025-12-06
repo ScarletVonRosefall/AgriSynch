@@ -338,7 +338,7 @@ class _AgriFinancesState extends State<AgriFinances> {
           final double sweepIncome = (totalIncomeForPie / totalPieGen) * 2 * math.pi;
           final double start = -math.pi / 2;
 
-          paint.color = const Color(0xFF4CAF50); // income green
+          paint.color = const Color(0xFF1DBF73); // income green
           canvas.drawArc(rect, start, sweepIncome, true, paint);
 
           paint.color = const Color(0xFFE53935); // expense red
@@ -721,7 +721,7 @@ class _AgriFinancesState extends State<AgriFinances> {
 
   Color _getBarColor(int index) {
     final colors = [
-      const Color(0xFF00C853),
+      const Color(0xFF1DBF73),
       const Color(0xFF2196F3),
       const Color(0xFFFF9800),
       const Color(0xFF9C27B0),
@@ -796,11 +796,11 @@ class _AgriFinancesState extends State<AgriFinances> {
 
   Color _getIncomePieColor(int index) {
     final colors = [
-      const Color(0xFF4CAF50), // Green
+      const Color(0xFF1DBF73), // Green
       const Color(0xFF66BB6A), // Light Green
       const Color(0xFF81C784), // Lighter Green
       const Color(0xFFA5D6A7), // Pale Green
-      const Color(0xFF2E7D32), // Dark Green
+      const Color(0xFF1A2332), // Dark Green
     ];
     return colors[index % colors.length];
   }
@@ -1001,7 +1001,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00C853),
+                    backgroundColor: const Color(0xFF1DBF73),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -1443,7 +1443,7 @@ class _AgriFinancesState extends State<AgriFinances> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00C853),
+                    backgroundColor: const Color(0xFF1DBF73),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -1793,7 +1793,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF00C853),
+                            color: Color(0xFF1DBF73),
                           ),
                         ),
                         filled: true,
@@ -1842,7 +1842,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF00C853),
+                            color: Color(0xFF1DBF73),
                           ),
                         ),
                         filled: true,
@@ -1912,7 +1912,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF00C853),
+                            color: Color(0xFF1DBF73),
                           ),
                         ),
                         filled: true,
@@ -1947,7 +1947,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF00C853),
+                            color: Color(0xFF1DBF73),
                           ),
                         ),
                         alignLabelWithHint: true,
@@ -2020,7 +2020,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00C853),
+                      backgroundColor: const Color(0xFF1DBF73),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -2302,7 +2302,7 @@ class _EditTransactionDialogState extends State<EditTransactionDialog> {
             }
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00C853),
+            backgroundColor: const Color(0xFF1DBF73),
             foregroundColor: Colors.white,
           ),
           child: const Text('Save Changes'),

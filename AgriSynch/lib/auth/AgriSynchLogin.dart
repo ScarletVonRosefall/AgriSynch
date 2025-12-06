@@ -58,12 +58,6 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
   // State variables for light input validation warnings
   String _invalidCharWarning = '';
   bool _showWarning = false;
-  
-  // Secret admin portal access - sequence pattern
-  int _logoTapCount = 0;
-  int _textTapCount = 0;
-  bool _logoSequenceComplete = false;
-  Timer? _sequenceTimer;
 
   @override
   void initState() {
@@ -104,55 +98,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
     _fadeController.dispose();
     _slideController.dispose();
-    _sequenceTimer?.cancel();
     super.dispose();
-  }
-
-  void _resetSequence() {
-    _logoTapCount = 0;
-    _textTapCount = 0;
-    _logoSequenceComplete = false;
-  }
-
-  void _handleLogoTap() {
-    if (_logoSequenceComplete) return; // Already completed logo sequence
-    
-    _logoTapCount++;
-    
-    // Reset timer
-    _sequenceTimer?.cancel();
-    _sequenceTimer = Timer(const Duration(seconds: 5), () {
-      _resetSequence();
-    });
-    
-    // If 5 logo taps reached, mark first step complete
-    if (_logoTapCount >= 5) {
-      _logoSequenceComplete = true;
-      _logoTapCount = 0;
-    }
-  }
-
-  void _handleTextTap() {
-    if (!_logoSequenceComplete) {
-      // If logo sequence not complete, this resets everything
-      _resetSequence();
-      return;
-    }
-    
-    _textTapCount++;
-    
-    // Reset timer
-    _sequenceTimer?.cancel();
-    _sequenceTimer = Timer(const Duration(seconds: 5), () {
-      _resetSequence();
-    });
-    
-    // If 5 text taps reached after logo sequence, open admin portal
-    if (_textTapCount >= 5) {
-      _sequenceTimer?.cancel();
-      _resetSequence();
-      Navigator.pushNamed(context, '/admin-portal');
-    }
   }
 
   void showError(String message) {
@@ -220,16 +166,12 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                 const SizedBox(height: 60),
                                 Column(
                                   children: [
-                                    GestureDetector(
-                                      onTap: _handleTextTap,
-                                      behavior: HitTestBehavior.opaque,
-                                      child: const Text(
-                                        "Log in to continue",
-                                        style: TextStyle(
-                                          fontFamily: 'Poppins',
-                                          fontSize: 14,
-                                          color: Color(0xFFB0BEC5),
-                                        ),
+                                    const Text(
+                                      "Log in to continue",
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 14,
+                                        color: Color(0xFFB0BEC5),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -243,27 +185,23 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    GestureDetector(
-                                      onTap: _handleLogoTap,
-                                      behavior: HitTestBehavior.opaque,
-                                      child: TweenAnimationBuilder<double>(
-                                        duration: const Duration(
-                                          milliseconds: 1200,
-                                        ),
-                                        tween: Tween<double>(begin: 0.0, end: 1.0),
-                                        builder: (context, value, child) {
-                                          return Transform.scale(
-                                            scale: value,
-                                            child: Opacity(
-                                              opacity: value,
-                                              child: Image.asset(
-                                                'assets/AgriSynchLogoNB2.png',
-                                                height: 80,
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                    TweenAnimationBuilder<double>(
+                                      duration: const Duration(
+                                        milliseconds: 1200,
                                       ),
+                                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                                      builder: (context, value, child) {
+                                        return Transform.scale(
+                                          scale: value,
+                                          child: Opacity(
+                                            opacity: value,
+                                            child: Image.asset(
+                                              'assets/AgriSynchLogoNB2.png',
+                                              height: 80,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),

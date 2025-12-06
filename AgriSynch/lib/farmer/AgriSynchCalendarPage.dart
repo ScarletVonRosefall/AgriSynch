@@ -28,7 +28,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
   Color getCategoryColor(String category) {
     switch (category) {
       case 'Planting':
-        return const Color(0xFF4CAF50); // Green
+        return const Color(0xFF1DBF73); // Green
       case 'Harvesting':
         return const Color(0xFFFF9800); // Orange
       case 'Fertilizing':
@@ -391,13 +391,13 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                  color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF1A2332),
                 ),
               ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF00C853),
+                backgroundColor: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73),
               ),
               onPressed: () {
                 if (titleController.text.trim().isEmpty) {
@@ -559,7 +559,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
                       },
                       calendarStyle: CalendarStyle(
                         selectedDecoration: const BoxDecoration(
-                          color: Color(0xFF00C853),
+                          color: Color(0xFF1DBF73),
                           shape: BoxShape.circle,
                         ),
                         todayDecoration: const BoxDecoration(
@@ -787,7 +787,7 @@ class _CalendarPageState extends State<AgriSynchCalendarPage> with TickerProvide
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddEventDialog,
-        backgroundColor: const Color(0xFF00C853),
+        backgroundColor: const Color(0xFF1DBF73),
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),

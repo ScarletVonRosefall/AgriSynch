@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../shared/theme_helper.dart';
 import '../services/validation_service.dart';
+
+// Text formatter to convert input to uppercase
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
 
 class AdminPortalPage extends StatefulWidget {
   const AdminPortalPage({super.key});
@@ -28,9 +40,13 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
   final _signUpPasswordController = TextEditingController();
   final _signUpConfirmPasswordController = TextEditingController();
   final _signUpNameController = TextEditingController();
+  final _signUpReferralCodeController = TextEditingController();
   final ValueNotifier<bool> _signUpLoading = ValueNotifier(false);
   final ValueNotifier<bool> _showSignUpPassword = ValueNotifier(false);
   final ValueNotifier<bool> _showConfirmPassword = ValueNotifier(false);
+  
+  // Admin referral code
+  static const String _adminReferralCode = 'KA MILAN&BIEN';
 
   @override
   void initState() {
@@ -53,6 +69,7 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
     _signUpPasswordController.dispose();
     _signUpConfirmPasswordController.dispose();
     _signUpNameController.dispose();
+    _signUpReferralCodeController.dispose();
     super.dispose();
   }
 
@@ -144,42 +161,49 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
   }
 
   Future<void> _handleAdminSignUp() async {
-    final email = _signUpEmailController.text.trim();
-    final password = _signUpPasswordController.text.trim();
-    final confirmPassword = _signUpConfirmPasswordController.text.trim();
-    final name = _signUpNameController.text.trim();
-
-    // Validation
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty || name.isEmpty) {
-      _showError("Please fill all fields");
-      return;
-    }
-
-    final emailError = ValidationService.validateEmail(email);
-    if (emailError != null) {
-      _showError(emailError);
-      return;
-    }
-
-    final passwordError = ValidationService.validatePassword(password);
-    if (passwordError != null) {
-      _showError(passwordError);
-      return;
-    }
-
-    if (password != confirmPassword) {
-      _showError("Passwords do not match");
-      return;
-    }
-
-    if (name.length < 2) {
-      _showError("Name must be at least 2 characters");
-      return;
-    }
-
-    _signUpLoading.value = true;
-
     try {
+      final email = _signUpEmailController.text.trim();
+      final password = _signUpPasswordController.text.trim();
+      final confirmPassword = _signUpConfirmPasswordController.text.trim();
+      final name = _signUpNameController.text.trim();
+      final referralCode = _signUpReferralCodeController.text.trim();
+
+      // Validation
+      if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty || name.isEmpty || referralCode.isEmpty) {
+        _showError("Please fill all fields");
+        return;
+      }
+      
+      // Validate referral code
+      if (referralCode != _adminReferralCode) {
+        _showError("Invalid referral code. Admin account creation denied.");
+        return;
+      }
+
+      final emailError = ValidationService.validateEmail(email);
+      if (emailError != null) {
+        _showError(emailError);
+        return;
+      }
+
+      final passwordError = ValidationService.validatePassword(password);
+      if (passwordError != null) {
+        _showError(passwordError);
+        return;
+      }
+
+      if (password != confirmPassword) {
+        _showError("Passwords do not match");
+        return;
+      }
+
+      if (name.length < 2) {
+        _showError("Name must be at least 2 characters");
+        return;
+      }
+
+      _signUpLoading.value = true;
+
       // Create Firebase Auth account
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
@@ -210,8 +234,10 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
         if (!mounted) return;
         _showSuccess("Admin account created! Please verify your email.");
 
-        // Navigate to email verification page
-        Navigator.pushReplacementNamed(context, '/verify', arguments: email);
+        // Navigate to admin dashboard directly or show success
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/admin-dashboard');
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Sign-up failed';
@@ -222,9 +248,12 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
         case 'weak-password':
           message = 'Password is too weak';
           break;
+        default:
+          message = 'Firebase Auth Error: ${e.message}';
       }
       _showError(message);
     } catch (e) {
+      debugPrint('Admin sign-up error: $e');
       _showError('An error occurred: $e');
     } finally {
       if (mounted) {
@@ -395,6 +424,7 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
             controller: _signUpNameController,
             label: 'Full Name',
             icon: Icons.person,
+            capitalize: true,
           ),
           const SizedBox(height: 16),
           _buildTextField(
@@ -434,6 +464,13 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
                 ),
               );
             },
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(
+            controller: _signUpReferralCodeController,
+            label: 'Referral Code',
+            icon: Icons.vpn_key,
+            obscureText: true,
           ),
           const SizedBox(height: 30),
           ValueListenableBuilder<bool>(
@@ -481,28 +518,39 @@ class _AdminPortalPageState extends State<AdminPortalPage> with SingleTickerProv
     bool obscureText = false,
     TextInputType? keyboardType,
     Widget? suffixIcon,
+    bool capitalize = false,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
-      style: const TextStyle(fontFamily: 'Poppins'),
+      textCapitalization: capitalize ? TextCapitalization.characters : TextCapitalization.none,
+      inputFormatters: capitalize ? [UpperCaseTextFormatter()] : null,
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+        color: Colors.white,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(fontFamily: 'Poppins'),
-        prefixIcon: Icon(icon, color: const Color(0xFF00A862)),
+        labelStyle: const TextStyle(
+          fontFamily: 'Poppins',
+          color: Color(0xFFB0BEC5),
+        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF1DBF73)),
         suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFF263238),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00A862)),
+          borderSide: const BorderSide(color: Color(0xFF37474F)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: const BorderSide(color: Color(0xFF37474F)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00A862), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF1DBF73), width: 2),
         ),
       ),
     );

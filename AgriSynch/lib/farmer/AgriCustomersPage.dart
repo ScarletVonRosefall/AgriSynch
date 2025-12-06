@@ -478,7 +478,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
       return const SliverFillRemaining(
         child: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DBF73)),
           ),
         ),
       );
@@ -574,7 +574,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                 padding: EdgeInsets.all(16.0),
                 child: Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DBF73)),
                   ),
                 ),
               );
@@ -608,7 +608,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
           sortBy = value;
         });
       },
-      selectedColor: isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50),
+      selectedColor: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73),
       backgroundColor: isDarkMode ? const Color(0xFF263238) : null,
       labelStyle: TextStyle(
         color: isSelected 
@@ -674,13 +674,13 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                   // Avatar
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withAlpha((0.2 * 255).round()),
+                    backgroundColor: (isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73)).withAlpha((0.2 * 255).round()),
                     child: Text(
                       customer.name.substring(0, 1).toUpperCase(),
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
+                        color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF1DBF73),
                       ),
                     ),
                   ),
@@ -718,7 +718,7 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withAlpha((0.2 * 255).round()),
+                      color: (isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73)).withAlpha((0.2 * 255).round()),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -727,14 +727,14 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                         Icon(
                           Icons.shopping_bag,
                           size: 16,
-                          color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
+                          color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF1DBF73),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '$totalOrders',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
+                            color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF1DBF73),
                           ),
                         ),
                       ],
@@ -858,13 +858,13 @@ class _AgriCustomersPageState extends State<AgriCustomersPage> {
                     children: [
                       CircleAvatar(
                         radius: 25,
-                        backgroundColor: (isDarkMode ? const Color(0xFF2E7D32) : const Color(0xFF4CAF50)).withAlpha((0.2 * 255).round()),
+                        backgroundColor: (isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73)).withAlpha((0.2 * 255).round()),
                         child: Text(
                           customer.name.substring(0, 1).toUpperCase(),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF4CAF50),
+                            color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF1DBF73),
                           ),
                         ),
                       ),
