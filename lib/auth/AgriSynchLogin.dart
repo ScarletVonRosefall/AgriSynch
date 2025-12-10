@@ -157,7 +157,452 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                         padding: EdgeInsets.symmetric(
                           horizontal: MediaQuery.of(context).size.width < 600 ? 16 : 40,
                         ),
-                        child: Center(
+                        child: MediaQuery.of(context).size.width > 900
+                            ? Row(
+                                children: [
+                                  _buildLeftInfoPanel(),
+                                  Expanded(
+                                    child: Center(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 450),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            const SizedBox(height: 48),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF1A2332),
+                                                borderRadius: BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.5),
+                                                    blurRadius: 20,
+                                                    offset: const Offset(0, 10),
+                                                  ),
+                                                ],
+                                              ),
+                                              padding: const EdgeInsets.all(32),
+                                              child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const Text(
+                                                  "Log in",
+                                                  style: TextStyle(
+                                                    fontFamily: 'Poppins',
+                                                    fontSize: 24,
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                _inputField(
+                                                  "Email",
+                                                  emailController,
+                                                  keyboardType: TextInputType.emailAddress,
+                                                  iconPrefix: Icons.email_outlined,
+                                                ),
+                                                const SizedBox(height: 12),
+                                                ValueListenableBuilder<bool>(
+                                                  valueListenable: showPassword,
+                                                  builder: (context, value, child) {
+                                                    return _inputField(
+                                                      "Password",
+                                                      passController,
+                                                      obscure: !value,
+                                                      iconPrefix: Icons.lock_outline,
+                                                      suffixIcon: IconButton(
+                                                        icon: Icon(
+                                                          value
+                                                              ? Icons.visibility
+                                                              : Icons.visibility_off,
+                                                          color: const Color(0xFF64B5A6),
+                                                        ),
+                                                        onPressed: () =>
+                                                            showPassword.value = !value,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(height: 8),
+                                                // Light warning indicator for invalid characters
+                                                AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 250),
+                                                  height: _showWarning ? 32 : 0,
+                                                  child: _showWarning
+                                                      ? Container(
+                                                          padding: const EdgeInsets.symmetric(
+                                                            horizontal: 12,
+                                                            vertical: 6,
+                                                          ),
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFF37474F),
+                                                            border: Border.all(
+                                                              color: const Color(0xFFFFA726),
+                                                              width: 1.5,
+                                                            ),
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          child: Row(
+                                                            children: [
+                                                              const Icon(
+                                                                Icons.info_outline,
+                                                                color: Color(0xFFFFA726),
+                                                                size: 14,
+                                                              ),
+                                                              const SizedBox(width: 6),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  _invalidCharWarning,
+                                                                  style: const TextStyle(
+                                                                    color: Color(0xFFFFB74D),
+                                                                    fontSize: 11,
+                                                                    fontFamily: 'Poppins',
+                                                                    fontWeight: FontWeight.w500,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Center(
+                                                  child: ValueListenableBuilder<bool>(
+                                                    valueListenable: isLoading,
+                                                    builder: (context, loading, child) {
+                                                      return ElevatedButton(
+                                                        onPressed: loading
+                                                            ? null
+                                                            : () async {
+                                                                final email = emailController.text.trim();
+                                                                final pass = passController.text.trim();
+
+                                                                if (email.isEmpty || pass.isEmpty) {
+                                                                  showError("Please enter both email and password.");
+                                                                  return;
+                                                                }
+
+                                                                // Sanitize and validate inputs
+                                                                final sanitizedEmail = InputValidator.sanitizeEmail(email);
+                                                                final emailError = InputValidator.validateEmail(sanitizedEmail);
+                                                                
+                                                                if (emailError != null) {
+                                                                  showError(emailError);
+                                                                  return;
+                                                                }
+                                                                
+                                                                if (pass.length > InputValidator.maxPasswordLength) {
+                                                                  showError("Password is too long");
+                                                                  return;
+                                                                }
+                                                                
+                                                                // Check for dangerous content
+                                                                if (InputValidator.containsDangerousContent(email) ||
+                                                                    InputValidator.containsDangerousContent(pass)) {
+                                                                  showError("Invalid characters detected in login credentials");
+                                                                  return;
+                                                                }
+
+                                                                // Capture stable objects before async gaps
+                                                                final messenger = ScaffoldMessenger.of(context);
+                                                                final navigator = Navigator.of(context);
+                                                                if (!mounted) return;
+                                                                isLoading.value = true;
+
+                                                                try {
+                                                                  // Add timeout for Firebase operations
+                                                                  final loginFuture = FirebaseAuth.instance
+                                                                      .signInWithEmailAndPassword(
+                                                                        email: sanitizedEmail,
+                                                                        password: pass,
+                                                                      );
+
+                                                                  final credential = await Future.any([
+                                                                    loginFuture,
+                                                                    Future.delayed(
+                                                                      const Duration(seconds: 10),
+                                                                      () => throw TimeoutException('Login timeout'),
+                                                                    ),
+                                                                  ]);
+
+                                                                  final user = credential.user;
+                                                                  if (!mounted) return;
+
+                                                                  if (user != null) {
+                                                                    // messenger and navigator were captured earlier
+                                                                    // Add timeout for Firestore operation
+                                                                    final docFuture = FirebaseFirestore.instance
+                                                                        .collection('users')
+                                                                        .doc(user.uid)
+                                                                        .get();
+
+                                                                    final doc = await Future.any([
+                                                                      docFuture,
+                                                                      Future.delayed(
+                                                                        const Duration(seconds: 10),
+                                                                        () => throw TimeoutException('Firestore timeout'),
+                                                                      ),
+                                                                    ]);
+
+                                                                    if (!mounted) return;
+
+                                                                    final data = doc.data();
+                                                                    
+                                                                    // Check if user document exists (not deleted)
+                                                                    if (data == null) {
+                                                                      await FirebaseAuth.instance.signOut();
+                                                                      if (!mounted) return;
+                                                                      messenger.showSnackBar(
+                                                                        const SnackBar(content: Text('This account has been deleted and no longer exists.')),
+                                                                      );
+                                                                      return;
+                                                                    }
+                                                                    
+                                                                    // Check if user is banned or suspended
+                                                                    final isBanned = data['banned'] == true;
+                                                                    final suspendedUntil = data['suspendedUntil'] as Timestamp?;
+                                                                    final isSuspended = suspendedUntil != null && 
+                                                                                       suspendedUntil.toDate().isAfter(DateTime.now());
+                                                                    
+                                                                    if (isBanned) {
+                                                                      await FirebaseAuth.instance.signOut();
+                                                                      if (!mounted) return;
+                                                                      messenger.showSnackBar(
+                                                                        SnackBar(content: Text('Your account has been permanently banned. Reason: ${data['banReason'] ?? 'Violation of terms'}')),
+                                                                      );
+                                                                      return;
+                                                                    }
+                                                                    
+                                                                    if (isSuspended) {
+                                                                      await FirebaseAuth.instance.signOut();
+                                                                      if (!mounted) return;
+                                                                      final suspendedUntilDate = suspendedUntil.toDate();
+                                                                      messenger.showSnackBar(
+                                                                        SnackBar(content: Text('Your account is suspended until ${suspendedUntilDate.day}/${suspendedUntilDate.month}/${suspendedUntilDate.year}. Reason: ${data['banReason'] ?? 'Policy violation'}')),
+                                                                      );
+                                                                      return;
+                                                                    }
+                                                                    
+                                                                    final accountType = data['accountType'] ?? 'Farmer';
+                                                                    final userName = data['name'] ?? '';
+
+                                                                    // Store data in parallel
+                                                                    await Future.wait([
+                                                                      storage.write(
+                                                                        key: 'user_uid',
+                                                                        value: user.uid,
+                                                                      ),
+                                                                      storage.write(
+                                                                        key: 'account_type',
+                                                                        value: accountType,
+                                                                      ),
+                                                                      storage.write(
+                                                                        key: 'name',
+                                                                        value: userName,
+                                                                      ),
+                                                                      storage.write(
+                                                                        key: 'user_name',
+                                                                        value: userName,
+                                                                      ),
+                                                                      storage.write(
+                                                                        key: 'user_email',
+                                                                        value: user.email ?? '',
+                                                                      ),
+                                                                    ]);
+
+                                                                    // Set user identifier for Crashlytics tracking
+                                                                    await ErrorHandler.setUserIdentifier(
+                                                                      user.uid,
+                                                                      email: user.email,
+                                                                    );
+                                                                    await ErrorHandler.setCustomKey('account_type', accountType);
+                                                                    await ErrorHandler.setCustomKey('user_name', userName);
+                                                                    
+                                                                    // Force navigation after successful login
+                                                                    if (!mounted) return;
+
+                                                                    try {
+                                                                      // Navigate based on account type with complete stack replacement
+                                                                      if (accountType == 'Buyer') {
+                                                                        navigator.pushNamedAndRemoveUntil(
+                                                                          '/buyer-home',
+                                                                          (route) => false,
+                                                                        );
+                                                                      } else {
+                                                                        navigator.pushNamedAndRemoveUntil(
+                                                                          '/home',
+                                                                          (route) => false,
+                                                                        );
+                                                                      }
+                                                                    } catch (e) {
+                                                                      messenger.showSnackBar(
+                                                                        SnackBar(content: Text("Navigation error: $e")),
+                                                                      );
+                                                                    }
+                                                                  }
+                                                                } on FirebaseAuthException catch (e) {
+                                                                  if (!mounted) return;
+                                                                  String message = 'Login failed';
+                                                                  switch (e.code) {
+                                                                    case 'user-not-found':
+                                                                      message = 'No account found for this email.';
+                                                                      break;
+                                                                    case 'wrong-password':
+                                                                      message = 'Incorrect password.';
+                                                                      break;
+                                                                    case 'too-many-requests':
+                                                                      message = 'Too many attempts. Please try again later.';
+                                                                      break;
+                                                                    case 'network-request-failed':
+                                                                      message = 'Network error. Please check your connection.';
+                                                                      break;
+                                                                  }
+                                                                  // Use captured messenger to avoid using BuildContext across async gaps
+                                                                  messenger.showSnackBar(SnackBar(content: Text(message)));
+                                                                } on TimeoutException {
+                                                                  if (!mounted) return;
+                                                                  messenger.showSnackBar(const SnackBar(content: Text('Connection timeout. Please try again.')));
+                                                                } catch (e) {
+                                                                  if (!mounted) return;
+                                                                  messenger.showSnackBar(const SnackBar(content: Text('An unexpected error occurred. Please try again.')));
+                                                                } finally {
+                                                                  if (mounted) {
+                                                                    isLoading.value = false;
+                                                                  }
+                                                                }
+                                                              },
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: const Color(0xFF1DBF73),
+                                                          disabledBackgroundColor: const Color(0xFF555B62),
+                                                          foregroundColor: Colors.white,
+                                                          padding: const EdgeInsets.symmetric(
+                                                            horizontal: 32,
+                                                            vertical: 14,
+                                                          ),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(12),
+                                                          ),
+                                                          elevation: 4,
+                                                        ),
+                                                        child: loading
+                                                            ? const SizedBox(
+                                                                width: 24,
+                                                                height: 24,
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                      color: Colors.white,
+                                                                      strokeWidth: 2.5,
+                                                                    ),
+                                                              )
+                                                            : const Text(
+                                                                "Login",
+                                                                style: TextStyle(
+                                                                  fontFamily: 'Poppins',
+                                                                ),
+                                                              ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Center(
+                                                  child: Column(
+                                                    children: [
+                                                      GestureDetector(
+                                                        onTap: () => Navigator.pushNamed(
+                                                          context,
+                                                          '/recover',
+                                                        ),
+                                                        child: const Text(
+                                                          "Forgot Password?",
+                                                          style: TextStyle(
+                                                            fontFamily: 'Poppins',
+                                                            fontSize: 13,
+                                                            color: Color(0xFF64B5A6),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 16),
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          const Text(
+                                                            "Don't have an account? ",
+                                                            style: TextStyle(
+                                                              fontFamily: 'Poppins',
+                                                              fontSize: 13,
+                                                              color: Color(0xFFB0BEC5),
+                                                            ),
+                                                          ),
+                                                          GestureDetector(
+                                                            onTap: () => Navigator.pushNamed(
+                                                              context,
+                                                              '/signup',
+                                                            ),
+                                                            child: const Text(
+                                                              "Sign Up",
+                                                              style: TextStyle(
+                                                                fontFamily: 'Poppins',
+                                                                fontSize: 13,
+                                                                color: Color(0xFF1DBF73),
+                                                                fontWeight: FontWeight.bold,
+                                                                decoration: TextDecoration.underline,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 16),
+                                                        Center(
+                                                        child: ElevatedButton.icon(
+                                                          onPressed: () async {
+                                                            const url = 'https://github.com/ScarletVonRosefall/AgriSynch/releases/download/v.1.0.3/Agrisynch_V2.apk';
+                                                            final messenger = ScaffoldMessenger.of(context);
+                                                            final ok = await openUrl(url);
+                                                            if (!ok) {
+                                                              messenger.showSnackBar(
+                                                                const SnackBar(content: Text('Could not open download link.')),
+                                                              );
+                                                            }
+                                                          },
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFF1DBF73),
+                                                            foregroundColor: Colors.white,
+                                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                            elevation: 4,
+                                                          ),
+                                                          icon: const Icon(Icons.android, color: Colors.white),
+                                                          label: const Text('Download APK (Android)', style: TextStyle(color: Colors.white, fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Center(
+                                                        child: Text(
+                                                          'Tip: This APK is downloaded via your browser. You may need to allow "Install unknown apps" or "Unknown sources" in your Android settings before installing.',
+                                                          textAlign: TextAlign.center,
+                                                          style: const TextStyle(
+                                                            fontFamily: 'Poppins',
+                                                            fontSize: 12,
+                                                            color: Color(0xFFB0BEC5),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 450),
                             child: Column(
@@ -726,6 +1171,127 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
         ),
         suffixIcon: suffixIcon,
       ),
+    );
+  }
+
+  // Left info panel for desktop split-screen
+  Widget _buildLeftInfoPanel() {
+    return Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF1DBF73).withOpacity(0.1),
+              const Color(0xFF0F172A),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Logo
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 1200),
+              tween: Tween<double>(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Opacity(
+                    opacity: value,
+                    child: Image.asset(
+                      'assets/AgriSynchLogoNB2.png',
+                      height: 100,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+            // Main tagline
+            const Text(
+              'Connecting Harvests to Homes',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1DBF73),
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Value bullets
+            _buildValueBullet(
+              icon: Icons.agriculture,
+              title: 'Direct Market Access',
+              description: 'Connect with buyers and sell your produce directly',
+            ),
+            const SizedBox(height: 16),
+            _buildValueBullet(
+              icon: Icons.trending_up,
+              title: 'Fair Pricing',
+              description: 'Transparent pricing with no hidden fees or middlemen',
+            ),
+            const SizedBox(height: 16),
+            _buildValueBullet(
+              icon: Icons.location_on,
+              title: 'Local Community',
+              description: 'Build relationships with local farmers and buyers',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper widget for value bullets
+  Widget _buildValueBullet({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1DBF73).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFF1DBF73), size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFFB0BEC5),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
