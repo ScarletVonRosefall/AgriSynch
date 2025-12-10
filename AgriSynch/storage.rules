@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Product images - farmers can upload to their own products
+    match /products/{farmerId}/{productId}/{fileName} {
+      // Allow read for all authenticated users (buyers need to see products)
+      allow read: if isSignedIn();
+      
+      // Allow upload only if authenticated and uploading to own farmerId folder
+      allow write: if isSignedIn() && request.auth.uid == farmerId;
+      
+      // Allow delete only if authenticated and deleting from own farmerId folder
+      allow delete: if isSignedIn() && request.auth.uid == farmerId;
+    }
+    
+    // Profile pictures (if you add this feature later)
+    match /profiles/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Production/task photos (if you add this feature later)
+    match /production/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}

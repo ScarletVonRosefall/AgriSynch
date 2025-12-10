@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "823257894813",
+    "project_id": "agrisynch-a9350",
+    "storage_bucket": "agrisynch-a9350.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:823257894813:android:1f51c971c825b1ab17e974",
+        "android_client_info": {
+          "package_name": "com.example.test001"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCv_9aLV49lLMPlnDPIzqw90wjSYwWKSCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
