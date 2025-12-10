@@ -446,30 +446,32 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = const Color(0xFF0F172A);
-    final headerColor = const Color(0xFF1DBF73);
-    final cardColor = const Color(0xFF1A2332);
-    final textColor = Colors.white;
-
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context, _cartChanged);
         return false; // Prevent the default pop since we're handling it
       },
       child: Scaffold(
-        backgroundColor: backgroundColor,
+        backgroundColor: const Color(0xFF0F172A),
         body: Column(
           children: [
             // Header
             Container(
-              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
               width: double.infinity,
               decoration: BoxDecoration(
-                color: headerColor,
+                color: const Color(0xFF1A2332),
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(28),
-                  bottomRight: Radius.circular(28),
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -482,6 +484,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       }
                     },
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    iconSize: 22,
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(),
                   ),
                 const Expanded(
                   child: Text(
@@ -490,7 +495,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 20,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -525,6 +530,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       );
                     },
                     icon: const Icon(Icons.clear_all, color: Colors.white),
+                    iconSize: 22,
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(),
                   )
                 else
                   const SizedBox(width: 48),
@@ -542,7 +550,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                     Icon(
                       Icons.shopping_cart_outlined,
                       size: 80,
-                      color: Colors.white.withAlpha((0.5 * 255).round()),
+                      color: Colors.white.withAlpha((0.4 * 255).round()),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -560,7 +568,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,
-                        color: Colors.white.withAlpha((0.7 * 255).round()),
+                        color: Colors.white.withAlpha((0.6 * 255).round()),
                       ),
                     ),
                   ],
@@ -571,82 +579,23 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
             Expanded(
               child: Column(
                 children: [
-                  // Cart Summary
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withAlpha((0.2 * 255).round()),
-                          spreadRadius: 1,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${getTotalItems()} items',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                              ),
-                            ),
-                            Text(
-                              'Total: P${getTotalPrice().toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1DBF73),
-                              ),
-                            ),
-                          ],
-                        ),
-                        ElevatedButton(
-                          onPressed: checkout,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1DBF73),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Checkout',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
                   // Cart Items List
                   Expanded(
                     child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       itemCount: cart.length,
                       itemBuilder: (context, index) {
                         final item = cart[index];
 
-                        return Card(
-                          color: cardColor,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A2332),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.white.withAlpha((0.1 * 255).round()),
+                              width: 1,
+                            ),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
@@ -654,10 +603,10 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                               children: [
                                 // Product Image
                                 Container(
-                                  width: 60,
-                                  height: 60,
+                                  width: 80,
+                                  height: 80,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[300],
+                                    color: Colors.white.withAlpha((0.1 * 255).round()),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: ClipRRect(
@@ -666,8 +615,8 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                         ? _buildProductImage(item['imageUrl'], item['category'])
                                         : Icon(
                                             _getProductIcon(item['category']),
-                                            color: const Color(0xFF4CAF50),
-                                            size: 30,
+                                            color: const Color(0xFF1DBF73),
+                                            size: 40,
                                           ),
                                   ),
                                 ),
@@ -682,35 +631,36 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                     children: [
                                       Text(
                                         item['name'],
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontFamily: 'Poppins',
                                           fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                          fontSize: 16,
+                                          color: Colors.white,
+                                          fontSize: 15,
                                         ),
                                       ),
                                       Text(
                                         'by ${item['farmer']}',
                                         style: TextStyle(
                                           fontFamily: 'Poppins',
-                                          color: textColor.withAlpha((0.7 * 255).round()),
+                                          color: Colors.white.withAlpha((0.6 * 255).round()),
                                           fontSize: 12,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(
                                         'P${item['price'].toStringAsFixed(2)} ${item['unit']}',
                                         style: const TextStyle(
                                           fontFamily: 'Poppins',
                                           color: Color(0xFF1DBF73),
                                           fontWeight: FontWeight.bold,
+                                          fontSize: 14,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
 
-                                // Quantity Controls
+                                // Quantity Controls & Delete
                                 Column(
                                   children: [
                                     Row(
@@ -722,9 +672,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                             item['quantity'] - 1,
                                           ),
                                           child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFF37474F),
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withAlpha((0.1 * 255).round()),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(
@@ -736,15 +686,15 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                         ),
                                         Container(
                                           margin: const EdgeInsets.symmetric(
-                                            horizontal: 12,
+                                            horizontal: 10,
                                           ),
                                           child: Text(
                                             '${item['quantity']}',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontFamily: 'Poppins',
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: textColor,
+                                              fontSize: 15,
+                                              color: Colors.white,
                                             ),
                                           ),
                                         ),
@@ -754,9 +704,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                             item['quantity'] + 1,
                                           ),
                                           child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFF1DBF73),
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withAlpha((0.1 * 255).round()),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(
@@ -768,20 +718,13 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
                                     GestureDetector(
                                       onTap: () => removeItem(index),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red[100],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.delete_outline,
-                                          size: 16,
-                                          color: Colors.red,
-                                        ),
+                                      child: Icon(
+                                        Icons.delete_outline,
+                                        size: 18,
+                                        color: Colors.red[400],
                                       ),
                                     ),
                                   ],
@@ -791,6 +734,76 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                           ),
                         );
                       },
+                    ),
+                  ),
+
+                  // Checkout Bar
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A2332),
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withAlpha((0.1 * 255).round()),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${getTotalItems()} items',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 14,
+                                    color: Colors.white.withAlpha((0.6 * 255).round()),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'P${getTotalPrice().toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            ElevatedButton(
+                              onPressed: checkout,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1DBF73),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Checkout',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -809,14 +822,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
         final base64String = imageUrl.split(',')[1];
         return Image.memory(
           base64Decode(base64String),
-          width: 60,
-          height: 60,
+          width: 80,
+          height: 80,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return Icon(
               _getProductIcon(category),
-              color: const Color(0xFF4CAF50),
-              size: 30,
+              color: const Color(0xFF1DBF73),
+              size: 40,
             );
           },
         );
@@ -824,14 +837,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
         // Network URL image
         return Image.network(
           imageUrl,
-          width: 60,
-          height: 60,
+          width: 80,
+          height: 80,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return Icon(
               _getProductIcon(category),
-              color: const Color(0xFF4CAF50),
-              size: 30,
+              color: const Color(0xFF1DBF73),
+              size: 40,
             );
           },
         );
@@ -839,8 +852,8 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     } catch (e) {
       return Icon(
         _getProductIcon(category),
-        color: const Color(0xFF4CAF50),
-        size: 30,
+        color: const Color(0xFF1DBF73),
+        size: 40,
       );
     }
   }
