@@ -1188,11 +1188,12 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
             ],
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Logo
             TweenAnimationBuilder<double>(
               duration: const Duration(milliseconds: 1200),
@@ -1242,6 +1243,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
               description: 'Build relationships with local farmers and buyers',
             ),
           ],
+          ),
         ),
       ),
     );
