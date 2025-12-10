@@ -24,7 +24,7 @@ import 'farmer/AgriSynchTasksPage.dart';
 import 'auth/AgriSynchVerify.dart';
 import 'shared/AgriWeatherPage.dart';
 import 'buyer/BrowseProductsPage.dart';
-import 'buyer/AgriSynchBuyerProfileComplete.dart';
+import 'buyer/AgriSynchBuyerProfileWeb.dart';
 import 'shared/change_password_page.dart';
 import 'shared/HelpFeedbackPage.dart';
 import 'buyer/MyOrdersPage.dart';
@@ -108,7 +108,7 @@ class AgriSynchApp extends StatelessWidget {
         '/myOrders': (context) => const MyOrdersPage(),
         // Note: ProductDetailsPage requires parameters so cannot be added to static routes
         '/profile': (context) => const ProfilePage(),
-        '/buyer-profile-complete': (context) => const AgriSynchBuyerProfileComplete(),
+        '/buyer-profile-complete': (context) => const AgriSynchBuyerProfileWeb(),
         '/admin-portal': (context) => const AdminPortalPage(),
         '/admin-dashboard': (context) => const AdminDashboardPage(),
         // ... other routes

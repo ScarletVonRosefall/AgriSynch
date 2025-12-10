@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import '../auth/auth_service.dart';
-import '../services/validation_service.dart';
 import '../shared/theme_helper.dart';
 import '../shared/google_location_picker.dart';
 
@@ -66,7 +65,6 @@ class _AgriSynchBuyerProfileCompleteState
     setState(() => _isLoading = true);
 
     try {
-      final currentUser = FirebaseAuth.instance.currentUser;
       final userData = await AuthService.getUserData();
 
       if (userData != null && userData.exists) {
@@ -117,7 +115,7 @@ class _AgriSynchBuyerProfileCompleteState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Photo updated'),
+              content: Text('Photo updated successfully'),
               backgroundColor: Color(0xFF1DBF73),
             ),
           );
@@ -252,10 +250,30 @@ class _AgriSynchBuyerProfileCompleteState
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 900;
+    final isDesktop = screenWidth > 1024;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        centerTitle: true,
+        title: const Text(
+          'Complete Your Profile',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A2332),
+          ),
+        ),
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF1A2332)),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+      ),
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: _isLoading
@@ -265,287 +283,562 @@ class _AgriSynchBuyerProfileCompleteState
                 ),
               )
             : isDesktop
-                ? _buildDesktopLayout()
+                ? _buildWebLayout()
                 : _buildMobileLayout(),
       ),
     );
   }
 
-  Widget _buildDesktopLayout() {
-    return Row(
-      children: [
-        // Left panel with gradient and benefits
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF1DBF73).withOpacity(0.1),
-                  const Color(0xFF0F172A),
-                ],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Animated Logo
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 1200),
-                    tween: Tween<double>(begin: 0.0, end: 1.0),
-                    builder: (context, value, child) {
-                      return Transform.scale(
-                        scale: value,
-                        child: Opacity(
-                          opacity: value,
-                          child: Image.asset(
-                            'assets/AgriSynchLogoNB2.png',
-                            height: 100,
+  Widget _buildWebLayout() {
+    return SingleChildScrollView(
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Progress indicator
+              _buildProgressIndicator(),
+              const SizedBox(height: 40),
+              // Main card with left photo + right form
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFE0E7FF),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF000000).withOpacity(0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left side - Photo
+                    Container(
+                      width: 280,
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          bottomLeft: Radius.circular(16),
+                        ),
+                        border: Border(
+                          right: BorderSide(
+                            color: const Color(0xFFE0E7FF),
+                            width: 1,
                           ),
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'Complete Your Buyer Profile',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1DBF73),
-                      height: 1.3,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Profile photo
+                          Container(
+                            width: 180,
+                            height: 180,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF1DBF73),
+                                width: 4,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF1DBF73)
+                                      .withOpacity(0.15),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              image: _profileImageBase64 != null
+                                  ? DecorationImage(
+                                      image: MemoryImage(
+                                          base64Decode(_profileImageBase64!)),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: _profileImageBase64 == null
+                                ? Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          const Color(0xFF1DBF73)
+                                              .withOpacity(0.1),
+                                          const Color(0xFF1DBF73)
+                                              .withOpacity(0.05),
+                                        ],
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.person,
+                                      size: 80,
+                                      color: Color(0xFF1DBF73),
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(height: 24),
+                          // Upload button
+                          ElevatedButton.icon(
+                            onPressed: _pickImage,
+                            icon: const Icon(Icons.camera_alt, size: 16),
+                            label: const Text('Upload Photo'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1DBF73),
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Delete button
+                          if (_profileImageBase64 != null)
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() => _profileImageBase64 = null);
+                              },
+                              icon: const Icon(Icons.delete_outline, size: 16),
+                              label: const Text('Remove'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildBenefitItem(
-                    icon: Icons.shopping_bag,
-                    title: 'Browse Products',
-                    description: 'Find fresh produce from local farmers',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildBenefitItem(
-                    icon: Icons.local_shipping,
-                    title: 'Fast Delivery',
-                    description: 'Quick and reliable delivery to your location',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildBenefitItem(
-                    icon: Icons.verified_user,
-                    title: 'Secure Payments',
-                    description: 'Multiple payment methods for your convenience',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildBenefitItem(
-                    icon: Icons.chat,
-                    title: 'Direct Messaging',
-                    description: 'Chat with farmers for product information',
-                  ),
-                ],
+                    // Right side - Form
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title
+                            const Text(
+                              'Personal Information',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A2332),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Help us know you better',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // First and Last Name
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _firstNameController,
+                                    label: 'Your First Name',
+                                    icon: Icons.person_outline,
+                                    hintText: 'Juan',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _lastNameController,
+                                    label: 'Your Last Name',
+                                    icon: Icons.person_outline,
+                                    hintText: 'Dela Cruz',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            // Phone
+                            _buildTextField(
+                              controller: _phoneController,
+                              label: 'Phone Number',
+                              icon: Icons.phone_outlined,
+                              hintText: '+63 9XX XXX XXXX',
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 20),
+                            // Location
+                            _buildLocationField(),
+                            const SizedBox(height: 20),
+                            // Bio
+                            _buildTextField(
+                              controller: _bioController,
+                              label: 'Your Bio',
+                              icon: Icons.edit_outlined,
+                              hintText: 'Fresh food enthusiast from Nueva Ecija',
+                              maxLines: 3,
+                              maxLength: 200,
+                            ),
+                            const SizedBox(height: 24),
+                            // Preferences section
+                            const Divider(height: 32),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Preferences',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A2332),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildPreferenceCard(),
+                            const SizedBox(height: 32),
+                            // Submit button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _isSubmitting ? null : _saveProfile,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1DBF73),
+                                  disabledBackgroundColor:
+                                      const Color(0xFF90A4AE),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                child: _isSubmitting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'COMPLETE YOUR PROFILE',
+                                        style: TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 40),
+            ],
           ),
         ),
-        // Right panel with form
-        Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: _buildProfileForm(),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildMobileLayout() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Complete Your Profile',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Help us get to know you better as a buyer',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 14,
-                color: Color(0xFFB0BEC5),
-              ),
-            ),
-            const SizedBox(height: 32),
-            _buildProfileForm(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Profile Photo
-        Center(
-          child: Column(
-            children: [
-              _buildProfileImage(),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Upload Photo'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1DBF73),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Progress indicator
+          _buildProgressIndicator(),
+          const SizedBox(height: 24),
+          // Profile photo section
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF1DBF73),
+                      width: 4,
+                    ),
+                    image: _profileImageBase64 != null
+                        ? DecorationImage(
+                            image: MemoryImage(base64Decode(_profileImageBase64!)),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  child: _profileImageBase64 == null
+                      ? Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF1DBF73).withOpacity(0.1),
+                                const Color(0xFF1DBF73).withOpacity(0.05),
+                              ],
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Color(0xFF1DBF73),
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.camera_alt, size: 18),
+                  label: const Text('Upload Photo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DBF73),
+                    foregroundColor: Colors.white,
+                    elevation: 1,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Personal information card
+          _buildCard(
+            title: 'Personal Information',
+            subtitle: 'Help us know you better',
+            children: [
+              _buildTextField(
+                controller: _firstNameController,
+                label: 'First Name',
+                icon: Icons.person_outline,
+                hintText: 'Juan',
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: _lastNameController,
+                label: 'Last Name',
+                icon: Icons.person_outline,
+                hintText: 'Dela Cruz',
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: _phoneController,
+                label: 'Phone Number',
+                icon: Icons.phone_outlined,
+                hintText: '+63 9XX XXX XXXX',
+                keyboardType: TextInputType.phone,
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 32),
-        // Personal Information Section
-        _buildSectionTitle('Personal Information'),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _firstNameController,
-          label: 'First Name',
-          icon: Icons.person_outline,
-          hintText: 'Enter your first name',
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _lastNameController,
-          label: 'Last Name',
-          icon: Icons.person_outline,
-          hintText: 'Enter your last name',
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _phoneController,
-          label: 'Phone Number',
-          icon: Icons.phone_outlined,
-          hintText: '+63 9XX XXX XXXX',
-          keyboardType: TextInputType.phone,
-        ),
-        const SizedBox(height: 24),
-        // Location Section
-        _buildSectionTitle('Location & Delivery'),
-        const SizedBox(height: 16),
-        _buildLocationField(),
-        const SizedBox(height: 24),
-        // Bio Section
-        _buildSectionTitle('About You'),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _bioController,
-          label: 'Bio',
-          icon: Icons.edit_outlined,
-          hintText: 'Tell us a bit about yourself (50-200 characters)',
-          maxLines: 3,
-          maxLength: 200,
-        ),
-        const SizedBox(height: 24),
-        // Buyer Preferences Section
-        _buildSectionTitle('Preferences'),
-        const SizedBox(height: 16),
-        _buildPreferenceCard(),
-        const SizedBox(height: 24),
-        // Submit Button
-        ElevatedButton(
-          onPressed: _isSubmitting ? null : _saveProfile,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1DBF73),
-            disabledBackgroundColor: const Color(0xFF555B62),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 4,
+          const SizedBox(height: 16),
+          // Location card
+          _buildCard(
+            title: 'Location & Delivery',
+            subtitle: 'Where should we deliver?',
+            children: [
+              _buildLocationField(),
+            ],
           ),
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text(
-                  'Complete Profile',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
+          const SizedBox(height: 16),
+          // About you card
+          _buildCard(
+            title: 'About You',
+            subtitle: 'Tell us about yourself',
+            children: [
+              _buildTextField(
+                controller: _bioController,
+                label: 'Bio',
+                icon: Icons.edit_outlined,
+                hintText: 'Fresh food enthusiast...',
+                maxLines: 3,
+                maxLength: 200,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Preferences card
+          _buildCard(
+            title: 'Preferences',
+            subtitle: 'Customize your experience',
+            children: [
+              _buildPreferenceCard(),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // Submit button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _saveProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1DBF73),
+                disabledBackgroundColor: const Color(0xFF90A4AE),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileImage() {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: const Color(0xFF1DBF73),
-          width: 3,
-        ),
-        image: _profileImageBase64 != null
-            ? DecorationImage(
-                image: MemoryImage(base64Decode(_profileImageBase64!)),
-                fit: BoxFit.cover,
-              )
-            : null,
+                elevation: 2,
+              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Complete Profile',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
-      child: _profileImageBase64 == null
-          ? const Icon(
-              Icons.person,
-              size: 60,
-              color: Color(0xFF1DBF73),
-            )
-          : null,
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontFamily: 'Poppins',
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1DBF73),
+  Widget _buildProgressIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1DBF73).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF1DBF73).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF1DBF73),
+            ),
+            child: const Center(
+              child: Text(
+                '✓',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Complete your profile to unlock all features',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: Color(0xFF1DBF73),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard({
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE0E7FF),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A2332),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 20),
+          ...children,
+        ],
       ),
     );
   }
@@ -566,9 +859,9 @@ class _AgriSynchBuyerProfileCompleteState
           label,
           style: const TextStyle(
             fontFamily: 'Poppins',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A2332),
           ),
         ),
         const SizedBox(height: 8),
@@ -580,41 +873,40 @@ class _AgriSynchBuyerProfileCompleteState
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(
-              color: Color(0xFF90A4AE),
+              color: Color(0xFF94A3B8),
               fontFamily: 'Poppins',
             ),
             prefixIcon: Icon(
               icon,
               color: const Color(0xFF1DBF73),
+              size: 20,
             ),
             filled: true,
-            fillColor: const Color(0xFF1A2332),
-            contentPadding: const EdgeInsets.all(16),
+            fillColor: const Color(0xFFF8FAFC),
+            contentPadding: const EdgeInsets.all(14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF37474F)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF37474F)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               borderSide:
                   const BorderSide(color: Color(0xFF1DBF73), width: 2),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
             counterStyle: const TextStyle(
-              color: Color(0xFF90A4AE),
+              color: Color(0xFF94A3B8),
               fontFamily: 'Poppins',
+              fontSize: 12,
             ),
           ),
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF1A2332),
             fontFamily: 'Poppins',
+            fontSize: 14,
           ),
         ),
       ],
@@ -820,50 +1112,4 @@ class _AgriSynchBuyerProfileCompleteState
     );
   }
 
-  Widget _buildBenefitItem({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1DBF73).withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: const Color(0xFF1DBF73), size: 24),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12,
-                  color: Color(0xFFB0BEC5),
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }
