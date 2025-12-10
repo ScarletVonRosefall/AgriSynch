@@ -333,49 +333,69 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
   Widget _buildWebLayout(bool isDark) {
     return Row(
       children: [
-        // Left side - Branding and info
+        // Left side - Branding and info with gradient
         Expanded(
           flex: 1,
           child: Container(
-            color: const Color(0xFF1A2332),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF1DBF73).withOpacity(0.1),
+                  const Color(0xFF0F172A),
+                ],
+              ),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo/Brand
-                Text(
-                  'AgriSynch',
-                  style: const TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                // Animated Logo
+                TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 1200),
+                  tween: Tween<double>(begin: 0.0, end: 1.0),
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: Opacity(
+                        opacity: value,
+                        child: Image.asset(
+                          'assets/AgriSynchLogoNB2.png',
+                          height: 100,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Smart Farming Platform',
+                const SizedBox(height: 32),
+                // Main tagline
+                const Text(
+                  'Connecting Harvests to Homes',
                   style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white.withOpacity(0.9),
-                    fontWeight: FontWeight.w300,
+                    fontFamily: 'Poppins',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1DBF73),
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 48),
-                // Features list
-                _buildFeature(
+                const SizedBox(height: 24),
+                // Features list with styled bullets
+                _buildSignUpFeature(
                   icon: Icons.shopping_cart_outlined,
                   title: 'Browse Products',
                   description: 'Discover fresh products directly from farmers',
                 ),
-                const SizedBox(height: 32),
-                _buildFeature(
+                const SizedBox(height: 16),
+                _buildSignUpFeature(
                   icon: Icons.location_on_outlined,
                   title: 'Find Local Farmers',
                   description: 'Connect with farmers in your area',
                 ),
-                const SizedBox(height: 32),
-                _buildFeature(
+                const SizedBox(height: 16),
+                _buildSignUpFeature(
                   icon: Icons.verified_outlined,
                   title: 'Secure & Trusted',
                   description: 'Safe transactions and verified sellers',
@@ -429,30 +449,47 @@ class _ComprehensiveSignUpPageState extends State<AgriSynchComprehensiveSignUpPa
     );
   }
 
-  Widget _buildFeature({
+  Widget _buildSignUpFeature({
     required IconData icon,
     required String title,
     required String description,
   }) {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.white, size: 32),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1DBF73).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Icon(icon, color: const Color(0xFF1DBF73), size: 24),
         ),
-        const SizedBox(height: 4),
-        Text(
-          description,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white.withOpacity(0.85),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFFB0BEC5),
+                  height: 1.4,
+                ),
+              ),
+            ],
           ),
         ),
       ],
