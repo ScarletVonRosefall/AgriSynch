@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection: allow creation during signup, allow authenticated reads/writes
+    match /users/{userId} {
+      // Allow creating new user document when:
+      // 1. User is authenticated
+      // 2. UID matches the document being created
+      // 3. Has required fields
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['email', 'name'])
+        && request.resource.data.email == request.auth.token.email;
+      
+      // Allow user to read and update their own profile
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow deletion only if user owns the document
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Transactions (financial): allow authenticated user to read/write their own
+    match /users/{userId}/transactions/{transactionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Products: allow reads by anyone, allow stock updates (increase/decrease) for authenticated users
+    match /products/{productId} {
+      allow read: if true;
+      allow update: if request.auth != null;
+    }
+
+    // Orders: allow read/write for buyer and farmer and admins
+    match /orders/{orderId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.buyerId
+            || request.auth.uid == resource.data.farmerId
+            || request.auth.token.admin == true);
+
+      // Allow buyer/farmer to update their own order (for cancel)
+      allow update: if request.auth != null
+        && (request.auth.uid == resource.data.buyerId
+            || request.auth.uid == resource.data.farmerId);
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+    }
+
+    // Default: allow all authenticated reads/writes (dev-only, temporary)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

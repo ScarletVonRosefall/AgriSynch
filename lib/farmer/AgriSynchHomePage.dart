@@ -1,0 +1,1555 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'dart:async';
+import 'AgriSynchCalendarPage.dart';
+import 'AgriFinances.dart';
+import 'AgriCustomersPage.dart';
+import '../shared/weather_helper.dart';
+import '../shared/theme_helper.dart';
+import '../shared/notification_helper.dart';
+import '../shared/AgriNotificationPage.dart';
+import '../auth/auth_service.dart';
+import '../services/task_service.dart';
+import '../services/order_service.dart';
+import 'dart:convert';
+
+class AgriSynchHomePage extends StatefulWidget {
+  final Function(int)? onNavigateToTab;
+  const AgriSynchHomePage({super.key, this.onNavigateToTab});
+
+  @override
+  State<AgriSynchHomePage> createState() => _AgriSynchHomePageState();
+}
+
+class _AgriSynchHomePageState extends State<AgriSynchHomePage> {
+  final storage = FlutterSecureStorage();
+  final _themeNotifier = ThemeNotifier();
+  final _taskService = TaskService();
+  final _orderService = OrderService();
+
+  List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> orders = [];
+  int unreadNotifications = 0;
+  WeatherData? currentWeather;
+
+  bool _isLoading = true;
+  bool _needsReload = false;
+  Timer? _debounceTimer;
+  Timer? _refreshTimer;
+  Timer? _reloadTimer;
+
+  StreamSubscription? _tasksSubscription;
+  StreamSubscription? _ordersSubscription;
+  StreamSubscription? _banCheckSubscription;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _summaryPeriod = 'today'; // 'today', 'week', or 'month'
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.darkModeNotifier.addListener(_onThemeChanged);
+    _setupBanListener();
+    _initializeData();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _setupBanListener() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    _banCheckSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .snapshots()
+        .timeout(const Duration(seconds: 10))
+        .listen(
+          (snapshot) async {
+            if (!snapshot.exists || !mounted) return;
+
+            final data = snapshot.data();
+            final isBanned = data?['banned'] == true;
+            final suspendedUntil = data?['suspendedUntil'] as Timestamp?;
+            final isSuspended =
+                suspendedUntil != null &&
+                suspendedUntil.toDate().isAfter(DateTime.now());
+
+            if (isBanned || isSuspended) {
+              await FirebaseAuth.instance.signOut();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isBanned
+                        ? 'Your account has been banned. Reason: ${data?['banReason'] ?? 'Terms violation'}'
+                        : 'Your account has been suspended until ${suspendedUntil?.toDate().toString().split(' ')[0]}',
+                  ),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/login', (route) => false);
+            }
+          },
+          onError: (error) {
+            print('Ban check subscription error: $error');
+          },
+        );
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _refreshTimer?.cancel();
+    _reloadTimer?.cancel();
+    _tasksSubscription?.cancel();
+    _ordersSubscription?.cancel();
+    _banCheckSubscription?.cancel();
+    _themeNotifier.darkModeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  Future<void> _initializeData() async {
+    if (!mounted) return;
+
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      await Future.wait([loadTheme()]).timeout(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
+      await Future.wait([
+        loadTasksAndOrders(),
+        loadUnreadNotifications(),
+      ]).timeout(const Duration(seconds: 5));
+
+      if (!mounted) return;
+
+      _refreshTimer?.cancel();
+      _refreshTimer = Timer.periodic(
+        const Duration(minutes: 1),
+        (_) => _refreshData(),
+      );
+
+      _loadNonCriticalData();
+    } catch (e) {
+      if (!mounted) return;
+      _handleLoadError();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _handleLoadError() {
+    setState(() {
+      tasks = [];
+      orders = [];
+    });
+  }
+
+  Future<void> _refreshData() async {
+    if (!mounted || _isLoading) return;
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        await Future.wait([
+          loadTasksAndOrders(),
+          loadUnreadNotifications(),
+        ]).timeout(const Duration(seconds: 5));
+      } catch (e) {}
+    });
+  }
+
+  Future<void> _loadNonCriticalData() async {
+    if (!mounted) return;
+
+    // Load these independently without blocking each other
+    loadWeather().catchError((e) => print('Weather load failed: $e'));
+    checkAndCreateSampleNotifications().catchError(
+      (e) => print('Notifications check failed: $e'),
+    );
+  }
+
+  Future<void> loadTheme() async {
+    if (!mounted) return;
+  }
+
+  Future<void> loadTasksAndOrders() async {
+    if (!mounted) return;
+
+    try {
+      _tasksSubscription?.cancel();
+      _ordersSubscription?.cancel();
+
+      // Add timeout wrapper for task stream
+      _tasksSubscription = _taskService
+          .getTasks(limit: 100)
+          .timeout(const Duration(seconds: 10))
+          .listen(
+            (snapshot) {
+              if (!mounted) return;
+
+              final newTasks = snapshot.docs.map((doc) {
+                final data = doc.data();
+                return {
+                  'id': doc.id,
+                  'title': data['title'] ?? '',
+                  'description': data['description'] ?? '',
+                  'completed': data['completed'] ?? false,
+                  'dueDate': data['dueDate'],
+                  'priority': data['priority'] ?? 'Medium',
+                  'category': data['category'] ?? '',
+                  'createdAt': data['createdAt'],
+                };
+              }).toList();
+
+              if (mounted && !_areListsEqual(tasks, newTasks)) {
+                setState(() {
+                  tasks = newTasks;
+                });
+              }
+            },
+            onError: (error) {
+              print('Error loading tasks: $error');
+              if (mounted) {
+                setState(() {
+                  tasks = [];
+                });
+              }
+            },
+          );
+
+      // Add timeout wrapper for orders stream
+      _ordersSubscription = _orderService
+          .getMyFarmerOrders()
+          .timeout(const Duration(seconds: 10))
+          .listen(
+            (ordersList) {
+              if (!mounted) return;
+
+              final newOrders = ordersList.map((order) {
+                return {
+                  'id': order.id,
+                  'buyerName': order.buyerName,
+                  'status': order.status,
+                  'totalAmount': order.totalAmount,
+                  'createdAt': Timestamp.fromDate(order.orderDate),
+                  'items': order.items
+                      .map(
+                        (item) => {
+                          'productId': item.productId,
+                          'name': item.name,
+                          'quantity': item.quantity,
+                          'price': item.price,
+                        },
+                      )
+                      .toList(),
+                };
+              }).toList();
+
+              if (mounted && !_areListsEqual(orders, newOrders)) {
+                setState(() {
+                  orders = newOrders;
+                });
+              }
+            },
+            onError: (error) {
+              print('Error loading orders: $error');
+              if (mounted) {
+                setState(() {
+                  orders = [];
+                });
+              }
+            },
+          );
+    } catch (e) {
+      print('Error setting up task/order streams: $e');
+      if (mounted) {
+        setState(() {
+          tasks = [];
+          orders = [];
+        });
+      }
+    }
+  }
+
+  bool _areListsEqual(
+    List<Map<String, dynamic>> list1,
+    List<Map<String, dynamic>> list2,
+  ) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (!_areMapContentsEqual(list1[i], list2[i])) return false;
+    }
+    return true;
+  }
+
+  bool _areMapContentsEqual(
+    Map<String, dynamic> map1,
+    Map<String, dynamic> map2,
+  ) {
+    return json.encode(map1) == json.encode(map2);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_needsReload && !_isLoading) {
+      _needsReload = false;
+      // Schedule reload for next frame to avoid immediate heavy loading
+      _reloadTimer?.cancel();
+      _reloadTimer = Timer(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _refreshData();
+        }
+      });
+    }
+  }
+
+  Future<void> loadUnreadNotifications() async {
+    unreadNotifications = await NotificationHelper.getUnreadCount();
+    setState(() {});
+  }
+
+  Future<void> loadWeather() async {
+    if (!mounted) return;
+
+    try {
+      // Don't block UI - fire and forget with callback
+      WeatherHelper.getCurrentWeather()
+          .then((weather) {
+            if (mounted) {
+              setState(() {
+                currentWeather = weather;
+              });
+            }
+          })
+          .catchError((e) {
+            print('Weather load error: $e');
+            if (mounted) {
+              setState(() {
+                currentWeather = null;
+              });
+            }
+          });
+    } catch (e) {
+      // Silently fail - weather is optional
+      print('Weather init error: $e');
+    }
+  }
+
+  Future<void> checkAndCreateSampleNotifications() async {
+    await NotificationHelper.checkTaskDeadlines();
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasWelcomeNotification =
+        prefs.getBool('welcome_notification_sent') ?? false;
+
+    if (!hasWelcomeNotification) {
+      await NotificationHelper.addNotification(
+        title: 'Welcome to AgriSynch! 🌱',
+        message:
+            'Start managing your agricultural tasks and orders efficiently.',
+        type: NotificationHelper.systemNotification,
+      );
+      await prefs.setBool('welcome_notification_sent', true);
+    }
+
+    loadUnreadNotifications();
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return "Good Morning";
+    } else if (hour < 17) {
+      return "Good Afternoon";
+    } else {
+      return "Good Evening";
+    }
+  }
+
+  Widget _buildStatisticsSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: Stream.value(tasks),
+      builder: (context, snapshot) {
+        int totalTasks = tasks.length;
+        int totalOrders = orders.length;
+        int pendingTasks = tasks.where((t) => t['completed'] != true).length;
+        int pendingOrders = orders
+            .where(
+              (o) =>
+                  o['status']?.toLowerCase() != 'delivered' &&
+                  o['status']?.toLowerCase() != 'cancelled',
+            )
+            .length;
+
+        // Calculate revenue based on selected period
+        double periodRevenue = 0;
+        double pendingPayments = 0;
+
+        final now = DateTime.now();
+        DateTime periodStart;
+        String periodLabel;
+
+        switch (_summaryPeriod) {
+          case 'today':
+            periodStart = DateTime(now.year, now.month, now.day);
+            periodLabel = "Today's";
+            break;
+          case 'week':
+            periodStart = now.subtract(Duration(days: 7));
+            periodLabel = "This Week's";
+            break;
+          case 'month':
+            periodStart = DateTime(now.year, now.month, 1);
+            periodLabel = "This Month's";
+            break;
+          default:
+            periodStart = DateTime(now.year, now.month, now.day);
+            periodLabel = "Today's";
+        }
+
+        for (var order in orders) {
+          final orderDate = (order['createdAt'] as Timestamp?)?.toDate();
+          final amount = (order['totalAmount'] ?? 0.0) as num;
+          final status = (order['status'] ?? '').toString().toLowerCase();
+
+          if (orderDate != null && orderDate.isAfter(periodStart)) {
+            periodRevenue += amount.toDouble();
+          }
+
+          if (status == 'pending' || status == 'confirmed') {
+            pendingPayments += amount.toDouble();
+          }
+        }
+
+        return Column(
+          children: [
+            // Summary Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? const Color(0xFF1A2332)
+                    : const Color(0xFF1A2332),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                children: [
+                  // Period selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Summary",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildPeriodChip('Today', 'today'),
+                          const SizedBox(width: 4),
+                          _buildPeriodChip('Week', 'week'),
+                          const SizedBox(width: 4),
+                          _buildPeriodChip('Month', 'month'),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "• $totalTasks Total Tasks",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• $pendingTasks Pending Tasks",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• $totalOrders Total Orders",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• $pendingOrders Pending Orders",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "• ₱${periodRevenue.toStringAsFixed(2)} $periodLabel Revenue",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Color(0xFF1DBF73),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              "• ₱${pendingPayments.toStringAsFixed(2)} Pending Payments",
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.orange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFFFAFAFA)
+                              : Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.eco,
+                            color: isDarkMode
+                                ? const Color(0xFFFF6F00)
+                                : Colors.orange,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Compact Weather Card
+            _buildCompactWeatherCard(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactWeatherCard() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    if (currentWeather == null) {
+      return GestureDetector(
+        onTap: loadWeather,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? const Color(0xFF1A2332)
+                : const Color(0xFF1DBF73),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Center(
+            child: Text(
+              'Tap to load weather',
+              style: TextStyle(fontFamily: 'Poppins', color: Colors.white),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          // Weather icon and temperature
+          Text(
+            WeatherHelper.getWeatherIcon(currentWeather!.icon),
+            style: const TextStyle(fontSize: 40),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  currentWeather!.temperatureString,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  currentWeather!.capitalizedDescription,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Location and time in vertical layout
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on, color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    currentWeather!.location,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.thermostat, color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Feels ${currentWeather!.feelsLikeString}',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.access_time, color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormat('HH:mm').format(DateTime.now()),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherDetailsSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    if (currentWeather == null) {
+      return GestureDetector(
+        onTap: loadWeather,
+        child: Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? const Color(0xFF1A2332)
+                : const Color(0xFF1A2332),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.cloud_off,
+                  size: 48,
+                  color: isDarkMode ? Colors.white54 : Colors.grey,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Tap to load weather',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    color: isDarkMode ? Colors.white54 : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A2332) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.1 * 255).round()),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Weather Details',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.water_drop,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${currentWeather!.humidity}%',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Humidity',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.air,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${currentWeather!.windSpeed.toStringAsFixed(1)} km/h',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Wind Speed',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.thermostat,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      currentWeather!.feelsLikeString,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Feels Like',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.update,
+                      size: 24,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      DateFormat('HH:mm').format(DateTime.now()),
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Updated',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFarmingAdviceSection() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    if (currentWeather == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? const Color(0xFF1A2332).withAlpha((0.8 * 255).round())
+              : const Color(0xFF1A2332),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDarkMode
+                ? const Color(0xFF1DBF73)
+                : const Color(0xFF1DBF73),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.agriculture,
+                  color: isDarkMode ? Colors.white : const Color(0xFF1A2332),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Farming Advice',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check weather conditions regularly',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: isDarkMode ? Colors.white70 : Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? const Color(0xFF1A2332).withAlpha((0.8 * 255).round())
+            : const Color(0xFF1A2332),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF1DBF73) : const Color(0xFF1DBF73),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.agriculture,
+                color: isDarkMode ? Colors.white : const Color(0xFF1A2332),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Farming Advice',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : const Color(0xFF1A2332),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            WeatherHelper.getWeatherAdvice(
+              currentWeather!.description,
+              currentWeather!.temperature,
+            ),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              color: isDarkMode ? Colors.white70 : const Color(0xFF1A2332),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: ThemeHelper.getBackgroundColor(isDarkMode),
+      body: Column(
+        children: [
+          // --- Fixed Top Green Header ---
+          Container(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.of(context).padding.top + 8,
+              20,
+              8,
+            ),
+            width: double.infinity,
+            decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildGreetingText(),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Let's Get Tasks Done!",
+                            style: ThemeHelper.getSubHeaderTextStyle(
+                              isDark: isDarkMode,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha((0.2 * 255).round()),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriNotificationPage(),
+                                ),
+                              );
+                              // Reload notification count when returning
+                              loadUnreadNotifications();
+                            },
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                        if (unreadNotifications > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadNotifications > 9
+                                    ? '9+'
+                                    : unreadNotifications.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Search bar
+                Container(
+                  height: 42,
+                  decoration: ThemeHelper.getContainerDecoration(
+                    isDark: isDarkMode,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.search,
+                        color: ThemeHelper.getIconColor(isDarkMode),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search tasks or orders...',
+                            border: InputBorder.none,
+                            hintStyle: ThemeHelper.getHintTextStyle(
+                              isDark: isDarkMode,
+                            ),
+                          ),
+                          style: ThemeHelper.getBodyTextStyle(
+                            isDark: isDarkMode,
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value.trim();
+                            });
+                          },
+                        ),
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _searchQuery = '';
+                              _searchController.clear();
+                            });
+                          },
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: ThemeHelper.getIconColor(isDarkMode),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_searchQuery.isNotEmpty) _buildSearchResults(isDarkMode),
+
+          // --- Scrollable Content ---
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWideScreen = constraints.maxWidth > 700;
+
+                        if (isWideScreen) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  children: [_buildStatisticsSection()],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: [
+                                    _buildWeatherDetailsSection(),
+                                    const SizedBox(height: 16),
+                                    _buildFarmingAdviceSection(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              _buildStatisticsSection(),
+                              const SizedBox(height: 16),
+                              _buildWeatherDetailsSection(),
+                              const SizedBox(height: 16),
+                              _buildFarmingAdviceSection(),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      "Jump Into Our Work!",
+                      style: ThemeHelper.getTextStyle(
+                        isDark: isDarkMode,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // --- Tile List ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        _homeTile(
+                          icon: Icons.calendar_month,
+                          title: "Calendar",
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriSynchCalendarPage(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {}
+                          },
+                        ),
+                        _homeTile(
+                          icon: Icons.attach_money,
+                          title: "Finances",
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriFinances(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {}
+                          },
+                        ),
+                        _homeTile(
+                          icon: Icons.people_alt,
+                          title: "Customers",
+                          onTap: () async {
+                            try {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AgriCustomersPage(),
+                                ),
+                              );
+                              if (mounted) {
+                                _needsReload = true;
+                              }
+                            } catch (e) {}
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _homeTile({
+    required IconData icon,
+    required String title,
+    VoidCallback? onTap,
+  }) {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFF1DBF73),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.white),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 18,
+          color: Colors.white,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  // Builds search results for tasks and orders
+  Widget _buildSearchResults(bool isDarkMode) {
+    final q = _searchQuery.toLowerCase();
+    final taskMatches = tasks
+        .where((t) => (t['title'] ?? '').toString().toLowerCase().contains(q))
+        .take(5)
+        .toList();
+    final orderMatches = orders
+        .where((o) {
+          final buyer = (o['buyerName'] ?? '').toString().toLowerCase();
+          final status = (o['status'] ?? '').toString().toLowerCase();
+          return buyer.contains(q) || status.contains(q);
+        })
+        .take(5)
+        .toList();
+
+    if (taskMatches.isEmpty && orderMatches.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFFE8F5E9),
+        child: Text(
+          'No matches',
+          style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A2332) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (taskMatches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4, bottom: 4),
+              child: Text(
+                'Tasks',
+                style: ThemeHelper.getBodyTextStyle(
+                  isDark: isDarkMode,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ...taskMatches.map(
+            (t) => ListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(
+                Icons.task_alt,
+                color: Colors.green,
+                size: 20,
+              ),
+              title: Text(
+                (t['title'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+              ),
+              onTap: () {
+                // Clear search and navigate to Tasks page (index 1)
+                setState(() {
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+                widget.onNavigateToTab?.call(1);
+              },
+            ),
+          ),
+          if (orderMatches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 8, bottom: 4),
+              child: Text(
+                'Orders',
+                style: ThemeHelper.getBodyTextStyle(
+                  isDark: isDarkMode,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ...orderMatches.map(
+            (o) => ListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(
+                Icons.shopping_cart,
+                color: Colors.orange,
+                size: 20,
+              ),
+              title: Text(
+                (o['buyerName'] ?? 'Order').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeHelper.getBodyTextStyle(isDark: isDarkMode),
+              ),
+              subtitle: Text(
+                (o['status'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ThemeHelper.getHintTextStyle(isDark: isDarkMode),
+              ),
+              onTap: () {
+                // Clear search and navigate to Orders page (index 3)
+                setState(() {
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+                widget.onNavigateToTab?.call(3);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGreetingText() {
+    final isDarkMode = _themeNotifier.isDarkMode;
+
+    return FutureBuilder<Map<String, String?>>(
+      future: _loadUserProfileData(),
+      builder: (context, snapshot) {
+        String displayName = '';
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          final fullName = data['name'] ?? data['nickname'] ?? '';
+
+          // Extract surname and first name only (first two parts)
+          if (fullName.isNotEmpty) {
+            final nameParts = fullName.split(',').map((e) => e.trim()).toList();
+            if (nameParts.length >= 2) {
+              // Format: "Surname, First Name"
+              displayName = '${nameParts[0]}, ${nameParts[1].split(' ').first}';
+            } else {
+              // If no comma, just take first two words
+              final words = fullName
+                  .split(' ')
+                  .where((w) => w.isNotEmpty)
+                  .toList();
+              if (words.length >= 2) {
+                displayName = '${words[0]} ${words[1]}';
+              } else {
+                displayName = fullName;
+              }
+            }
+          }
+        }
+
+        return Text(
+          "${_getGreeting()}${displayName.isNotEmpty ? ' $displayName' : ''}!",
+          style: ThemeHelper.getHeaderTextStyle(isDark: isDarkMode),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        );
+      },
+    );
+  }
+
+  Future<Map<String, String?>> _loadUserProfileData() async {
+    try {
+      // Import auth service here to load from Firebase
+      final userData = await AuthService.getUserData();
+
+      if (userData != null && userData.exists) {
+        final data = userData.data() as Map<String, dynamic>;
+        return {
+          'name': data['name'] ?? '',
+          'nickname': data['nickname'] ?? '',
+          'profileImage': data['profileImage'] ?? '',
+        };
+      } else {
+        // Fallback to local storage
+        final name =
+            await storage.read(key: 'user_name') ??
+            await storage.read(key: 'name') ??
+            '';
+        final nickname = await storage.read(key: 'user_nickname') ?? '';
+        final profileImage = await storage.read(key: 'profile_image') ?? '';
+
+        return {
+          'name': name,
+          'nickname': nickname,
+          'profileImage': profileImage,
+        };
+      }
+    } catch (e) {
+      return {'name': '', 'nickname': '', 'profileImage': ''};
+    }
+  }
+
+  Widget _buildPeriodChip(String label, String value) {
+    final isSelected = _summaryPeriod == value;
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 11,
+          color: isSelected ? Colors.white : const Color(0xFFB0BEC5),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: const Color(0xFF1DBF73),
+      backgroundColor: const Color(0xFF1A2332),
+      checkmarkColor: Colors.white,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _summaryPeriod = value;
+          });
+        }
+      },
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+}
