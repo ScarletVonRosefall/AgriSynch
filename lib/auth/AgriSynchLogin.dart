@@ -139,8 +139,10 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
     final ValueNotifier<bool> showPassword = ValueNotifier(false);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark background
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
+        left: MediaQuery.of(context).size.width <= 900,
+        right: MediaQuery.of(context).size.width <= 900,
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SlideTransition(
@@ -155,7 +157,7 @@ class _AgriSynchLoginPageState extends State<AgriSynchLoginPage>
                     child: IntrinsicHeight(
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: MediaQuery.of(context).size.width < 600 ? 16 : 40,
+                          horizontal: MediaQuery.of(context).size.width < 600 ? 16 : (MediaQuery.of(context).size.width > 900 ? 0 : 40),
                         ),
                         child: MediaQuery.of(context).size.width > 900
                             ? Row(
