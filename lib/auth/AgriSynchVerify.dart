@@ -12,7 +12,8 @@ class AgriSynchEmailVerificationPage extends StatefulWidget {
 }
 
 class _AgriSynchEmailVerificationPageState
-    extends State<AgriSynchEmailVerificationPage> {
+    extends State<AgriSynchEmailVerificationPage>
+    with SingleTickerProviderStateMixin {
   bool isLoading = false;
   final auth = FirebaseAuth.instance;
   final TextEditingController codeController = TextEditingController();
@@ -21,11 +22,24 @@ class _AgriSynchEmailVerificationPageState
   bool _navigating = false;
 
   int _checkAttempts = 0;
-  static const int _maxAttempts = 10; // 10 checks maximum (10 * 15 seconds = 2.5 minutes)
+  static const int _maxAttempts = 10;
+  
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _fadeController.forward();
     _initializeVerification();
   }
 
@@ -237,104 +251,232 @@ class _AgriSynchEmailVerificationPageState
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1DBF73),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Verify Email',
-          style: TextStyle(color: Colors.white, fontFamily: 'Poppins', fontWeight: FontWeight.bold),
-        ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: isDesktop
+            ? _buildDesktopLayout()
+            : _buildMobileLayout(),
       ),
-      body: Padding(
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Left panel with gradient
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF1DBF73).withOpacity(0.1),
+                  const Color(0xFF0F172A),
+                ],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 60),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Animated Logo
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 1200),
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: Opacity(
+                          opacity: value,
+                          child: Image.asset(
+                            'assets/AgriSynchLogoNB2.png',
+                            height: 100,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  // Main tagline
+                  const Text(
+                    'Verify Your Account',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1DBF73),
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Features
+                  _buildVerificationBenefit(
+                    icon: Icons.security,
+                    title: 'Secure Account',
+                    description: 'Email verification protects your account',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildVerificationBenefit(
+                    icon: Icons.mail_outline,
+                    title: 'Quick Process',
+                    description: 'Just click the link we sent to your email',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildVerificationBenefit(
+                    icon: Icons.check_circle_outline,
+                    title: 'Start Using',
+                    description: 'Full access to AgriSynch once verified',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Right panel with verification form
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Verify Email',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'We\'ve sent a verification link to your email',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        color: Color(0xFFB0BEC5),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildStatusCard(),
+                    const SizedBox(height: 32),
+                    // Resend button
+                    ElevatedButton(
+                      onPressed: isLoading ? null : resendVerificationEmail,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1DBF73),
+                        disabledBackgroundColor: const Color(0xFF555B62),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Resend Verification Email',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Check button
+                    OutlinedButton.icon(
+                      onPressed: isLoading ? null : verifyEmail,
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text(
+                        'I\'ve Already Verified - Check Now',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: Color(0xFF1DBF73)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        foregroundColor: const Color(0xFF1DBF73),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Help text
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '💡 Tip: Check your spam/junk folder if you don\'t see the email.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SafeArea(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Verify Your Email",
+              'Verify Email',
               style: TextStyle(
-                fontSize: 20,
+                fontFamily: 'Poppins',
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
+                color: Colors.white,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             const Text(
-              "We've sent a verification link to your email. Please click the link in the email to verify your account.",
+              'We\'ve sent a verification link to your email. Please click the link to verify your account.',
               style: TextStyle(
-                fontSize: 14,
                 fontFamily: 'Poppins',
-                color: Colors.black87,
+                fontSize: 14,
+                color: Color(0xFFB0BEC5),
               ),
             ),
-            const SizedBox(height: 24),
-            
-            // Auto-checking status indicator
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1DBF73).withAlpha((0.1 * 255).round()),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFF1DBF73),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: const Color(0xFF1DBF73),
-                      strokeWidth: 2,
-                      value: _checkAttempts / _maxAttempts,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Auto-Checking Email Verification",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Poppins',
-                            color: Color(0xFF1DBF73),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Checking every 15 seconds... ($_checkAttempts/$_maxAttempts)',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'Poppins',
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
             const SizedBox(height: 32),
-            const Text(
-              "Haven't received the email?",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Poppins',
-              ),
-            ),
-            const SizedBox(height: 12),
-            
+            _buildStatusCard(),
+            const SizedBox(height: 32),
             // Resend button
             SizedBox(
               width: double.infinity,
@@ -342,10 +484,13 @@ class _AgriSynchEmailVerificationPageState
                 onPressed: isLoading ? null : resendVerificationEmail,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1DBF73),
+                  disabledBackgroundColor: const Color(0xFF555B62),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 4,
                 ),
                 child: isLoading
                     ? const SizedBox(
@@ -359,18 +504,14 @@ class _AgriSynchEmailVerificationPageState
                     : const Text(
                         'Resend Verification Email',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w600,
                         ),
                       ),
               ),
             ),
-            
-            const SizedBox(height: 24),
-            
-            // Manual check button (for users who already clicked the link but auto-check didn't detect it)
+            const SizedBox(height: 16),
+            // Check button
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -379,7 +520,6 @@ class _AgriSynchEmailVerificationPageState
                 label: const Text(
                   'I\'ve Already Verified - Check Now',
                   style: TextStyle(
-                    fontSize: 14,
                     fontFamily: 'Poppins',
                   ),
                 ),
@@ -393,18 +533,16 @@ class _AgriSynchEmailVerificationPageState
                 ),
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
+            const SizedBox(height: 24),
             // Help text
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withAlpha((0.05 * 255).round()),
+                color: Colors.blue.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                "💡 Tip: Check your spam/junk folder if you don't see the verification email.",
+                '💡 Tip: Check your spam/junk folder if you don\'t see the email.',
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: 'Poppins',
@@ -418,9 +556,110 @@ class _AgriSynchEmailVerificationPageState
     );
   }
 
+  Widget _buildStatusCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1DBF73).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF1DBF73),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: const Color(0xFF1DBF73),
+              strokeWidth: 2,
+              value: _checkAttempts / _maxAttempts,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Auto-Checking Email Verification',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1DBF73),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Checking every 15 seconds... ($_checkAttempts/$_maxAttempts)',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: Color(0xFFB0BEC5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerificationBenefit({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1DBF73).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFF1DBF73), size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFFB0BEC5),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _fadeController.dispose();
     codeController.dispose();
     super.dispose();
   }
