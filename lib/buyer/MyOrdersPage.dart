@@ -661,13 +661,13 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         children: [
           // Header
           Container(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 10),
             width: double.infinity,
             decoration: BoxDecoration(
               color: headerColor,
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
               ),
             ),
             child: Row(
@@ -680,7 +680,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 20,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -708,13 +708,13 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             children: [
               // Header
               Container(
-                padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+                padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 10),
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: headerColor,
                   borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(28),
-                    bottomRight: Radius.circular(28),
+                    bottomLeft: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
                   ),
                 ),
                 child: Row(
@@ -726,7 +726,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 20,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -737,8 +737,8 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
               // Filter Tabs
               Container(
-                height: 60,
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                height: 48,
+                padding: const EdgeInsets.symmetric(vertical: 6),
                 child: ScrollConfiguration(
                   behavior: ScrollConfiguration.of(context).copyWith(
                     dragDevices: {

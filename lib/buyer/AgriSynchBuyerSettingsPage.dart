@@ -175,19 +175,19 @@ class _AgriSynchBuyerSettingsPageState
         children: [
           // Top Header
           Container(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
             width: double.infinity,
             decoration: BoxDecoration(
               color: headerColor,
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -204,17 +204,17 @@ class _AgriSynchBuyerSettingsPageState
                           Text(
                             'Settings',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                               fontFamily: 'Poppins',
                             ),
                           ),
-                          SizedBox(height: 4),
+                          SizedBox(height: 2),
                           Text(
                             'Manage account & preferences',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               color: Color(0xFFB0BEC5),
                               fontFamily: 'Poppins',
                             ),

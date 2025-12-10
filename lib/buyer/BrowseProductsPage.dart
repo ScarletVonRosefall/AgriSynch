@@ -581,7 +581,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
         children: [
           // Header
           Container(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
             width: double.infinity,
             decoration: ThemeHelper.getHeaderDecoration(isDark: isDarkMode),
             child: Column(
@@ -595,7 +595,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 20,
                         ),
                       ),
                     ),
@@ -603,6 +603,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                          iconSize: 22,
                           onPressed: () async {
                             // Navigate to cart page
                             final result = await Navigator.push(
@@ -642,27 +643,27 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 // Search Bar
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: TextField(
                     onChanged: (value) => setState(() => searchQuery = value),
                     decoration: InputDecoration(
                       hintText: 'Search products...',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search, size: 20),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 // Category Filter
                 SizedBox(
-                  height: 50,
+                  height: 42,
                   child: ScrollConfiguration(
                     behavior: ScrollConfiguration.of(context).copyWith(
                       dragDevices: {
@@ -679,7 +680,7 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                         final category = categories[index];
                         final isSelected = selectedCategory == category;
                         return Padding(
-                          padding: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
                             label: Text(category),
                             selected: isSelected,
@@ -694,18 +695,18 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                             labelStyle: TextStyle(
                               color: isSelected ? Colors.white : const Color(0xFF2E7D32),
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                             checkmarkColor: Colors.white,
                             side: BorderSide.none,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           ),
                         );
                       },
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 // Filter and Sort Row
                 Row(
                   children: [
@@ -713,12 +714,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showFilterDialog(),
-                        icon: const Icon(Icons.filter_list, size: 18),
-                        label: const Text('Filters'),
+                        icon: const Icon(Icons.filter_list, size: 16),
+                        label: const Text('Filters', style: TextStyle(fontSize: 13)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                           side: const BorderSide(color: Colors.white),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
                     ),
@@ -727,12 +728,12 @@ class _BrowseProductsPageState extends State<BrowseProductsPage> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showSortDialog(),
-                        icon: const Icon(Icons.sort, size: 18),
-                        label: Text(_getSortLabel()),
+                        icon: const Icon(Icons.sort, size: 16),
+                        label: Text(_getSortLabel(), style: const TextStyle(fontSize: 13)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                           side: const BorderSide(color: Colors.white),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
                     ),
