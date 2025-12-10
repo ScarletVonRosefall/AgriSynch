@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import '../auth/auth_service.dart';
@@ -165,20 +166,32 @@ class _AgriSynchBuyerProfileCompleteState
 
       final success = await AuthService.updateUserProfile(
         name: fullName,
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
         phone: _phoneController.text.trim(),
         location: _locationController.text.trim(),
         bio: _bioController.text.trim(),
         profileImage: _profileImageBase64,
         profileComplete: true,
-        additionalData: {
-          'acceptsNotifications': _acceptsNotifications,
-          'preferredPaymentMethod': _preferredPaymentMethod,
-          'dietaryPreferences': _dietaryPreferences,
-          'userType': 'buyer',
-        },
       );
+
+      // Save buyer-specific preferences to Firestore
+      if (success) {
+        try {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({
+              'acceptsNotifications': _acceptsNotifications,
+              'preferredPaymentMethod': _preferredPaymentMethod,
+              'dietaryPreferences': _dietaryPreferences,
+              'userType': 'buyer',
+            });
+          }
+        } catch (e) {
+          debugPrint('Error saving buyer preferences: $e');
+        }
+      }
 
       if (!success) {
         _showError('Failed to save profile. Please try again.');
@@ -545,7 +558,6 @@ class _AgriSynchBuyerProfileCompleteState
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
     int? maxLength,
-    List<dynamic>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -672,11 +684,25 @@ class _AgriSynchBuyerProfileCompleteState
               child: IconButton(
                 onPressed: () async {
                   try {
-                    final location = await GoogleLocationPicker.getLocation(context);
-                    if (location != null && location.isNotEmpty) {
+                    final result = await Navigator.push<LocationPickerResult>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GoogleLocationPickerPage(),
+                      ),
+                    );
+                    if (result != null) {
                       setState(() {
-                        _locationController.text = location;
+                        _locationController.text = result.address;
                       });
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Location selected'),
+                            backgroundColor: Color(0xFF1DBF73),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
                     }
                   } catch (e) {
                     _showError('Error getting location: $e');
